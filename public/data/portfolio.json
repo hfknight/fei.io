@@ -1,0 +1,45 @@
+{
+  "sections": [
+    {
+      "id": "dawn",
+      "title": {
+        "text": "Hi, I'm Fei",
+        "highlight": "Fei"
+      },
+      "subtitle": "Web Developer based in Texas, US.<br/>creating aesthetical and intuitive user interfaces that blend thoughtful design with robust engineering.",
+      "gradient": "linear-gradient(180deg, #1a1a3e 0%, #ff9a9e 50%, #fecfef 100%)"
+    },
+    {
+      "id": "morning",
+      "title": {
+        "text": "This is the way"
+      },
+      "subtitle": "Well over a decade in the game, I've built enough professional websites (20-ish, if you're counting!) plus complex commercial SaaS systems with business logic that'd make your head spin. Think of me as the digital architect who keeps things sparkling clean with quality code and always, always delivers on time.",
+      "gradient": "linear-gradient(180deg, #fecfef 0%, #FFE4B5 50%, #87CEEB 100%)"
+    },
+    {
+      "id": "afternoon",
+      "title": {
+        "text": "Leveling Up"
+      },
+      "subtitle": "My coding journey started with the classics - HTML, CSS, JavaScript, and Java - back when we coded uphill both ways in the snow. Then came the great React revolution, I joined the rebellion and mastering React and TypeScript to build the modern, scalable applications that define today's web - staying ahead of the curve keeps me engaged.",
+      "gradient": "linear-gradient(180deg, #87CEEB 0%, #4682B4 50%, #FF8C69 100%)"
+    },
+    {
+      "id": "evening",
+      "title": {
+        "text": "The Good Vibes"
+      },
+      "subtitle": "Thriving between lead developer and lone wolf roles whenever the project needs me, clear communication and positive attitude is my superpower. Whether I'm coordinating clients, architecting solutions, or mentoring junior developers to level up their skills, I adapt seamlessly to get the job done.",
+      "gradient": "linear-gradient(180deg, #FF8C69 0%, #ff6b6b 50%, #f9124f 60%, #0f3460 100%)"
+    },
+    {
+      "id": "midnight",
+      "title": {
+        "text": "Thank You"
+      },
+      "subtitle": "If you've made it this far, thank you for spending a bit of your time with my story. Big thanks to my family, my incredible wife, and our adorable crew, Ollie and Jojo — you make everything worth it.",
+      "gradient": "linear-gradient(180deg, #0f3460 0%, #1a1a3e 50%, #000000 100%)"
+    }
+  ]
+}
