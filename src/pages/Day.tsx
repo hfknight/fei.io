@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import TimeSection from '../components/DayJourney/TimeSection';
 import type { JsonData, TimeSection as TimeSectionData } from '../types';
-import NavigationDots from '../components/DayJourney/NavigationDots';
+// import NavigationDots from '../components/DayJourney/NavigationDots';
 import ScrollIndicator from '../components/DayJourney/ScrollIndicator';
 import { transformJsonToTimeSections } from '../utils';
 
@@ -150,11 +150,11 @@ const OneDayInLife: React.FC = () => {
 
   return (
     <>
-      <NavigationDots
+      {/* <NavigationDots
         sections={timeSections}
         activeSection={activeSection}
         onDotClick={scrollToSection}
-      />
+      /> */}
       {showScrollIndicator && <ScrollIndicator />}
 
       <PageContainer>
