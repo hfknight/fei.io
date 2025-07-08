@@ -62,7 +62,7 @@ const Footer: React.FC = () => {
             © {new Date().getFullYear()} Fei. All rights reserved.
           </Copyright>
           <SocialLinks>
-            <SocialLink className="social_link" href="https://github.com/yourusername" target="_blank" rel="noopener noreferrer">
+            <SocialLink className="social_link" href="https://github.com/hfknight" target="_blank" rel="noopener noreferrer">
               <Github size={20} />
             </SocialLink>
             <SocialLink className="social_link" href="https://linkedin.com/in/fei.hu" target="_blank" rel="noopener noreferrer">
