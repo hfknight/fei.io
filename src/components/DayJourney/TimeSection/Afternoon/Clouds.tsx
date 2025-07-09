@@ -9,6 +9,12 @@ const CloudContainer = styled(motion.div)`
   left: 0;
   overflow: hidden;
   pointer-events: none;
+
+  @media (max-width: 768px) {
+    .cloud-large {
+      display: none;
+    }
+  }
 `;
 
 const Cloud = styled(motion.div)<{ $size: 'small' | 'medium' | 'large'; $top: string; $left: string }>`
@@ -134,6 +140,7 @@ const CloudAnimation: React.FC = () => {
         return (
           <Cloud
             key={cloud.id}
+            className={`cloud cloud-${cloud.size}`}
             $size={cloud.size}
             $top={cloud.top}
             $left={cloud.left}

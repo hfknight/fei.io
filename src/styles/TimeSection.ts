@@ -74,10 +74,10 @@ export const SectionContent = styled(motion.div)`
   @media (max-width: 768px) {
     max-width: calc(100vw - 4rem);
     &.afternoon-content {
-      margin-block-start: -20%;
+      margin-block-start: -20vh;
     }
     &.evening-content {
-      margin-block-start: -130%;
+      margin-block-start: -70vh;
     }
   }
   @media (min-width: 1024px) {
@@ -87,7 +87,7 @@ export const SectionContent = styled(motion.div)`
 
 export const SectionTitle = styled.h1.attrs({ className: 'section-title' })`
   font-family: var(--day-font-primary);
-  font-size: 4rem;
+  font-size: clamp(2rem, 8vw, 4rem);;
   font-weight: 300;
   margin-bottom: 1rem;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
@@ -101,12 +101,12 @@ export const SectionTitle = styled.h1.attrs({ className: 'section-title' })`
 
   &.afternoon-title {
     font-family: var(--day-font-retro);
-    font-size: 3rem;
+    font-size: clamp(1rem, 8vw, 3rem);
     letter-spacing: -2px;
   }
 
   @media (max-width: 768px) {
-    font-size: 2.5rem;
+    /* font-size: 2.5rem; */
   }
 `;
 

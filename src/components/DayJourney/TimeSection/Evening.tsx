@@ -134,13 +134,13 @@ const Sun = styled(motion.div)`
 const RetroAnimeSectionTitle = styled(SectionTitle)`
   border-radius: 2rem;
   display: inline-block;
-  padding: 2rem;
+  padding: 2rem 0;
   color: #ffffff;
   font-family: var(--day-font-neon);
   font-weight: 500;
   /* text-transform: uppercase; */
   /* letter-spacing: 0.15em; */
-  font-size: clamp(2rem, 10vw, 6rem);
+  font-size: clamp(3rem, 10vw, 6rem);
 
   /* box-shadow: 0 0 5px #00ffff,
               0 0 10px #00ffff,

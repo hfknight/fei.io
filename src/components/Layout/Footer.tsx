@@ -22,6 +22,10 @@ const FooterContent = styled.div`
     justify-content: space-between;
     text-align: left;
   }
+
+  @media (max-width: ${props => props.theme.breakpoints.sm}) {
+    gap: ${props => props.theme.spacing.sm};
+  }
 `;
 
 const SocialLinks = styled.div`

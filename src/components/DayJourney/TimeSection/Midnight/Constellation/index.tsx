@@ -9,25 +9,31 @@ interface ConstellationProps {
   connectionLines: ConstellationLine[]
   delay?: number;
   scale?: number;
-  top?: string;
-  left?: string;
+  top?: { sm: string; lg: string };
+  left?: { sm: string; lg: string };
   angle?: number;
   imgAltText?: string;
 }
 
 const ConstellationContainer = styled(motion.div)<{
-  $top?: string;
-  $left?: string;
+  $top?: { sm: string; lg: string };
+  $left?: { sm: string; lg: string };
   $angle?: number;
   $scale?: number;
 }>`
   position: absolute;
-  top: ${(props) => props.$top || '20%'};
-  left: ${(props) => props.$left || '50%'};
+  top: ${(props) => props.$top?.lg || '20%'};
+  left: ${(props) => props.$left?.lg || '50%'};
   width: 225px;
   rotate: ${(props) => (props.$angle || 0)}deg;
   scale: ${(props) => (props.$scale || 1)};
   transform-origin: center;
+
+  @media (max-width: 768px) {
+    top: ${(props) => props.$top?.sm || '10%'};
+    left: ${(props) => props.$left?.sm || '50%'};
+    scale: ${(props) => (props.$scale || 1) * 0.75};
+  }
 `;
 
 const ConstellationStar = styled(motion.div)<{
@@ -47,12 +53,12 @@ const ConstellationStar = styled(motion.div)<{
 const ConstellationLine = styled(motion.div)<{ $scale?: number }>`
   position: absolute;
   height: ${(props) => props.$scale || 1}px;
-  /* background: linear-gradient(
+  background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0.6),
     rgba(255, 255, 255, 0.2)
-  ); */
-  background-color: rgba(255, 255, 255, 0.6);
+  );
+  /* background-color: rgba(255, 255, 255, 0.6); */
   transform-origin: left center;
 `;
 
@@ -145,7 +151,7 @@ const Constellation: React.FC<ConstellationProps> = ({
 
   return (
     <ConstellationContainer
-      className="samoyed-constellation-container"
+      className="constellation-container"
       $top={top}
       $left={left}
       $angle={angle}
