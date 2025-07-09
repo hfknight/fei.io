@@ -14,7 +14,11 @@ const SunContainer = styled(motion.div).attrs({ className: 'sun-container'})`
 const Sun = styled(motion.div).attrs({className: 'sun'})`
   width: 200px;
   height: 200px;
-  /* background: radial-gradient(circle at 30% 30%, #fff5b0, #ffeb3b, #ff9800); */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* background: radial-gradient(circle at 50% 50%, #fff5b0, #ffeb3b, #ff9800); */
   background: #fff5b0;
   border-radius: 50%;
   box-shadow:
@@ -38,6 +42,22 @@ const Sun = styled(motion.div).attrs({className: 'sun'})`
   @keyframes pulse {
     0%, 100% { transform: scale(1); opacity: 0.6; }
     50% { transform: scale(1.1); opacity: 0.8; }
+  }
+`;
+
+const CutieImage = styled.div`
+  width: 60%;
+  height: 60%;
+  background-image: radial-gradient(circle at center, transparent 0, #fff5b0 80%), url("/angela_headshot_2.webp");
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.6;
+  animation: pulse 4s ease-in-out infinite;
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 0.6; }
   }
 `;
 
@@ -178,7 +198,7 @@ const SunAnimation: React.FC<SunAnimationProps> = ({ scrollProgress }) => {
         <Hexagon $scaleRatio={hexaganScaleRatio} $distance={750} $size={90} $opacity={0.9} />
         <Hexagon $scaleRatio={hexaganScaleRatio} $distance={800} $size={80} $opacity={0.6} />
       </SunRays>
-      <Sun />
+      <Sun><CutieImage /></Sun>
     </SunContainer>
   );
 };
