@@ -48,7 +48,7 @@ const Sun = styled(motion.div).attrs({className: 'sun'})`
 const CutieImage = styled.div`
   width: 60%;
   height: 60%;
-  background-image: radial-gradient(circle at center, transparent 0, #fff5b0 80%), url("/angela_headshot_2.webp");
+  background-image: radial-gradient(circle at center, transparent 0, #fff5b0 80%), url("/angela_headshot_sun.webp");
   background-size: 100% 100%;
   background-position: center;
   background-repeat: no-repeat;
@@ -57,7 +57,7 @@ const CutieImage = styled.div`
 
   @keyframes pulse {
     0%, 100% { opacity: 0; }
-    50% { opacity: 0.6; }
+    50% { opacity: 1; }
   }
 `;
 
