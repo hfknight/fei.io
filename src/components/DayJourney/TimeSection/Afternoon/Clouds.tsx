@@ -10,14 +10,24 @@ const CloudContainer = styled(motion.div)`
   overflow: hidden;
   pointer-events: none;
 
+  /* CSS custom properties for responsive scaling */
+  --scale-multiplier: 1;
+
+  @media (max-width: 1024px) {
+    --scale-multiplier: 0.7;
+  }
+
   @media (max-width: 768px) {
+    --scale-multiplier: 0.7;
+
     .cloud-large {
       display: none;
     }
   }
+
 `;
 
-const Cloud = styled(motion.div)<{ $size: 'small' | 'medium' | 'large'; $top: string; $left: string }>`
+const Cloud = styled(motion.div)<{ $size: 'small' | 'medium' | 'large'; $top: string; $left: string; $baseScale: number }>`
   border-radius: 10px;
   position: absolute;
   margin: 0;
@@ -26,7 +36,9 @@ const Cloud = styled(motion.div)<{ $size: 'small' | 'medium' | 'large'; $top: st
   width: 54px;
   height: 5px;
   background: #f7e7eb;
-  /* Remove transform from here since we'll use inline style */
+
+/* Use CSS calc() to combine base scale with responsive multiplier */
+  --responsive-scale: calc(${props => props.$baseScale} * var(--scale-multiplier));
 
   div {
     box-shadow: inset -2px -3px 0 0 #f7e7eb;
@@ -134,7 +146,7 @@ const CloudAnimation: React.FC = () => {
       ><img src="/airplane.svg" alt="airplane" /></Airplane>
       {clouds.map((cloud) => {
         const translateX = calculateHorizontalExit(cloud.left, cloud.size);
-        const initialScale =
+        const baseScale =
           cloud.size === 'small' ? 2 : cloud.size === 'medium' ? 4 : 8;
 
         return (
@@ -144,14 +156,16 @@ const CloudAnimation: React.FC = () => {
             $size={cloud.size}
             $top={cloud.top}
             $left={cloud.left}
+            $baseScale={baseScale}
             initial={{
               x: 0,
               opacity: 1,
-              scale: initialScale
+              scale: "var(--responsive-scale)"
             }}
             whileInView={{
               x: `${translateX}%`,
-              opacity: 0.6
+              opacity: 0.6,
+              // scale: cloudScale
             }}
             viewport={{
               once: false,
