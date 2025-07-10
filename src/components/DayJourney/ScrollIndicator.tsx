@@ -1,4 +1,4 @@
-import { motion, type Variants } from "framer-motion";
+import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { styled } from "styled-components";
 
@@ -23,22 +23,43 @@ const ScrollText = styled.span`
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 `;
 
-const scrollIndicatorVariants: Variants = {
-  animate: {
-    x: ['-50%', '-50%', '-50%'],
-    y: [0, 10, 0],
-    transition: {
+// const scrollIndicatorVariants: Variants = {
+//   animate: {
+//     x: ['-50%', '-50%', '-50%'],
+//     y: [0, 10, 0],
+//     transition: {
+//       y: {
+//         duration: 2,
+//         repeat: Infinity,
+//         ease: 'easeInOut'
+//       }
+//     }
+//   }
+// };
+
+const ScrollIndicator: React.FC = () => (
+  <ScrollIndicatorContainer
+    initial={{
+      x: '-50%',
+      y: 0,
+      opacity: 0
+    }}
+    whileInView={{
+      x: ['-50%', '-50%', '-50%'],
+      y: [0, 10, 0],
+      opacity: 1
+    }}
+    transition={{
       y: {
         duration: 2,
         repeat: Infinity,
         ease: 'easeInOut'
+      },
+      opacity: {
+        delay: 3
       }
-    }
-  }
-};
-
-const ScrollIndicator: React.FC = () => (
-  <ScrollIndicatorContainer variants={scrollIndicatorVariants} animate="animate">
+    }}
+  >
     <ScrollText>Scroll Down</ScrollText>
     <ChevronDown size={24} />
   </ScrollIndicatorContainer>
