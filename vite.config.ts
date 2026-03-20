@@ -12,9 +12,6 @@ export default defineConfig({
       overlay: true
     }
   },
-  esbuild: {
-    jsx: 'automatic',
-  },
 })
 // export default defineConfig({
 //   plugins: [
