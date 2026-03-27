@@ -43,7 +43,7 @@ const GlassPanel: React.FC = () => (
     <Gap />
     <Tagline>
       Web Developer based in Texas, US.<br />
-      creating aesthetical and intuitive user interfaces that blend thoughtful
+      creating aesthetic and intuitive user interfaces that blend thoughtful
       design with robust engineering.
     </Tagline>
   </Panel>
