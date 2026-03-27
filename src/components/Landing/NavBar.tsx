@@ -42,15 +42,31 @@ const NavLinks = styled.ul`
 const NavItem = styled.li``;
 
 const NavLink = styled(Link)`
+  position: relative;
   color: #fff;
   opacity: 0.75;
   text-decoration: none;
   font-family: 'Inter', sans-serif;
   font-size: 0.9rem;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.3s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: linear-gradient(90deg, #b8d8f8, #d4b8f8, #f8b8d8);
+    transition: width 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
 
   &:hover {
     opacity: 1;
+  }
+
+  &:hover::after {
+    width: 100%;
   }
 `;
 

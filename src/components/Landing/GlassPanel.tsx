@@ -1,6 +1,11 @@
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 import LogoOutlinedSvg from '../../assets/logo-outlined.svg?react';
+
+const shimmer = keyframes`
+  0% { background-position: -400% center; }
+  100% { background-position: 400% center; }
+`;
 
 const Block = styled.div`
   position: relative;
@@ -13,8 +18,18 @@ const Block = styled.div`
 const Rule = styled(motion.div)`
   width: 320px;
   height: 1px;
-  background: linear-gradient(90deg, #b8d8f8, #d4b8f8, #f8b8d8);
+  background: linear-gradient(
+    90deg,
+    #b8d8f8 0%,
+    #e8d4fc 30%,
+    #fff8fe 50%,
+    #e8d4fc 70%,
+    #f8b8d8 100%
+  );
+  background-size: 300% auto;
   transform-origin: center;
+  animation: ${shimmer} 6s linear infinite;
+  animation-delay: 2.5s;
 `;
 
 const Logo = styled(motion.div)`
@@ -24,8 +39,16 @@ const Logo = styled(motion.div)`
 const LogoIcon = styled(LogoOutlinedSvg)`
   width: 165px;
   height: 165px;
+  transition: filter 0.4s ease;
+  cursor: default;
+
   path, circle, rect, polygon {
     fill: url(#twilightGradient);
+  }
+
+  &:hover {
+    filter: drop-shadow(0 0 16px rgba(212, 184, 248, 0.55))
+            drop-shadow(0 0 6px rgba(184, 216, 248, 0.4));
   }
 `;
 
