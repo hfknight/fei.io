@@ -18,17 +18,16 @@ const Screen = styled(motion.div)`
 `;
 
 const LogoWrap = styled(motion.div)`
-  width: min(35vmin, 120px);
-  height: min(35vmin, 120px);
+  width: 165px;
+  height: 165px;
   animation: ${pulse} 2s ease-in-out infinite;
 `;
 
 const Logo = styled(LogoOutlinedSvg)`
   width: 100%;
   height: 100%;
-  color: #fff;
   path, circle, rect, polygon {
-    fill: currentColor;
+    fill: url(#twilightGradient);
   }
 `;
 
@@ -47,6 +46,15 @@ const LoadingScreen: React.FC<Props> = ({ isVisible }) => (
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, transition: { duration: 0.8 } }}
         >
+          <svg width="0" height="0" style={{ position: 'absolute' }}>
+            <defs>
+              <linearGradient id="twilightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#b8d8f8" />
+                <stop offset="50%" stopColor="#d4b8f8" />
+                <stop offset="100%" stopColor="#f8b8d8" />
+              </linearGradient>
+            </defs>
+          </svg>
           <Logo />
         </LogoWrap>
       </Screen>
