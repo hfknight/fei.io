@@ -31,7 +31,7 @@ const Screen = styled(motion.div)`
   align-items: center;
   justify-content: center;
   gap: 36px;
-  background: linear-gradient(180deg, #0d1b2a 0%, #1a1025 100%);
+  background: linear-gradient(180deg, #0d1b2a 0%, #1a0f28 55%, #2d1018 100%);
   overflow: hidden;
 `;
 
