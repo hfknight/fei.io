@@ -49,9 +49,9 @@ const LoadingScreen: React.FC<Props> = ({ isVisible }) => (
           <svg width="0" height="0" style={{ position: 'absolute' }}>
             <defs>
               <linearGradient id="twilightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#7ab4f5" />
-                <stop offset="50%" stopColor="#b07af5" />
-                <stop offset="100%" stopColor="#f57ab5" />
+                <stop offset="0%" stopColor="#fcd88a" />
+                <stop offset="50%" stopColor="#f5a828" />
+                <stop offset="100%" stopColor="#f07848" />
               </linearGradient>
             </defs>
           </svg>

@@ -1,11 +1,6 @@
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import LogoOutlinedSvg from '../../assets/logo-outlined.svg?react';
-
-const shimmer = keyframes`
-  0% { background-position: -400% center; }
-  100% { background-position: 400% center; }
-`;
 
 const Block = styled.div`
   position: relative;
@@ -18,18 +13,8 @@ const Block = styled.div`
 const Rule = styled(motion.div)`
   width: 320px;
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    #7ab4f5 0%,
-    #c9a0f8 30%,
-    #e8d0ff 50%,
-    #c9a0f8 70%,
-    #f57ab5 100%
-  );
-  background-size: 300% auto;
+  background: rgba(255, 255, 255, 0.25);
   transform-origin: center;
-  animation: ${shimmer} 6s linear infinite;
-  animation-delay: 2.5s;
 `;
 
 const Logo = styled(motion.div)`
@@ -47,8 +32,8 @@ const LogoIcon = styled(LogoOutlinedSvg)`
   }
 
   &:hover {
-    filter: drop-shadow(0 0 16px rgba(176, 122, 245, 0.55))
-            drop-shadow(0 0 6px rgba(122, 180, 245, 0.4));
+    filter: drop-shadow(0 0 16px rgba(245, 168, 40, 0.5))
+            drop-shadow(0 0 6px rgba(252, 216, 138, 0.35));
   }
 `;
 
@@ -114,9 +99,9 @@ const GlassPanel: React.FC = () => (
     <svg width="0" height="0" style={{ position: 'absolute' }}>
       <defs>
         <linearGradient id="twilightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#7ab4f5" />
-          <stop offset="50%" stopColor="#b07af5" />
-          <stop offset="100%" stopColor="#f57ab5" />
+          <stop offset="0%" stopColor="#fcd88a" />
+          <stop offset="50%" stopColor="#f5a828" />
+          <stop offset="100%" stopColor="#f07848" />
         </linearGradient>
       </defs>
     </svg>
