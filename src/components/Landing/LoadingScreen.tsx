@@ -12,38 +12,15 @@ const glowPulse = keyframes`
   50% { opacity: 0.38; transform: scale(1.08); }
 `;
 
-const twinkle = keyframes`
-  0%, 100% { opacity: 0.08; }
-  50% { opacity: 0.55; }
+const ripple = keyframes`
+  0%   { transform: scale(0.85); opacity: 0.45; }
+  100% { transform: scale(2.8);  opacity: 0; }
 `;
 
 const dotBlink = keyframes`
   0%, 100% { opacity: 0.2; }
   50% { opacity: 1; }
 `;
-
-const STARS = [
-  { x:  5, y: 15, s: 1.5, d: 0.0, dur: 3.2 },
-  { x: 18, y: 72, s: 1.0, d: 0.7, dur: 2.8 },
-  { x: 32, y: 28, s: 2.0, d: 1.4, dur: 4.1 },
-  { x: 45, y: 88, s: 1.5, d: 0.3, dur: 3.6 },
-  { x: 58, y: 10, s: 1.0, d: 1.8, dur: 2.5 },
-  { x: 72, y: 55, s: 2.0, d: 0.9, dur: 3.9 },
-  { x: 85, y: 32, s: 1.5, d: 2.1, dur: 4.3 },
-  { x: 92, y: 78, s: 1.0, d: 0.5, dur: 3.0 },
-  { x: 12, y: 90, s: 1.5, d: 1.2, dur: 2.7 },
-  { x: 28, y: 48, s: 1.0, d: 2.5, dur: 4.8 },
-  { x: 65, y: 82, s: 2.0, d: 0.2, dur: 3.3 },
-  { x: 78, y: 18, s: 1.0, d: 1.6, dur: 2.9 },
-  { x: 40, y: 65, s: 1.5, d: 3.0, dur: 4.0 },
-  { x: 88, y: 48, s: 1.0, d: 0.8, dur: 3.5 },
-  { x: 22, y: 35, s: 2.0, d: 2.3, dur: 4.5 },
-  { x: 55, y: 22, s: 1.0, d: 1.1, dur: 3.1 },
-  { x:  8, y: 58, s: 1.5, d: 2.8, dur: 2.6 },
-  { x: 70, y: 40, s: 1.0, d: 0.4, dur: 4.2 },
-  { x: 95, y: 15, s: 1.5, d: 1.9, dur: 3.7 },
-  { x: 48, y: 95, s: 1.0, d: 3.2, dur: 2.4 },
-];
 
 const Screen = styled(motion.div)`
   position: fixed;
@@ -58,19 +35,6 @@ const Screen = styled(motion.div)`
   overflow: hidden;
 `;
 
-const Star = styled.div<{ $x: number; $y: number; $s: number; $d: number; $dur: number }>`
-  position: absolute;
-  left: ${p => p.$x}%;
-  top: ${p => p.$y}%;
-  width: ${p => p.$s}px;
-  height: ${p => p.$s}px;
-  border-radius: 50%;
-  background: #fff;
-  pointer-events: none;
-  animation: ${twinkle} ${p => p.$dur}s ease-in-out infinite;
-  animation-delay: ${p => p.$d}s;
-`;
-
 const LogoContainer = styled.div`
   position: relative;
   display: flex;
@@ -78,12 +42,23 @@ const LogoContainer = styled.div`
   justify-content: center;
 `;
 
+const Ring = styled.div<{ $delay: number }>`
+  position: absolute;
+  width: 165px;
+  height: 165px;
+  border-radius: 50%;
+  border: 1px solid rgba(248, 192, 88, 0.4);
+  pointer-events: none;
+  animation: ${ripple} 3.6s ease-out infinite;
+  animation-delay: ${p => p.$delay}s;
+`;
+
 const Glow = styled.div`
   position: absolute;
   width: 280px;
   height: 280px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(248, 192, 88, 0.6) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(248, 192, 88, 0.55) 0%, transparent 70%);
   filter: blur(36px);
   pointer-events: none;
   animation: ${glowPulse} 2s ease-in-out infinite;
@@ -142,11 +117,10 @@ const LoadingScreen: React.FC<Props> = ({ isVisible }) => (
           </defs>
         </svg>
 
-        {STARS.map((star, i) => (
-          <Star key={i} $x={star.x} $y={star.y} $s={star.s} $d={star.d} $dur={star.dur} />
-        ))}
-
         <LogoContainer>
+          <Ring $delay={0} />
+          <Ring $delay={1.2} />
+          <Ring $delay={2.4} />
           <Glow />
           <LogoWrap
             initial={{ opacity: 0 }}
