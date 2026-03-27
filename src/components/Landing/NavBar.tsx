@@ -57,7 +57,7 @@ const NavLink = styled(Link)`
     left: 0;
     width: 0;
     height: 1px;
-    background: linear-gradient(90deg, #b8d8f8, #d4b8f8, #f8b8d8);
+    background: linear-gradient(90deg, #7ab4f5, #b07af5, #f57ab5);
     transition: width 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
 

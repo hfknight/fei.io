@@ -20,11 +20,11 @@ const Rule = styled(motion.div)`
   height: 1px;
   background: linear-gradient(
     90deg,
-    #b8d8f8 0%,
-    #e8d4fc 30%,
-    #fff8fe 50%,
-    #e8d4fc 70%,
-    #f8b8d8 100%
+    #7ab4f5 0%,
+    #c9a0f8 30%,
+    #e8d0ff 50%,
+    #c9a0f8 70%,
+    #f57ab5 100%
   );
   background-size: 300% auto;
   transform-origin: center;
@@ -47,8 +47,8 @@ const LogoIcon = styled(LogoOutlinedSvg)`
   }
 
   &:hover {
-    filter: drop-shadow(0 0 16px rgba(212, 184, 248, 0.55))
-            drop-shadow(0 0 6px rgba(184, 216, 248, 0.4));
+    filter: drop-shadow(0 0 16px rgba(176, 122, 245, 0.55))
+            drop-shadow(0 0 6px rgba(122, 180, 245, 0.4));
   }
 `;
 
@@ -114,9 +114,9 @@ const GlassPanel: React.FC = () => (
     <svg width="0" height="0" style={{ position: 'absolute' }}>
       <defs>
         <linearGradient id="twilightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#b8d8f8" />
-          <stop offset="50%" stopColor="#d4b8f8" />
-          <stop offset="100%" stopColor="#f8b8d8" />
+          <stop offset="0%" stopColor="#7ab4f5" />
+          <stop offset="50%" stopColor="#b07af5" />
+          <stop offset="100%" stopColor="#f57ab5" />
         </linearGradient>
       </defs>
     </svg>
