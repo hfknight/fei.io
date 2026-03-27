@@ -4,21 +4,42 @@ import { theme } from './styles/theme';
 import { GlobalStyles } from './styles/GlobalStyles';
 import Layout from './components/Layout/Layout';
 import About from './pages/About';
-import Home from './pages/Day';
+import Day from './pages/Day';
 import Loading from './pages/Loading';
+import LandingPage from './components/Landing';
 
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyles />
       <Router>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/load" element={<Loading />} />
-          </Routes>
-        </Layout>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route
+            path="/journey"
+            element={
+              <Layout>
+                <Day />
+              </Layout>
+            }
+          />
+          <Route
+            path="/about"
+            element={
+              <Layout>
+                <About />
+              </Layout>
+            }
+          />
+          <Route
+            path="/load"
+            element={
+              <Layout>
+                <Loading />
+              </Layout>
+            }
+          />
+        </Routes>
       </Router>
     </ThemeProvider>
   );
