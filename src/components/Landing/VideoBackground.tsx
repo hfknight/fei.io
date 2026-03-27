@@ -15,7 +15,7 @@ const Video = styled.video`
 const Overlay = styled.div`
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.4);
 `;
 
 interface Props {

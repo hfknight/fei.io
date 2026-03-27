@@ -1,52 +1,108 @@
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
 import LogoOutlinedSvg from '../../assets/logo-outlined.svg?react';
 
-const Panel = styled.div`
+const Block = styled.div`
   position: relative;
   z-index: 5;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px 48px;
-  border-radius: 16px;
-  backdrop-filter: blur(12px);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  max-width: 480px;
-  text-align: center;
+  gap: 0;
 `;
 
-const Logo = styled(LogoOutlinedSvg)`
-  width: 120px;
-  height: 120px;
+const Rule = styled(motion.div)`
+  width: 280px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.3);
+`;
+
+const Logo = styled(motion.div)`
+  padding: 28px 0;
+`;
+
+const LogoIcon = styled(LogoOutlinedSvg)`
+  width: 130px;
+  height: 130px;
   color: #fff;
   path, circle, rect, polygon {
     fill: currentColor;
   }
 `;
 
-const Gap = styled.div`
-  height: 32px;
+const TaglineWrap = styled(motion.div)`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 28px;
+  text-align: center;
 `;
 
-const Tagline = styled.p`
+const TaglinePrimary = styled.p`
   margin: 0;
-  font-family: 'Inter', sans-serif;
-  font-size: 1rem;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.85);
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.01em;
 `;
+
+const TaglineSecondary = styled.p`
+  margin: 0;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  max-width: 360px;
+  line-height: 1.7;
+`;
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 12 },
+  visible: (delay: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, delay, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] },
+  }),
+};
 
 const GlassPanel: React.FC = () => (
-  <Panel>
-    <Logo />
-    <Gap />
-    <Tagline>
-      Web Developer based in Texas, US.<br />
-      creating aesthetic and intuitive user interfaces that blend thoughtful
-      design with robust engineering.
-    </Tagline>
-  </Panel>
+  <Block>
+    <Rule
+      variants={fadeUp}
+      initial="hidden"
+      animate="visible"
+      custom={0.2}
+    />
+    <Logo
+      variants={fadeUp}
+      initial="hidden"
+      animate="visible"
+      custom={0.5}
+    >
+      <LogoIcon />
+    </Logo>
+    <Rule
+      variants={fadeUp}
+      initial="hidden"
+      animate="visible"
+      custom={0.8}
+    />
+    <TaglineWrap
+      variants={fadeUp}
+      initial="hidden"
+      animate="visible"
+      custom={1.1}
+    >
+      <TaglinePrimary>Web Developer based in Texas, US.</TaglinePrimary>
+      <TaglineSecondary>
+        creating aesthetic and intuitive interfaces that blend thoughtful design with robust engineering
+      </TaglineSecondary>
+    </TaglineWrap>
+  </Block>
 );
 
 export default GlassPanel;
