@@ -32,8 +32,8 @@ const LogoIcon = styled(LogoOutlinedSvg)`
   }
 
   &:hover {
-    filter: drop-shadow(0 0 16px rgba(245, 168, 40, 0.5))
-            drop-shadow(0 0 6px rgba(252, 216, 138, 0.35));
+    filter: drop-shadow(0 0 16px rgba(248, 192, 88, 0.45))
+            drop-shadow(0 0 6px rgba(253, 232, 176, 0.3));
   }
 `;
 
@@ -99,9 +99,9 @@ const GlassPanel: React.FC = () => (
     <svg width="0" height="0" style={{ position: 'absolute' }}>
       <defs>
         <linearGradient id="twilightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#fcd88a" />
-          <stop offset="50%" stopColor="#f5a828" />
-          <stop offset="100%" stopColor="#f07848" />
+          <stop offset="0%" stopColor="#fde8b0" />
+          <stop offset="50%" stopColor="#f8c058" />
+          <stop offset="100%" stopColor="#f59868" />
         </linearGradient>
       </defs>
     </svg>
