@@ -79,10 +79,10 @@ const Logo = styled(LogoFilledSvg)`
   width: 100%;
   height: 100%;
   circle {
-    fill: transparent;
+    fill: url(#twilightGradient);
   }
   path {
-    fill: url(#twilightGradient);
+    fill: transparent;
   }
 `;
 
