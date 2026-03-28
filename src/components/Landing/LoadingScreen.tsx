@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import LogoFilledSvg from '../../assets/logo-filled-circle.svg?react';
+import LogoFilledSvg from '../../assets/logo-filled.svg?react';
 
 const glowPulse = keyframes`
   0%, 100% { opacity: 0.18; transform: scale(1); }
@@ -78,11 +78,8 @@ const LogoWrap = styled(motion.div)`
 const Logo = styled(LogoFilledSvg)`
   width: 100%;
   height: 100%;
-  circle {
-    fill: url(#twilightGradient);
-  }
   path {
-    fill: transparent;
+    fill: url(#twilightGradient);
   }
 `;
 
