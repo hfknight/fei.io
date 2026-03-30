@@ -60,11 +60,11 @@ export const SectionContent = styled(motion.div)`
       }
     }
   }
-  &.morning-content {
+  /* &.morning-content {
     p {
       color: var(--day-text-morning-secondary);
     }
-  }
+  } */
   &.afternoon-content {
     margin-block-start: -8%;
   }
@@ -91,19 +91,19 @@ export const SectionTitle = styled.h1.attrs({ className: 'section-title' })`
   font-weight: 300;
   margin-bottom: 1rem;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-  letter-spacing: 2px;
+  /* letter-spacing: 2px; */
 
-  &.morning-title {
+  /* &.morning-title {
     font-family: var(--day-font-starwars);
     letter-spacing: 0;
     text-shadow: 2px 6px 12px var(--day-text-morning-primary);
-  }
+  } */
 
-  &.afternoon-title {
+  /* &.afternoon-title {
     font-family: var(--day-font-retro);
     font-size: clamp(1rem, 8vw, 3rem);
     letter-spacing: -2px;
-  }
+  } */
 
   @media (max-width: 768px) {
     /* font-size: 2.5rem; */
@@ -113,8 +113,9 @@ export const SectionTitle = styled.h1.attrs({ className: 'section-title' })`
 export const SectionSubtitle = styled.p.attrs({
   className: 'section-subtitle'
 })`
-  font-family: var(--font-secondary);
-  font-size: 1.5rem;
+  /* font-family: var(--font-secondary); */
+  /* font-size: 1.5rem; */
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
   font-weight: 200;
   opacity: 0.9;
   text-align: left;

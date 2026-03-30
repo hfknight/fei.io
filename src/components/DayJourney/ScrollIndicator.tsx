@@ -1,68 +1,57 @@
 import { motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
-import { styled } from "styled-components";
+import { styled, keyframes } from "styled-components";
 
-const ScrollIndicatorContainer = styled(motion.div)`
+const breathe = keyframes`
+  0%, 100% { opacity: 0.25; }
+  50%       { opacity: 0.9; }
+`;
+
+const Container = styled(motion.div)`
   position: absolute;
   top: 100vh;
   left: 50%;
-  margin-top: -80px;
+  margin-top: -72px;
   transform: translate(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: white;
-  cursor: none;
+  gap: 8px;
   z-index: 10;
+  pointer-events: none;
 `;
 
-const ScrollText = styled.span`
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
-  opacity: 0.8;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+const PulseLine = styled.div`
+  width: 2px;
+  height: 36px;
+  background: linear-gradient(to bottom, transparent, #f8c058);
+  border-radius: 1px;
+  animation: ${breathe} 2s ease-in-out infinite;
 `;
 
-// const scrollIndicatorVariants: Variants = {
-//   animate: {
-//     x: ['-50%', '-50%', '-50%'],
-//     y: [0, 10, 0],
-//     transition: {
-//       y: {
-//         duration: 2,
-//         repeat: Infinity,
-//         ease: 'easeInOut'
-//       }
-//     }
-//   }
-// };
+const Arrow = styled.span`
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1;
+`;
 
 const ScrollIndicator: React.FC = () => (
-  <ScrollIndicatorContainer
-    initial={{
+  <Container
+    initial={{ x: '-50%', opacity: 0 }}
+    animate={{
       x: '-50%',
-      y: 0,
-      opacity: 0
-    }}
-    whileInView={{
-      x: ['-50%', '-50%', '-50%'],
-      y: [0, 10, 0],
-      opacity: 1
+      y: [0, 8, 0],
+      opacity: 1,
     }}
     transition={{
-      y: {
-        duration: 2,
-        repeat: Infinity,
-        ease: 'easeInOut'
-      },
-      opacity: {
-        delay: 3
-      }
+      y: { duration: 2, repeat: Infinity, ease: 'easeInOut' },
+      opacity: { delay: 3, duration: 0.8 },
     }}
   >
-    <ScrollText>Scroll Down</ScrollText>
-    <ChevronDown size={24} />
-  </ScrollIndicatorContainer>
+    <PulseLine />
+    <Arrow>↓</Arrow>
+  </Container>
 );
 
 export default ScrollIndicator;

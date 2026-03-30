@@ -16,10 +16,9 @@ export const theme = {
     primaryHover: '#f59e0b',   // Deeper amber on hover
     secondary: '#78716c',      // Warm gray
     accent: '#fcd34d',         // Light golden yellow
-    background: '#fffbeb',     // Cream white background
+    background: '#12102a',     // Deep indigo-purple, the exact Dawn gradient start
     surface: '#fefce8',        // Much lighter yellow surface (was #fef3c7)
-    text: '#451a03',           // Dark brown text
-    textLight: '#78716c',      // Medium brown/gray
+    text: '#fff',
     border: '#fed7aa',         // Light orange border
     error: '#dc2626',          // Red error
     success: '#16a34a',        // Green success
