@@ -1,6 +1,54 @@
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { motion, useReducedMotion } from 'framer-motion';
 import LogoOutlinedSvg from '../../assets/logo-outlined.svg?react';
+
+const shimmerSweep = keyframes`
+  0% {
+    transform: translateX(-88px) rotate(-20deg);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  12% {
+    transform: translateX(124px) rotate(-20deg);
+    animation-timing-function: linear;
+  }
+  100% {
+    transform: translateX(124px) rotate(-20deg);
+  }
+`;
+
+const LogoShimmerWrap = styled.div`
+  position: relative;
+  width: 88px;
+  height: 88px;
+  overflow: hidden;
+  mask-image: url("data:image/svg+xml,%3Csvg width='88' height='88' viewBox='0 0 450 450' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M450 225C450 349.264 349.264 450 225 450C100.736 450 0 349.264 0 225C0 100.736 100.736 0 225 0C349.264 0 450 100.736 450 225ZM225 420C332.696 420 420 332.696 420 225C420 203.544 416.535 182.897 410.133 164L410 164L304 164L278.692 229H360L348 259H267.188L205.809 419.068C212.122 419.684 218.524 420 225 420ZM174.962 413.52C91.5114 391.429 30 315.398 30 225C30 174.086 49.5128 127.729 81.4681 93H196.22L109 319H141L240 62H117.927C148.661 41.7709 185.456 30 225 30C299.425 30 364.112 71.6947 396.976 133H283L246.027 229H194L182 259H234.473L174.962 413.52Z' fill='black'/%3E%3C/svg%3E");
+  mask-size: 88px 88px;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='88' height='88' viewBox='0 0 450 450' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M450 225C450 349.264 349.264 450 225 450C100.736 450 0 349.264 0 225C0 100.736 100.736 0 225 0C349.264 0 450 100.736 450 225ZM225 420C332.696 420 420 332.696 420 225C420 203.544 416.535 182.897 410.133 164L410 164L304 164L278.692 229H360L348 259H267.188L205.809 419.068C212.122 419.684 218.524 420 225 420ZM174.962 413.52C91.5114 391.429 30 315.398 30 225C30 174.086 49.5128 127.729 81.4681 93H196.22L109 319H141L240 62H117.927C148.661 41.7709 185.456 30 225 30C299.425 30 364.112 71.6947 396.976 133H283L246.027 229H194L182 259H234.473L174.962 413.52Z' fill='black'/%3E%3C/svg%3E");
+  -webkit-mask-size: 88px 88px;
+`;
+
+const ShimmerBeam = styled.div<{ $reduced: boolean }>`
+  position: absolute;
+  top: -10px;
+  left: 0;
+  width: 36px;
+  height: 108px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 240, 200, 0.5),
+    transparent
+  );
+  transform-origin: top left;
+  pointer-events: none;
+  animation: ${shimmerSweep} 5s linear 1.5s infinite both;
+
+  ${({ $reduced }) => $reduced && 'display: none;'}
+
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
+  }
+`;
 
 const Block = styled.div`
   position: relative;
@@ -191,7 +239,10 @@ const IntroPanel: React.FC = () => {
 
       <IdentityRow>
         <Logo variants={fade} initial="hidden" animate="visible" custom={0.4}>
-          <LogoIcon />
+          <LogoShimmerWrap>
+            <LogoIcon />
+            <ShimmerBeam $reduced={reducedMotion ?? false} />
+          </LogoShimmerWrap>
         </Logo>
         <VerticalDivider variants={divider} initial="hidden" animate="visible" />
         <TextSide>
