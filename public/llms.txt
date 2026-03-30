@@ -12,8 +12,8 @@ He flexes between tech lead and solo operator depending on what is needed — ar
 
 ## Expertise
 
-- Frontend: React, TypeScript, styled-components, framer-motion, Vite
-- AI/ML: LLM orchestration, RAG pipelines, agentic systems, MCP tooling, tool-calling
+- Frontend: React, TypeScript, styled-components, framer-motion, Next.js, Webpack, React Router, Redux, Tailwind CSS, Jest, Vite
+- AI/ML: LLM orchestration, RAG pipelines, agentic systems, MCP tooling, tool-calling, Skills
 - Backend: Node.js, REST APIs, system architecture
 - Leadership: Tech lead, mentoring, cross-functional collaboration
 
