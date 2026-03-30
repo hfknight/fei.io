@@ -1,85 +1,33 @@
-import React from 'react';
 import styled from 'styled-components';
-import { Github, Linkedin, Mail } from 'lucide-react';
-import { Container } from '../../styles/GlobalStyles';
 
-const FooterWrapper = styled.footer`
-  position: absolute;
+const Bar = styled.footer`
+  position: fixed;
   bottom: 0;
-  width: 100%;
-  padding: ${props => props.theme.spacing.md} 0;
-`;
-
-const FooterContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: ${props => props.theme.spacing.lg};
-  text-align: center;
-
-  @media (min-width: ${props => props.theme.breakpoints.md}) {
-    flex-direction: row;
-    justify-content: space-between;
-    text-align: left;
-  }
-
-  @media (max-width: ${props => props.theme.breakpoints.sm}) {
-    gap: ${props => props.theme.spacing.sm};
-  }
-`;
-
-const SocialLinks = styled.div`
-  display: flex;
-  gap: ${props => props.theme.spacing.md};
-`;
-
-const SocialLink = styled.a`
+  left: 0;
+  right: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid #78716c;
-  color: #78716c;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: transparent;
-    border-color: #fdd75e;
-    color: #fdd75e;
-    transform: translateY(-2px);
-  }
+  justify-content: flex-end;
+  padding: 0 2rem;
+  height: 48px;
+  background: transparent;
+  pointer-events: none;
 `;
 
-const Copyright = styled.p`
-  color: ${props => props.theme.colors.textLight};
-  font-size: ${props => props.theme.fontSizes.sm};
+const Copyright = styled.span`
+  color: rgba(255, 255, 255, 0.45);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  pointer-events: auto;
 `;
 
-const Footer: React.FC = () => {
-  return (
-    <FooterWrapper>
-      <Container>
-        <FooterContent>
-          <Copyright>
-            © {new Date().getFullYear()} Fei. All rights reserved.
-          </Copyright>
-          <SocialLinks>
-            <SocialLink className="social_link" href="https://github.com/hfknight" target="_blank" rel="noopener noreferrer">
-              <Github size={20} />
-            </SocialLink>
-            <SocialLink className="social_link" href="https://linkedin.com/in/fei.hu" target="_blank" rel="noopener noreferrer">
-              <Linkedin size={20} />
-            </SocialLink>
-            <SocialLink className="social_link" href="mailto:fei.hu@fei.io">
-              <Mail size={20} />
-            </SocialLink>
-          </SocialLinks>
-        </FooterContent>
-      </Container>
-    </FooterWrapper>
-  );
-};
+const Footer: React.FC = () => (
+  <Bar>
+    <Copyright>Copyright {new Date().getFullYear()} Fei Hu</Copyright>
+  </Bar>
+);
 
 export default Footer;

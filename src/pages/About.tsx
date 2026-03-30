@@ -1,95 +1,78 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Container, Section } from '../styles/GlobalStyles';
+import { motion } from 'framer-motion';
 
-const AboutContent = styled.div`
-  max-width: 800px;
-  margin: 0 auto;
+const Page = styled.div`
+  min-height: 100vh;
+  background: #12102a;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 7rem 2rem 5rem;
 `;
 
-const Title = styled.h1`
-  font-size: ${props => props.theme.fontSizes['3xl']};
-  margin-bottom: ${props => props.theme.spacing.xl};
-  text-align: center;
-  color: ${props => props.theme.colors.text};
+const Column = styled.div`
+  max-width: 660px;
+  width: 100%;
 `;
 
-const Paragraph = styled.p`
-  margin-bottom: ${props => props.theme.spacing.lg};
-  color: ${props => props.theme.colors.textLight};
-  line-height: 1.7;
-  font-size: ${props => props.theme.fontSizes.base};
+const Label = styled(motion.span)`
+  display: block;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 3.5rem;
 `;
 
-const SkillsSection = styled.div`
-  margin-top: ${props => props.theme.spacing['2xl']};
+const Graf = styled(motion.p)`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+  line-height: 1.95;
+  color: rgba(255, 255, 255, 0.78);
+  margin: 0 0 2.5rem;
+  font-weight: 200;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
 
-const SkillsTitle = styled.h2`
-  font-size: ${props => props.theme.fontSizes['2xl']};
-  margin-bottom: ${props => props.theme.spacing.lg};
-  text-align: center;
-  color: ${props => props.theme.colors.text};
-`;
-
-const SkillsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: ${props => props.theme.spacing.lg};
-`;
-
-const SkillCard = styled.div`
-  background: ${props => props.theme.colors.surface};
-  padding: ${props => props.theme.spacing.lg};
-  border-radius: 0.5rem;
-  border: 1px solid ${props => props.theme.colors.border};
-  text-align: center;
-`;
-
-const SkillName = styled.h3`
-  font-size: ${props => props.theme.fontSizes.lg};
-  color: ${props => props.theme.colors.primary};
-  margin-bottom: ${props => props.theme.spacing.sm};
-`;
+const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 const About: React.FC = () => {
-  const skills = [
-    'React & TypeScript',
-    'Styled Components',
-    'Node.js & Express',
-    'MongoDB & PostgreSQL',
-    'Git & GitHub',
-    'REST APIs'
-  ];
+  const [content, setContent] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch('/data/portfolio.json')
+      .then(r => r.json())
+      .then(data => setContent(data.about?.content ?? []));
+  }, []);
 
   return (
-    <Section>
-      <Container>
-        <AboutContent>
-          <Title>About Me</Title>
-          <Paragraph>
-            Welcome to my portfolio! I'm a passionate React developer with expertise in 
-            TypeScript, modern web technologies, and creating exceptional user experiences.
-          </Paragraph>
-          <Paragraph>
-            I love building scalable applications, learning new technologies, and 
-            contributing to open source projects. My focus is on writing clean, 
-            maintainable code while delivering pixel-perfect designs.
-          </Paragraph>
+    <Page>
+      <Column>
+        <Label
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
+          fei.hu / readme
+        </Label>
 
-          <SkillsSection>
-            <SkillsTitle>Technical Skills</SkillsTitle>
-            <SkillsGrid>
-              {skills.map((skill, index) => (
-                <SkillCard key={index}>
-                  <SkillName>{skill}</SkillName>
-                </SkillCard>
-              ))}
-            </SkillsGrid>
-          </SkillsSection>
-        </AboutContent>
-      </Container>
-    </Section>
+        {content.map((para, i) => (
+          <Graf
+            key={i}
+            initial={{ opacity: 0, y: 22, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ duration: 1.1, delay: 0.2 + i * 0.18, ease }}
+          >
+            {para}
+          </Graf>
+        ))}
+      </Column>
+    </Page>
   );
 };
 

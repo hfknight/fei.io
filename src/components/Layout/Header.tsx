@@ -1,151 +1,79 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { Menu, X } from 'lucide-react';
-import { Container } from '../../styles/GlobalStyles';
+import { Link, useLocation } from 'react-router-dom';
 
-const HeaderWrapper = styled.header`
-  background-color: ${(props) => props.theme.colors.background};
-  border-bottom: 1px solid ${(props) => props.theme.colors.border};
-  position: sticky;
+const Bar = styled.header`
+  position: fixed;
   top: 0;
-  z-index: 100;
-  backdrop-filter: blur(10px);
-  background-color: rgba(255, 255, 255, 0.95);
-`;
-
-const HeaderContent = styled.div`
+  right: 0;
+  z-index: 10;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: ${(props) => props.theme.spacing.md} 0;
+  justify-content: flex-end;
+  padding: 0 2rem;
+  height: 60px;
+  background: transparent;
 `;
 
-const Logo = styled(Link)`
-  font-size: ${(props) => props.theme.fontSizes.xl};
-  font-weight: 700;
-  color: ${(props) => props.theme.colors.primary};
-
-  &:hover {
-    opacity: 0.8;
-  }
-`;
-
-const Nav = styled.nav<{ isOpen: boolean }>`
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: 100vh;
-    width: 250px;
-    background-color: ${(props) => props.theme.colors.background};
-    box-shadow: ${(props) => props.theme.shadows.lg};
-    transform: translateX(${(props) => (props.isOpen ? '0' : '100%')});
-    transition: transform 0.3s ease;
-    padding: ${(props) => props.theme.spacing['2xl']};
-    z-index: 1000;
-  }
-`;
-
-const NavList = styled.ul`
-  display: flex;
+const NavLinks = styled.ul`
   list-style: none;
-  gap: ${(props) => props.theme.spacing.xl};
-
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    flex-direction: column;
-    gap: ${(props) => props.theme.spacing.lg};
-    margin-top: ${(props) => props.theme.spacing['2xl']};
-  }
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 2rem;
 `;
 
 const NavItem = styled.li``;
 
-const NavLink = styled(Link)<{ isActive: boolean }>`
-  font-weight: 500;
-  color: ${(props) =>
-    props.isActive ? props.theme.colors.primary : props.theme.colors.text};
-  transition: color 0.2s ease;
-
-  &:hover {
-    color: ${(props) => props.theme.colors.primary};
-  }
-`;
-
-const MenuButton = styled.button`
-  display: none;
-  background: none;
-  border: none;
-  padding: ${(props) => props.theme.spacing.sm};
-  color: ${(props) => props.theme.colors.text};
-  z-index: 1001;
+const NavLink = styled(Link)<{ $active?: boolean }>`
   position: relative;
+  color: #fff;
+  opacity: ${p => p.$active ? 1 : 0.75};
+  text-decoration: none;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: opacity 0.3s ease;
+  outline: none;
 
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    display: block;
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    width: ${p => p.$active ? '100%' : '0'};
+    height: 1px;
+    background: rgba(255, 255, 255, 0.6);
+    transition: width 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
-`;
 
-const Overlay = styled.div<{ isOpen: boolean }>`
-  display: ${(props) => (props.isOpen ? 'block' : 'none')};
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 999;
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+  }
 
-  @media (min-width: ${(props) => props.theme.breakpoints.md}) {
-    display: none;
+  &:hover::after,
+  &:focus-visible::after {
+    width: 100%;
   }
 `;
 
 const Header: React.FC = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const location = useLocation();
-
-  const navItems = [
-    { path: '/', label: 'Home' },
-    { path: '/about', label: 'About' },
-    { path: '/projects', label: 'Projects' },
-    { path: '/contact', label: 'Contact' }
-  ];
-
-  const closeMenu = () => setIsMenuOpen(false);
+  const { pathname } = useLocation();
+  const isHome = pathname === '/';
 
   return (
-    <HeaderWrapper>
-      <Container>
-        <HeaderContent>
-          <Logo to="/" onClick={closeMenu}>
-            Fei
-          </Logo>
-
-          <Nav isOpen={isMenuOpen}>
-            <NavList>
-              {navItems.map((item) => (
-                <NavItem key={item.path}>
-                  <NavLink
-                    to={item.path}
-                    isActive={location.pathname === item.path}
-                    onClick={closeMenu}
-                  >
-                    {item.label}
-                  </NavLink>
-                </NavItem>
-              ))}
-            </NavList>
-          </Nav>
-
-          <MenuButton onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </MenuButton>
-        </HeaderContent>
-      </Container>
-
-      <Overlay isOpen={isMenuOpen} onClick={closeMenu} />
-    </HeaderWrapper>
+    <Bar>
+      <NavLinks>
+        {!isHome && (
+          <NavItem><NavLink to="/" $active={isHome}>Home</NavLink></NavItem>
+        )}
+        <NavItem><NavLink to="/readme" $active={pathname === '/readme'}>Readme</NavLink></NavItem>
+        <NavItem><NavLink to="/changelog" $active={pathname === '/changelog'}>Changelog</NavLink></NavItem>
+        <NavItem><NavLink to="/work" $active={pathname === '/work'}>Work</NavLink></NavItem>
+        <NavItem><NavLink to="/contact" $active={pathname === '/contact'}>Contact</NavLink></NavItem>
+      </NavLinks>
+    </Bar>
   );
 };
 

@@ -47,6 +47,16 @@ const BokehContainer = styled(motion.div)`
   height: 100%;
 `;
 
+const WarmLightWash = styled(motion.div)`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at 18% 8%, rgba(255, 210, 100, 0.28) 0%, transparent 55%);
+  pointer-events: none;
+`;
+
 // Bokeh effect
 const BokehPoint = styled.div<{
   $size: number;
@@ -103,6 +113,12 @@ const MorningSection: React.FC<TimeSectionContent> = ({
 
   return (
     <>
+      <WarmLightWash
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 2.5, ease: 'easeOut' }}
+      />
       {/* bokeh atmosphere points */}
       <BokehContainer
         initial={{ opacity: 0 }}
@@ -125,8 +141,22 @@ const MorningSection: React.FC<TimeSectionContent> = ({
       </BokehContainer>
       <MorningContentContainer>
         <SectionContent className="section-content morning-content">
-          <SectionTitle className="morning-title">{title}</SectionTitle>
-          <SectionSubtitle>{subtitle}</SectionSubtitle>
+          <motion.div
+            initial={{ opacity: 0, y: 40, filter: 'blur(8px)' }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <SectionTitle className="morning-title">{title}</SectionTitle>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 40, filter: 'blur(8px)' }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <SectionSubtitle>{subtitle}</SectionSubtitle>
+          </motion.div>
         </SectionContent>
       </MorningContentContainer>
     </>

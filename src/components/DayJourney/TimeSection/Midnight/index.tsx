@@ -1,4 +1,4 @@
-import { styled } from 'styled-components';
+import { keyframes, styled } from 'styled-components';
 import {
   SectionContent,
   SectionSubtitle,
@@ -7,6 +7,35 @@ import {
 import type { TimeSectionContent } from '../../../../types';
 import { motion, useInView } from 'framer-motion';
 import { useMemo, useRef } from 'react';
+
+const auroraShimmer = keyframes`
+  0%, 100% { opacity: 0.18; transform: translateX(0) skewX(0deg); }
+  40%       { opacity: 0.45; transform: translateX(4%) skewX(1.5deg); }
+  70%       { opacity: 0.28; transform: translateX(-2%) skewX(-0.8deg); }
+`;
+
+const AuroraLayer = styled.div<{ $top: string; $color: string; $delay: string; $duration: string }>`
+  position: absolute;
+  top: ${p => p.$top};
+  left: -10%;
+  width: 120%;
+  height: 70px;
+  background: linear-gradient(90deg, transparent 0%, ${p => p.$color} 35%, ${p => p.$color} 65%, transparent 100%);
+  filter: blur(22px);
+  animation: ${auroraShimmer} ${p => p.$duration} ease-in-out infinite;
+  animation-delay: ${p => p.$delay};
+  pointer-events: none;
+`;
+
+const AuroraContainer = styled(motion.div)`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 38%;
+  overflow: hidden;
+  pointer-events: none;
+`;
 import SamoyedConstellation from './Constellation/Samoyed';
 import TabbyCatConstellation from './Constellation/TabbyCat';
 
@@ -103,6 +132,15 @@ const MidnightSection: React.FC<TimeSectionContent> = ({ title, subtitle }) => {
 
   return (
     <>
+      <AuroraContainer
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isInView ? 1 : 0 }}
+        transition={{ duration: 2, ease: 'easeInOut' }}
+      >
+        <AuroraLayer $top="8%"  $color="rgba(26, 74, 138, 0.4)"  $delay="0s"   $duration="13s" />
+        <AuroraLayer $top="22%" $color="rgba(58, 32, 96, 0.35)"  $delay="4s"   $duration="10s" />
+        <AuroraLayer $top="38%" $color="rgba(20, 80, 100, 0.25)" $delay="2s"   $duration="15s" />
+      </AuroraContainer>
       <StarsContainer
         ref={containerRef}
         className="stars-container"

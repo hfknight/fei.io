@@ -5,41 +5,26 @@ import { GlobalStyles } from './styles/GlobalStyles';
 import Layout from './components/Layout/Layout';
 import About from './pages/About';
 import Day from './pages/Day';
-import Loading from './pages/Loading';
 import LandingPage from './components/Landing';
+import LoadingScreen from './components/Landing/LoadingScreen';
+import Contact from './pages/Contact';
+import Work from './pages/Work';
 
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyles />
       <Router>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route
-            path="/journey"
-            element={
-              <Layout>
-                <Day />
-              </Layout>
-            }
-          />
-          <Route
-            path="/about"
-            element={
-              <Layout>
-                <About />
-              </Layout>
-            }
-          />
-          <Route
-            path="/load"
-            element={
-              <Layout>
-                <Loading />
-              </Layout>
-            }
-          />
-        </Routes>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/readme" element={<About />} />
+            <Route path="/changelog" element={<Day />} />
+            <Route path="/work" element={<Work />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/loading" element={<LoadingScreen isVisible={true} />} />
+          </Routes>
+        </Layout>
       </Router>
     </ThemeProvider>
   );

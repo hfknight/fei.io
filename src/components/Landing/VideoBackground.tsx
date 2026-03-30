@@ -23,15 +23,11 @@ interface Props {
 }
 
 const VideoBackground: React.FC<Props> = ({ onCanPlay }) => (
-  <Wrapper>
-    <Video
-      src="/intro.mp4"
-      autoPlay
-      loop
-      muted
-      playsInline
-      onCanPlay={onCanPlay}
-    />
+  <Wrapper aria-hidden="true">
+    <Video autoPlay loop muted playsInline onCanPlay={onCanPlay}>
+      <source src="/intro.webm" type="video/webm" />
+      <source src="/intro.mp4"  type="video/mp4"  />
+    </Video>
     <Overlay />
   </Wrapper>
 );
