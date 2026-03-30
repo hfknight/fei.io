@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import PageTransition from '../components/PageTransition';
 import TimeSection from '../components/DayJourney/TimeSection';
 import type { JsonData, TimeSection as TimeSectionData } from '../types';
 // import NavigationDots from '../components/DayJourney/NavigationDots';
@@ -99,7 +100,7 @@ const OneDayInLife: React.FC = () => {
   }
 
   return (
-    <>
+    <PageTransition>
       {/* <NavigationDots
         sections={timeSections}
         activeSection={activeSection}
@@ -119,7 +120,7 @@ const OneDayInLife: React.FC = () => {
           />
         ))}
       </PageContainer>
-    </>
+    </PageTransition>
   );
 };
 

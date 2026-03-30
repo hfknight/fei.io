@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import PageTransition from '../components/PageTransition';
 
 const Page = styled.div`
   min-height: 100vh;
@@ -42,6 +43,7 @@ const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 const Work: React.FC = () => {
   return (
+    <PageTransition>
     <Page>
       <Column>
         <Label
@@ -61,6 +63,7 @@ const Work: React.FC = () => {
           </Graf>
       </Column>
     </Page>
+    </PageTransition>
   );
 };
 

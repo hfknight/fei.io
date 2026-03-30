@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import PageTransition from '../components/PageTransition';
 
 const Page = styled.div`
   min-height: 100vh;
@@ -51,6 +52,7 @@ const About: React.FC = () => {
   }, []);
 
   return (
+    <PageTransition>
     <Page>
       <Column>
         <Label
@@ -73,6 +75,7 @@ const About: React.FC = () => {
         ))}
       </Column>
     </Page>
+    </PageTransition>
   );
 };
 

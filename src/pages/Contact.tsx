@@ -3,6 +3,7 @@ import styled, { keyframes } from 'styled-components';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Linkedin, Github, Mail, ExternalLink } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import PageTransition from '../components/PageTransition';
 
 interface ContactLink {
   name: string;
@@ -188,6 +189,7 @@ const Contact: React.FC = () => {
   }, []);
 
   return (
+    <PageTransition>
     <Page>
       <AmbientGlow />
       <Column>
@@ -230,6 +232,7 @@ const Contact: React.FC = () => {
         })}
       </Column>
     </Page>
+    </PageTransition>
   );
 };
 
