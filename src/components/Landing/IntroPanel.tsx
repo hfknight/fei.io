@@ -7,7 +7,7 @@ const shimmerSweep = keyframes`
     transform: translateX(-88px) rotate(-20deg);
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
-  12% {
+  25% {
     transform: translateX(124px) rotate(-20deg);
     animation-timing-function: linear;
   }
@@ -31,17 +31,19 @@ const ShimmerBeam = styled.div<{ $reduced: boolean }>`
   position: absolute;
   top: -10px;
   left: 0;
-  width: 36px;
+  width: 56px;
   height: 108px;
   background: linear-gradient(
     90deg,
-    transparent,
-    rgba(255, 240, 200, 0.5),
-    transparent
+    transparent 0%,
+    rgba(255, 240, 200, 0.25) 25%,
+    rgba(255, 248, 220, 0.9) 50%,
+    rgba(255, 240, 200, 0.25) 75%,
+    transparent 100%
   );
   transform-origin: top left;
   pointer-events: none;
-  animation: ${shimmerSweep} 5s linear 1.5s infinite both;
+  animation: ${shimmerSweep} 8s linear 1.5s infinite both;
 
   ${({ $reduced }) => $reduced && 'display: none;'}
 
