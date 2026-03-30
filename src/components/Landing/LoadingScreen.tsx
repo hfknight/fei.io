@@ -69,6 +69,15 @@ const Dot = styled.span<{ $delay: number }>`
   animation-delay: ${p => p.$delay}s;
 `;
 
+function shuffle(arr: number[]): number[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 // Starts slow, accelerates — feels like the word rushes toward the viewer
 function easeIn(t: number): number {
   return t * t * t;
@@ -80,6 +89,7 @@ interface Props {
 
 const LoadingScreen: React.FC<Props> = ({ isVisible }) => {
   const [wordIndex, setWordIndex] = useState(() => Math.floor(Math.random() * WORDS.length));
+  const queueRef = useRef<number[]>([]);
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>('loading');
   const [mounted, setMounted] = useState(true);
@@ -93,17 +103,18 @@ const LoadingScreen: React.FC<Props> = ({ isVisible }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // Word cycling (loading phase only)
+  // Word cycling (loading phase only) — shuffled queue, no repeats until all shown
   useEffect(() => {
     if (phase !== 'loading') return;
     let timerId: ReturnType<typeof setTimeout>;
     const scheduleNext = () => {
       const delay = 500 + Math.random() * 500;
       timerId = setTimeout(() => {
-        setWordIndex(i => {
-          let next;
-          do { next = Math.floor(Math.random() * WORDS.length); } while (next === i);
-          return next;
+        setWordIndex(current => {
+          if (queueRef.current.length === 0) {
+            queueRef.current = shuffle(WORDS.map((_, i) => i).filter(i => i !== current));
+          }
+          return queueRef.current.pop()!;
         });
         scheduleNext();
       }, delay);
