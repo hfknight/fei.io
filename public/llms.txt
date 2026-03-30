@@ -1,0 +1,32 @@
+# Fei Hu — fei.io
+
+> Frontend & AI Engineer with 10+ years shipping production software.
+
+## About
+
+Fei Hu is a frontend and AI engineer based in the US. He builds interfaces people remember — where every interaction feels intentional, the code reads like prose, and the engineering behind it holds up under pressure. Over a decade of shipping brand-defining websites, enterprise dashboards, and SaaS platforms with complex business logic. On time, every time.
+
+These days he is deep in AI: orchestrating multiple models, building RAG pipelines, and wiring up agentic systems that handle real workflows autonomously using MCP tooling and tool-calling patterns. He still cares about every pixel. Now there is intelligence behind it.
+
+He flexes between tech lead and solo operator depending on what is needed — architecting, mentoring, unblocking. Known for communicating clearly, showing up without ego, and keeping the energy right even when timelines shift and requirements mutate.
+
+## Expertise
+
+- Frontend: React, TypeScript, styled-components, framer-motion, Vite
+- AI/ML: LLM orchestration, RAG pipelines, agentic systems, MCP tooling, tool-calling
+- Backend: Node.js, REST APIs, system architecture
+- Leadership: Tech lead, mentoring, cross-functional collaboration
+
+## Links
+
+- Website: https://fei.io
+- GitHub: https://github.com/hfknight
+- LinkedIn: https://www.linkedin.com/in/feihu/
+- Email: fei.hu@fei.io
+
+## Pages
+
+- https://fei.io/ — Landing
+- https://fei.io/readme — About & personal statement
+- https://fei.io/changelog — Career journey visualization
+- https://fei.io/contact — Contact links
