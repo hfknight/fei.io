@@ -4,7 +4,7 @@ import About from './pages/About';
 import Day from './pages/Day';
 import LandingPage from './components/Landing';
 import LoadingScreen from './components/Landing/LoadingScreen';
-import Contact from './pages/Contact';
+import Connect from './pages/Connect';
 import Work from './pages/Work';
 
 const AppRoutes: React.FC = () => {
@@ -17,7 +17,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/readme" element={<About />} />
         <Route path="/changelog" element={<Day />} />
         <Route path="/work" element={<Work />} />
-        <Route path="/contact" element={<Contact />} />
+        <Route path="/connect" element={<Connect />} />
         <Route path="/loading" element={<LoadingScreen isVisible={true} />} />
       </Routes>
     </AnimatePresence>

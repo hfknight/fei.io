@@ -198,7 +198,7 @@ const Contact: React.FC = () => {
           animate={{ opacity: 1 }}
           transition={{ duration: reduced ? 0.1 : 0.6, ease: 'easeOut' }}
         >
-          fei.hu / contact
+          fei.hu / connect
         </Label>
 
         {links.map((item, i) => {
