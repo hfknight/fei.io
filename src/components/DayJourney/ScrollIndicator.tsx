@@ -8,7 +8,7 @@ const breathe = keyframes`
 
 const Container = styled(motion.div)`
   position: absolute;
-  top: 100vh;
+  top: 100dvh;
   left: 50%;
   margin-top: -72px;
   transform: translate(-50%);

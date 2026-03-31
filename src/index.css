@@ -30,8 +30,9 @@
 }
 
 #root {
-  min-width: 100vw;
   min-height: 100dvh;
+  max-width: 100dvw;
+  overflow-x: hidden;
 }
 
 a {

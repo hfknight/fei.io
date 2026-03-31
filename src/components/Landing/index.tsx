@@ -6,8 +6,8 @@ import IntroPanel from './IntroPanel';
 
 const Page = styled.div`
   position: relative;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100dvh;
   overflow: hidden;
   display: flex;
   align-items: center;

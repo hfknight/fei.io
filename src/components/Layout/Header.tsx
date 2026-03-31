@@ -65,9 +65,9 @@ const Header: React.FC = () => {
   return (
     <Bar>
       <NavLinks>
-        {!isHome && (
-          <NavItem><NavLink to="/" $active={isHome}>Home</NavLink></NavItem>
-        )}
+        <NavItem style={isHome ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}>
+          <NavLink to="/" $active={false}>Home</NavLink>
+        </NavItem>
         <NavItem><NavLink to="/readme" $active={pathname === '/readme'}>Readme</NavLink></NavItem>
         <NavItem><NavLink to="/changelog" $active={pathname === '/changelog'}>Changelog</NavLink></NavItem>
         <NavItem><NavLink to="/work" $active={pathname === '/work'}>Work</NavLink></NavItem>

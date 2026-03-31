@@ -15,7 +15,7 @@ const NavigationDotsContainer = styled.div`
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0;
   z-index: 100;
 
   @media (max-width: 768px) {
@@ -31,6 +31,9 @@ const Dot = styled(motion.div)<{ $active: boolean }>`
     props.$active ? 'white' : 'rgba(255, 255, 255, 0.4)'};
   cursor: pointer;
   transition: all 0.3s ease;
+  padding: 16px;
+  box-sizing: content-box;
+  background-clip: content-box;
 
   &:hover {
     background: white;

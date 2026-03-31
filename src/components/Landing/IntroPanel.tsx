@@ -125,7 +125,7 @@ const TaglineWrap = styled.div`
 const TaglineName = styled(motion.p)`
   margin: 0;
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 2.6rem;
+  font-size: clamp(1.8rem, 5.5vw, 2.6rem);
   font-weight: 400;
   color: rgba(255, 255, 255, 0.95);
   letter-spacing: -0.02em;
@@ -151,7 +151,7 @@ const ArrowAccent = styled.span`
 const TaglinePrimary = styled(motion.p)`
   margin: 0;
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 2.5rem;
+  font-size: clamp(1.6rem, 5vw, 2.5rem);
   font-weight: 400;
   font-style: italic;
   color: rgba(255, 255, 255, 0.95);

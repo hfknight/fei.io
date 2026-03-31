@@ -10,7 +10,7 @@ import { transformJsonToTimeSections } from '../utils';
 // ============ Styled Components ============
 
 const PageContainer = styled.div`
-  width: 100vw;
+  width: 100dvw;
   /* height: 750vh; */
   height: auto;
   overflow-x: hidden;
@@ -108,7 +108,7 @@ const OneDayInLife: React.FC = () => {
       /> */}
       {showScrollIndicator && <ScrollIndicator />}
 
-      <PageContainer>
+      <PageContainer className="day-container">
         {timeSections.map((section, index) => (
           <TimeSection
             key={section.id}
