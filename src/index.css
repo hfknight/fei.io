@@ -31,7 +31,7 @@
 
 #root {
   min-width: 100vw;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 a {
@@ -45,10 +45,10 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
-  min-height: 100vh;
+  min-height: 100dvh;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 h1 {
@@ -90,6 +90,4 @@ button:focus-visible {
 
 ::-webkit-scrollbar {
   display: none;
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
 }

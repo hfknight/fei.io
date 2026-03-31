@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
 
 const Page = styled.div`
-  min-height: 100vh;
+  min-height: 100dvh;
   background: #12102a;
   display: flex;
   align-items: flex-start;
