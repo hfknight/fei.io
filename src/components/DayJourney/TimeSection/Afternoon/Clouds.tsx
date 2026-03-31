@@ -3,11 +3,12 @@ import { styled } from "styled-components";
 
 const CloudContainer = styled(motion.div)`
   position: absolute;
+  z-index: 0;
   width: 100%;
   height: 60%;
   top: 10%; // 16%
   left: 0;
-  overflow: hidden;
+  /* overflow: hidden; // comment out to fix the cutoff top of larget cloud */
   pointer-events: none;
 
   /* CSS custom properties for responsive scaling */
@@ -58,7 +59,7 @@ const Cloud = styled(motion.div)<{ $size: 'small' | 'medium' | 'large'; $top: st
         z-index: 9;
 
         & + div {
-          transform: scale(2.4, 2.4);
+          transform: scale(2.4, 2.3);
           margin: 0 0 9px 32px;
           z-index: 8;
 
