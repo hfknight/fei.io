@@ -1,0 +1,18 @@
+# Local dev vars for `wrangler pages dev`. Copy to `.dev.vars` (gitignored).
+#
+# Cloudflare Access does NOT run under `wrangler pages dev`, so the admin API
+# middleware bypasses JWT verification when DEV_AUTH_BYPASS is "true". Never set
+# this in production — production relies on real Access enforcement + JWT checks.
+DEV_AUTH_BYPASS=true
+
+# Access (only used in deployed envs; placeholders are fine locally).
+TEAM_DOMAIN=https://example.cloudflareaccess.com
+POLICY_AUD=local-dev
+
+# R2 presigning. Real values let local uploads hit your actual bucket; with
+# placeholders, CRUD works locally but uploads are verified on a deployed preview.
+R2_ACCOUNT_ID=local-dev
+R2_BUCKET=fei-blog-media
+R2_ACCESS_KEY_ID=local-dev
+R2_SECRET_ACCESS_KEY=local-dev
+R2_PUBLIC_BASE=https://example.r2.dev
