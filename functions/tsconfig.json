@@ -7,8 +7,8 @@
     "skipLibCheck": true,
 
     "moduleResolution": "bundler",
-    "types": ["@cloudflare/workers-types", "vitest/globals"],
-    "verbatimModuleSyntax": true,
+    "types": ["@cloudflare/workers-types", "vitest/globals", "node"],
+    "esModuleInterop": true,
     "moduleDetection": "force",
     "isolatedModules": true,
     "noEmit": true,
