@@ -71,6 +71,7 @@ const Header: React.FC = () => {
         <NavItem><NavLink to="/readme" $active={pathname === '/readme'}>Readme</NavLink></NavItem>
         <NavItem><NavLink to="/changelog" $active={pathname === '/changelog'}>Changelog</NavLink></NavItem>
         <NavItem><NavLink to="/work" $active={pathname === '/work'}>Work</NavLink></NavItem>
+        <NavItem><NavLink to="/writing" $active={pathname === '/writing' || pathname.startsWith('/writing/')}>Writing</NavLink></NavItem>
         <NavItem><NavLink to="/connect" $active={pathname === '/connect'}>Connect</NavLink></NavItem>
       </NavLinks>
     </Bar>

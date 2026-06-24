@@ -1,0 +1,102 @@
+import { createElement, useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import styled from 'styled-components';
+import PageTransition from '../components/PageTransition';
+import { PostBody } from '../components/Blog/PostBody';
+import { getTemplate } from '../components/Blog/templates';
+import { fetchPost } from '../lib/blogApi';
+import type { BlogPost } from '../types';
+
+type State =
+  | { kind: 'loading' }
+  | { kind: 'ready'; post: BlogPost }
+  | { kind: 'notfound' }
+  | { kind: 'error' };
+
+// Keyed by slug so navigating between posts remounts and resets to loading
+// without a synchronous setState in the effect.
+const WritingPost: React.FC = () => {
+  const { slug } = useParams<{ slug: string }>();
+  return <PostView key={slug ?? ''} slug={slug ?? ''} />;
+};
+
+const PostView: React.FC<{ slug: string }> = ({ slug }) => {
+  const [state, setState] = useState<State>({ kind: 'loading' });
+
+  useEffect(() => {
+    let active = true;
+    fetchPost(slug)
+      .then((post) => {
+        if (active) setState(post ? { kind: 'ready', post } : { kind: 'notfound' });
+      })
+      .catch(() => {
+        if (active) setState({ kind: 'error' });
+      });
+    return () => {
+      active = false;
+    };
+  }, [slug]);
+
+  return (
+    <PageTransition>
+      <Page>
+        <Inner>
+          <BackLink to="/writing">← writing</BackLink>
+
+          {state.kind === 'loading' && <Status>Loading…</Status>}
+          {state.kind === 'notfound' && <Status>Post not found.</Status>}
+          {state.kind === 'error' && <Status>Something went wrong.</Status>}
+
+          {state.kind === 'ready' && <Rendered post={state.post} />}
+        </Inner>
+      </Page>
+    </PageTransition>
+  );
+};
+
+function Rendered({ post }: { post: BlogPost }) {
+  // Pull the layout from the registry and render via createElement so the
+  // template isn't treated as a component "created during render".
+  return createElement(getTemplate(post.template), {
+    title: post.title,
+    coverImageUrl: post.coverImageUrl,
+    publishedAt: post.publishedAt,
+    children: <PostBody markdown={post.body} />,
+  });
+}
+
+export default WritingPost;
+
+const Page = styled.div`
+  min-height: 100dvh;
+  background: #12102a;
+  padding: 6.5rem 0 5rem;
+`;
+
+const Inner = styled.div`
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+`;
+
+const BackLink = styled(Link)`
+  display: inline-block;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+  margin-bottom: 3rem;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.85);
+  }
+`;
+
+const Status = styled.p`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 200;
+  color: rgba(255, 255, 255, 0.55);
+`;
