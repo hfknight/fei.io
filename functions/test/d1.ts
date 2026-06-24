@@ -18,13 +18,29 @@ const baseEnv: Env = {
 // Builds a minimal Pages Function context for handler tests.
 export function makeCtx(
   db: D1Database,
-  opts: { params?: Record<string, string>; request?: Request; env?: Partial<Env> } = {},
+  opts: {
+    params?: Record<string, string>;
+    request?: Request;
+    env?: Partial<Env>;
+    next?: () => Promise<Response>;
+  } = {},
 ): EventContext<Env, string, Record<string, unknown>> {
   return {
     env: { ...baseEnv, DB: db, ...opts.env },
     params: opts.params ?? {},
     request: opts.request ?? new Request('https://site/'),
+    data: {},
+    next: opts.next ?? (async () => new Response(null, { status: 200 })),
   } as unknown as EventContext<Env, string, Record<string, unknown>>;
+}
+
+// Convenience for building JSON POST/PUT requests in handler tests.
+export function jsonRequest(url: string, method: string, body: unknown): Request {
+  return new Request(url, {
+    method,
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 }
 
 export interface SeedPost {
