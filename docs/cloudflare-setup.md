@@ -30,10 +30,11 @@ Then, in the dashboard (R2 > the bucket > Settings):
 
 - **Public access** — enable an `r2.dev` URL or attach a custom domain
   (e.g. `media.fei.io`). Put that origin in `R2_PUBLIC_BASE` (`wrangler.toml`).
-- **CORS** — allow `PUT` from the site origin so browser presigned uploads work:
+- **CORS** — allow `PUT` from the site origin so browser presigned uploads work.
+  The config lives at `cloudflare/r2-cors.json`; apply it with:
 
-  ```json
-  [{ "AllowedOrigins": ["https://fei.io"], "AllowedMethods": ["PUT"], "AllowedHeaders": ["*"] }]
+  ```bash
+  npx wrangler r2 bucket cors set fei-blog-media --file cloudflare/r2-cors.json
   ```
 
 - **S3 API token** — create an R2 API token (Account > R2 > Manage API tokens)
