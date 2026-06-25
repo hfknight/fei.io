@@ -35,12 +35,17 @@ function renderCreate() {
 beforeEach(() => vi.resetAllMocks());
 
 describe('AdminEditor', () => {
-  it('renders a live preview as the author types', async () => {
+  it('renders the selected template (title + body) live in the preview', async () => {
     renderCreate();
 
-    await userEvent.type(screen.getByLabelText('Body'), '# Hello preview');
+    await userEvent.type(screen.getByLabelText('Title'), 'My Headline');
+    await userEvent.type(screen.getByLabelText('Body'), 'body copy here');
 
-    expect(await screen.findByRole('heading', { name: 'Hello preview' })).toBeInTheDocument();
+    // The template's title heading appears in the preview — proves the template
+    // wraps the body, not just the raw markdown.
+    expect(await screen.findByRole('heading', { name: 'My Headline' })).toBeInTheDocument();
+    // Body shows in both the textarea and the rendered preview.
+    expect(screen.getAllByText('body copy here').length).toBeGreaterThanOrEqual(2);
   });
 
   it('creates a post with the entered fields', async () => {

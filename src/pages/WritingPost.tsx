@@ -1,9 +1,8 @@
-import { createElement, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import PageTransition from '../components/PageTransition';
-import { PostBody } from '../components/Blog/PostBody';
-import { getTemplate } from '../components/Blog/templates';
+import { RenderedPost } from '../components/Blog/RenderedPost';
 import { fetchPost } from '../lib/blogApi';
 import type { BlogPost } from '../types';
 
@@ -47,23 +46,20 @@ const PostView: React.FC<{ slug: string }> = ({ slug }) => {
           {state.kind === 'notfound' && <Status>Post not found.</Status>}
           {state.kind === 'error' && <Status>Something went wrong.</Status>}
 
-          {state.kind === 'ready' && <Rendered post={state.post} />}
+          {state.kind === 'ready' && (
+            <RenderedPost
+              template={state.post.template}
+              title={state.post.title}
+              coverImageUrl={state.post.coverImageUrl}
+              publishedAt={state.post.publishedAt}
+              body={state.post.body}
+            />
+          )}
         </Inner>
       </Page>
     </PageTransition>
   );
 };
-
-function Rendered({ post }: { post: BlogPost }) {
-  // Pull the layout from the registry and render via createElement so the
-  // template isn't treated as a component "created during render".
-  return createElement(getTemplate(post.template), {
-    title: post.title,
-    coverImageUrl: post.coverImageUrl,
-    publishedAt: post.publishedAt,
-    children: <PostBody markdown={post.body} />,
-  });
-}
 
 export default WritingPost;
 

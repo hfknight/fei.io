@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { PostBody } from '../../components/Blog/PostBody';
+import { RenderedPost } from '../../components/Blog/RenderedPost';
 import { createPost, updatePost, getPost, uploadFile } from '../../lib/adminApi';
 import { TEMPLATE_OPTIONS } from './options';
 import type { PostStatus, PostTemplate } from '../../types';
@@ -171,7 +171,15 @@ const AdminEditor: React.FC = () => {
           spellCheck={false}
         />
         <Preview>
-          <PostBody markdown={body} />
+          <PreviewLabel>Preview · {template}</PreviewLabel>
+          <RenderedPost
+            template={template}
+            title={title}
+            coverImageUrl={coverImageUrl || null}
+            publishedAt={Date.now()}
+            body={body}
+            contained
+          />
         </Preview>
       </Split>
     </Page>
@@ -350,5 +358,13 @@ const Preview = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
   padding: 1.2rem 1.4rem;
-  overflow-x: auto;
+  overflow: hidden;
+`;
+
+const PreviewLabel = styled.div`
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 1.2rem;
 `;
