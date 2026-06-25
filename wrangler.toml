@@ -1,0 +1,31 @@
+# Cloudflare Pages configuration for the blog backend (Pages Functions in functions/).
+# The site continues to deploy as a Pages project; this adds D1 + R2 bindings.
+#
+# One-time provisioning and the production secrets are documented in
+# docs/cloudflare-setup.md. The R2 access key/secret are NOT here — they are
+# stored as encrypted Pages secrets.
+
+name = "fei-io"
+compatibility_date = "2026-06-01"
+pages_build_output_dir = "dist"
+
+# --- D1: post content ---
+[[d1_databases]]
+binding = "DB"
+database_name = "fei-blog"
+database_id = "818d8b87-7371-4c33-bec6-07c99ed752a3"
+
+# --- R2: media (images + short video) ---
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "fei-blog-media"
+
+# Non-secret vars. Set the real production values in the Pages dashboard
+# (Settings > Variables and Secrets) or here; secrets (R2 keys) are NOT stored
+# in this file — see docs/cloudflare-setup.md.
+[vars]
+TEAM_DOMAIN = "https://fei-zero-trust-warmind.cloudflareaccess.com"
+POLICY_AUD = "c518473ddd7bfad262a8f7c3771829f89b69841871d5ee26e931427d1e29768a"
+R2_ACCOUNT_ID = "b27d50b4c00fa0258ae363bcdbc66905"
+R2_BUCKET = "fei-blog-media"
+R2_PUBLIC_BASE = "https://pub-f28eda9a043d4d92a1aefeae6a045d9c.r2.dev"

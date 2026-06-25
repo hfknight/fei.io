@@ -46,3 +46,24 @@ export interface ConstellationLine {
   from: string;
   to: string;
 }
+
+// --- Blog ---
+
+export type PostTemplate = 'standard' | 'photo-essay' | 'video-forward';
+export type PostStatus = 'draft' | 'published';
+
+export interface BlogPostSummary {
+  id: string;
+  slug: string;
+  title: string;
+  coverImageUrl: string | null;
+  template: PostTemplate;
+  publishedAt: number | null;
+}
+
+export interface BlogPost extends BlogPostSummary {
+  body: string;
+  status: PostStatus;
+  createdAt: number;
+  updatedAt: number;
+}
