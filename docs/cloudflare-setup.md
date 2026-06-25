@@ -96,3 +96,17 @@ The bucket is served via the `media.fei.io` custom domain (connected with
   `cf-cache-status: DYNAMIC` regardless of caching. Use a GET
   (`curl -s -o /dev/null -D - <url> | grep cf-cache-status`) — real loads show
   `HIT`.
+
+## 7. Production deploys
+
+Deploys run through the Cloudflare Pages **git integration** (project `fei-io`,
+connected to `hfknight/fei.io`): a push to `main` auto-builds `npm run build` →
+`dist`. There is no in-repo CI (no GitHub Actions, no `deploy` script) — build
+config lives in the Pages dashboard (Settings → Build).
+
+- **Deploys can lag.** The GitHub→Cloudflare webhook is usually near-instant but
+  can take several minutes. Before assuming a deploy is broken, wait ~5 min and
+  check whether the commit on GitHub got the **✓ Pages** status check — if it
+  did, the build ran. Don't prematurely disconnect/reconnect the GitHub App.
+- Inspect history: `npx wrangler pages deployment list --project-name fei-io` (newest first).
+- Force a deploy without git: `npm run build && npx wrangler pages deploy dist --project-name fei-io --branch main`.
