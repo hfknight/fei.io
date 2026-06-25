@@ -81,3 +81,18 @@ npx wrangler pages dev    # serves dist/ + functions/ with D1 + R2 bindings
 `DEV_AUTH_BYPASS=true` lets the admin API run without a JWT. Pure-UI work can
 still use `npm run dev` (Vite, port 9921), but `/api/*` only exists under
 `wrangler pages dev`.
+
+## 6. Media caching (media.fei.io)
+
+The bucket is served via the `media.fei.io` custom domain (connected with
+`wrangler r2 bucket domain add`). Two non-obvious gotchas:
+
+- **R2 custom domains do NOT cache by default.** You must add a **Cache Rule**
+  (Caching → Cache Rules): match `Hostname equals media.fei.io`, set **Eligible
+  for cache**, Edge TTL → "Use cache-control header if present". Uploads carry
+  `Cache-Control: public, max-age=31536000, immutable`, so cached objects get a
+  1-year edge TTL. Without the rule, every request hits R2 directly.
+- **Test cache status with GET, not HEAD.** `curl -I` (HEAD) always reports
+  `cf-cache-status: DYNAMIC` regardless of caching. Use a GET
+  (`curl -s -o /dev/null -D - <url> | grep cf-cache-status`) — real loads show
+  `HIT`.

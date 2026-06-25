@@ -11,12 +11,18 @@ npm run lint      # Run ESLint
 npm run preview   # Serve production build locally
 ```
 
-No test suite is configured.
-
-After making code changes, always run both:
+Tests use **Vitest** + React Testing Library (jsdom). Backend logic (`functions/`)
+and React components (`src/`) are covered.
 ```bash
-npx tsc --noEmit   # type errors
+npm run test       # watch mode
+npm run test:run   # single run
+```
+
+After making code changes, always run:
+```bash
+npx tsc -b         # type errors across app + functions (project references)
 npm run lint       # React/ESLint rules (catches things tsc misses, e.g. setState in effects)
+npm run test:run   # tests
 ```
 
 ## Stack
@@ -51,8 +57,29 @@ Additional fonts loaded via `src/index.css` (used in `/changelog` day sections):
 | `/changelog` | `Day` | Day-journey scroll visualization |
 | `/contact` | `Contact` | Contact links from portfolio.json |
 | `/work` | `Work` | (placeholder) |
+| `/writing` | `Writing` | Blog index (published posts) |
+| `/writing/:slug` | `WritingPost` | A post, rendered in its template |
+| `/writing/admin` | `AdminPosts` | Admin post list (Cloudflare Access–gated) |
+| `/writing/admin/new`, `/writing/admin/:id` | `AdminEditor` | Create/edit a post |
 
 All routes are wrapped by `Layout` (renders `Header` + `Footer` globally).
+Blog routes are lazy-loaded so the markdown/highlighter bundle stays off the landing page.
+
+## Blog system (Cloudflare-backed)
+
+The site is no longer purely static — `/writing` is a dynamic blog backed by
+Cloudflare. Posts live in **D1**, media in **R2** (served via the cached
+`media.fei.io` custom domain), behind a thin **Pages Functions** API in
+`functions/`. The admin (`/writing/admin`) is gated by **Cloudflare Access**
+(GitHub login); `functions/api/admin/_middleware.ts` verifies the Access JWT,
+with a dev bypass since Access doesn't run under `wrangler pages dev`. Markdown
+renders with `react-markdown` (not MDX); each post picks one of three layout
+**templates** (`src/components/Blog/templates/`).
+
+- Config + bindings: `wrangler.toml` (project name is `fei-io`); schema in `migrations/`.
+- One-time provisioning + troubleshooting: `docs/cloudflare-setup.md`.
+- Full design + plan: `docs/brainstorms/` and `docs/plans/`.
+- Local dev with the API: `npm run build && npx wrangler pages dev dist` (plain `npm run dev` serves only the SPA, no `/api/*`).
 
 ## Architecture
 
