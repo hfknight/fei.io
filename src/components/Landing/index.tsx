@@ -16,15 +16,24 @@ const Page = styled.div`
 
 const MIN_LOADING_MS = 3000;
 
+// Remembers the loader already played, so navigating back to Home within the
+// SPA skips it. Module scope persists across route changes but resets on a
+// full page reload — a genuine fresh visit replays the intro.
+let hasShownLoading = false;
+
 const LandingPage: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [showLoader] = useState(!hasShownLoading);
+  const [isLoading, setIsLoading] = useState(!hasShownLoading);
   const [videoReady, setVideoReady] = useState(false);
 
   useEffect(() => {
-    if (!videoReady) return;
-    const timer = setTimeout(() => setIsLoading(false), MIN_LOADING_MS);
+    if (!isLoading || !videoReady) return;
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+      hasShownLoading = true;
+    }, MIN_LOADING_MS);
     return () => clearTimeout(timer);
-  }, [videoReady]);
+  }, [isLoading, videoReady]);
 
   useEffect(() => {
     console.log(
@@ -45,7 +54,7 @@ const LandingPage: React.FC = () => {
     <Page>
       <VideoBackground onCanPlay={() => setVideoReady(true)} />
       <IntroPanel />
-      <LoadingScreen isVisible={isLoading} />
+      {showLoader && <LoadingScreen isVisible={isLoading} />}
     </Page>
   );
 };
