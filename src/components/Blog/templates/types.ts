@@ -5,6 +5,9 @@ export interface TemplateProps {
   coverImageUrl: string | null;
   publishedAt: number | null;
   children: ReactNode; // the rendered <PostBody />
+  // When true, avoid viewport-width breakouts (e.g. photo-essay's full-bleed
+  // cover) so the template fits inside a constrained preview container.
+  contained?: boolean;
 }
 
 const VIDEO_RE = /\.(mp4|webm|mov|m4v)(\?.*)?$/i;

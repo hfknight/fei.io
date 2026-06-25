@@ -1,10 +1,15 @@
 import { AwsClient } from 'aws4fetch';
 import type { Env } from './env';
 
+// Uploads are immutable (unique keys), so they can be cached aggressively at the
+// edge. Signed into the PUT and echoed to the client so both stay in sync.
+const CACHE_CONTROL = 'public, max-age=31536000, immutable';
+
 export interface PresignResult {
   uploadUrl: string; // presigned PUT URL the browser uploads to directly
   publicUrl: string; // stable public URL the post references
   key: string;
+  cacheControl: string; // the client must send this header on the PUT
 }
 
 // Builds a collision-resistant, sanitized object key under uploads/.
@@ -39,7 +44,10 @@ export async function presignUpload(
   endpoint.searchParams.set('X-Amz-Expires', String(expiresIn));
 
   const signed = await client.sign(
-    new Request(endpoint, { method: 'PUT', headers: { 'content-type': contentType } }),
+    new Request(endpoint, {
+      method: 'PUT',
+      headers: { 'content-type': contentType, 'cache-control': CACHE_CONTROL },
+    }),
     { aws: { signQuery: true } },
   );
 
@@ -47,5 +55,6 @@ export async function presignUpload(
     uploadUrl: signed.url,
     publicUrl: `${env.R2_PUBLIC_BASE.replace(/\/+$/, '')}/${key}`,
     key,
+    cacheControl: CACHE_CONTROL,
   };
 }

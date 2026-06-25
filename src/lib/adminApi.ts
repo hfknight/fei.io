@@ -61,6 +61,7 @@ interface UploadTarget {
   uploadUrl: string;
   publicUrl: string;
   key: string;
+  cacheControl: string;
 }
 
 // Requests a presigned URL, then uploads the file straight to R2. Returns the
@@ -71,11 +72,11 @@ export async function uploadFile(file: File): Promise<string> {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ filename: file.name, contentType: file.type }),
   });
-  const { uploadUrl, publicUrl } = await jsonOrThrow<UploadTarget>(res);
+  const { uploadUrl, publicUrl, cacheControl } = await jsonOrThrow<UploadTarget>(res);
 
   const put = await fetch(uploadUrl, {
     method: 'PUT',
-    headers: { 'content-type': file.type },
+    headers: { 'content-type': file.type, 'cache-control': cacheControl },
     body: file,
   });
   if (!put.ok) throw new Error(`Upload failed (${put.status})`);

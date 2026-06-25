@@ -1,13 +1,19 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import type { TemplateProps } from './types';
 import { formatDate } from './types';
 
 // Photo essay: a full-bleed cover image leading the piece, narrower body.
-export default function PhotoEssay({ title, coverImageUrl, publishedAt, children }: TemplateProps) {
+export default function PhotoEssay({
+  title,
+  coverImageUrl,
+  publishedAt,
+  children,
+  contained,
+}: TemplateProps) {
   return (
     <Wrap>
       {coverImageUrl ? (
-        <FullBleed>
+        <FullBleed $contained={contained}>
           <CoverImg src={coverImageUrl} alt="" />
           <Overlay>
             {publishedAt ? <DateLabel>{formatDate(publishedAt)}</DateLabel> : null}
@@ -27,13 +33,20 @@ export default function PhotoEssay({ title, coverImageUrl, publishedAt, children
 
 const Wrap = styled.article``;
 
-const FullBleed = styled.div`
+const FullBleed = styled.div<{ $contained?: boolean }>`
   position: relative;
-  width: 100vw;
-  margin-left: 50%;
-  transform: translateX(-50%);
   max-height: 70vh;
   overflow: hidden;
+  ${(p) =>
+    p.$contained
+      ? css`
+          width: 100%;
+        `
+      : css`
+          width: 100vw;
+          margin-left: 50%;
+          transform: translateX(-50%);
+        `}
 `;
 
 const CoverImg = styled.img`
@@ -72,10 +85,11 @@ const DateLabel = styled.span`
 
 const Title = styled.h1`
   color: #fff;
-  font-size: clamp(2.1rem, 5.5vw, 3.2rem);
-  font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: -0.015em;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(2.8rem, 7vw, 4.4rem);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
   margin: 0;
 `;
 
