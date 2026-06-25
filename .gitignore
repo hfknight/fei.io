@@ -28,5 +28,9 @@ dist-ssr
 *.sw?
 
 # skills
-.superpowers/*
+.superpowers
 docs/superpowers/*
+.claude
+.agents
+.impeccable
+skills-lock.json
