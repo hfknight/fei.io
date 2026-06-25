@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { listAllPosts, deletePost } from '../../lib/adminApi';
+import ShimmerText from '../../components/ShimmerText';
 import { formatDate } from '../../components/Blog/templates/types';
 import type { BlogPost } from '../../types';
 
@@ -33,7 +34,7 @@ const AdminPosts: React.FC = () => {
       </Bar>
 
       {error && <Status>Error: {error}</Status>}
-      {!posts && !error && <Status>Loading…</Status>}
+      {!posts && !error && <Status><ShimmerText>Loading…</ShimmerText></Status>}
       {posts && posts.length === 0 && <Status>No posts yet.</Status>}
 
       <List>

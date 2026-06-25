@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
+import ShimmerText from '../components/ShimmerText';
 import { fetchPublishedPosts } from '../lib/blogApi';
 import { formatDate } from '../components/Blog/templates/types';
 import type { BlogPostSummary } from '../types';
@@ -40,7 +41,7 @@ const Writing: React.FC = () => {
             fei.hu / writing
           </Label>
 
-          {state.loading && <Status>Loading…</Status>}
+          {state.loading && <Status><ShimmerText>Loading…</ShimmerText></Status>}
           {state.error && <Status>Couldn’t load posts.</Status>}
           {!state.loading && !state.error && state.posts.length === 0 && (
             <Status>No posts yet.</Status>

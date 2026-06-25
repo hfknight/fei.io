@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import PageTransition from '../components/PageTransition';
+import ShimmerText from '../components/ShimmerText';
 import { RenderedPost } from '../components/Blog/RenderedPost';
 import { fetchPost } from '../lib/blogApi';
 import type { BlogPost } from '../types';
@@ -42,7 +43,7 @@ const PostView: React.FC<{ slug: string }> = ({ slug }) => {
         <Inner>
           <BackLink to="/writing">← writing</BackLink>
 
-          {state.kind === 'loading' && <Status>Loading…</Status>}
+          {state.kind === 'loading' && <Status><ShimmerText>Loading…</ShimmerText></Status>}
           {state.kind === 'notfound' && <Status>Post not found.</Status>}
           {state.kind === 'error' && <Status>Something went wrong.</Status>}
 

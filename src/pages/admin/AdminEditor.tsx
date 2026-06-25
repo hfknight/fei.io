@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { RenderedPost } from '../../components/Blog/RenderedPost';
 import { createPost, updatePost, getPost, uploadFile } from '../../lib/adminApi';
 import { TEMPLATE_OPTIONS } from './options';
+import ShimmerText from '../../components/ShimmerText';
 import type { PostStatus, PostTemplate } from '../../types';
 
 const AdminEditor: React.FC = () => {
@@ -84,7 +85,7 @@ const AdminEditor: React.FC = () => {
     }
   };
 
-  if (!loaded) return <Page>Loading…</Page>;
+  if (!loaded) return <Page><ShimmerText>Loading…</ShimmerText></Page>;
 
   return (
     <Page>

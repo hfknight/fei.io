@@ -1,5 +1,8 @@
 import styled from 'styled-components';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
+
+const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 const Bar = styled.header`
   position: fixed;
@@ -36,31 +39,44 @@ const NavLink = styled(Link)<{ $active?: boolean }>`
   transition: opacity 0.3s ease;
   outline: none;
 
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: -3px;
-    left: 0;
-    width: ${p => p.$active ? '100%' : '0'};
-    height: 1px;
-    background: rgba(255, 255, 255, 0.6);
-    transition: width 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
-  }
-
   &:hover,
   &:focus-visible {
     opacity: 1;
   }
-
-  &:hover::after,
-  &:focus-visible::after {
-    width: 100%;
-  }
 `;
+
+// transitions.dev "tabs sliding" (16), adapted to the router-driven nav:
+// a single active-route underline that slides between links via framer's
+// shared-layout animation instead of a per-link width tween.
+const Underline = styled(motion.span)`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.6);
+`;
+
+const ActiveUnderline: React.FC<{ show: boolean }> = ({ show }) => {
+  const reduced = useReducedMotion();
+  if (!show) return null;
+  return (
+    <Underline
+      layoutId="nav-underline"
+      transition={{ duration: reduced ? 0 : 0.3, ease }}
+    />
+  );
+};
 
 const Header: React.FC = () => {
   const { pathname } = useLocation();
   const isHome = pathname === '/';
+
+  const isReadme = pathname === '/readme';
+  const isChangelog = pathname === '/changelog';
+  const isWork = pathname === '/work';
+  const isWriting = pathname === '/writing' || pathname.startsWith('/writing/');
+  const isConnect = pathname === '/connect';
 
   return (
     <Bar>
@@ -68,11 +84,21 @@ const Header: React.FC = () => {
         <NavItem style={isHome ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}>
           <NavLink to="/" $active={false}>Home</NavLink>
         </NavItem>
-        <NavItem><NavLink to="/readme" $active={pathname === '/readme'}>Readme</NavLink></NavItem>
-        <NavItem><NavLink to="/changelog" $active={pathname === '/changelog'}>Changelog</NavLink></NavItem>
-        <NavItem><NavLink to="/work" $active={pathname === '/work'}>Work</NavLink></NavItem>
-        <NavItem><NavLink to="/writing" $active={pathname === '/writing' || pathname.startsWith('/writing/')}>Writing</NavLink></NavItem>
-        <NavItem><NavLink to="/connect" $active={pathname === '/connect'}>Connect</NavLink></NavItem>
+        <NavItem>
+          <NavLink to="/readme" $active={isReadme}>Readme<ActiveUnderline show={isReadme} /></NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink to="/changelog" $active={isChangelog}>Changelog<ActiveUnderline show={isChangelog} /></NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink to="/work" $active={isWork}>Work<ActiveUnderline show={isWork} /></NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink to="/writing" $active={isWriting}>Writing<ActiveUnderline show={isWriting} /></NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink to="/connect" $active={isConnect}>Connect<ActiveUnderline show={isConnect} /></NavLink>
+        </NavItem>
       </NavLinks>
     </Bar>
   );
