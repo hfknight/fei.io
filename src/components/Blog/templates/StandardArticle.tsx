@@ -8,6 +8,7 @@ export default function StandardArticle({ title, coverImageUrl, publishedAt, chi
     <Column>
       {publishedAt ? <DateLabel>{formatDate(publishedAt)}</DateLabel> : null}
       <Title>{title}</Title>
+      <Rule />
       {coverImageUrl ? <Cover src={coverImageUrl} alt="" loading="lazy" /> : null}
       {children}
     </Column>
@@ -31,11 +32,19 @@ const DateLabel = styled.span`
 
 const Title = styled.h1`
   color: #fff;
-  font-size: clamp(2rem, 5vw, 2.9rem);
-  font-weight: 500;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(2.2rem, 5vw, 3.2rem);
+  font-weight: 400;
   line-height: 1.12;
-  letter-spacing: -0.01em;
-  margin: 0 0 2rem;
+  letter-spacing: -0.02em;
+  margin: 0 0 1.4rem;
+`;
+
+const Rule = styled.hr`
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  width: 3rem;
+  margin: 0 0 2.4rem;
 `;
 
 const Cover = styled.img`

@@ -85,10 +85,11 @@ const DateLabel = styled.span`
 
 const Title = styled.h1`
   color: #fff;
-  font-size: clamp(2.1rem, 5.5vw, 3.2rem);
-  font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: -0.015em;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(2.8rem, 7vw, 4.4rem);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
   margin: 0;
 `;
 
