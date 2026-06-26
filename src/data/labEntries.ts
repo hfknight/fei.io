@@ -6,6 +6,13 @@ import type { LabEntry } from '../types';
 // not a runtime 404. The index lists these and one dynamic route renders them.
 export const labEntries: LabEntry[] = [
   {
+    slug: 'interfaces-that-feel-better',
+    title: 'Best practices that make interfaces feel better',
+    kind: 'learning',
+    date: '2026-06-26',
+    Component: lazy(() => import('../pages/lab/entries/InterfacesThatFeelBetter')),
+  },
+  {
     slug: 'building-the-lab',
     title: 'Building the Lab',
     kind: 'case-study',

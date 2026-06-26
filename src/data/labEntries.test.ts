@@ -38,6 +38,9 @@ describe('sortByDateDesc', () => {
 describe('findLabEntry', () => {
   it('returns the entry for a known slug', () => {
     expect(findLabEntry('building-the-lab')?.slug).toBe('building-the-lab');
+    expect(findLabEntry('interfaces-that-feel-better')?.title).toBe(
+      'Best practices that make interfaces feel better',
+    );
   });
 
   it('returns undefined for an unknown slug', () => {
