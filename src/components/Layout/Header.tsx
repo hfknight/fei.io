@@ -15,6 +15,14 @@ const Bar = styled.header`
   padding: 0 2rem;
   height: 60px;
   background: transparent;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    left: 0;
+    height: auto;
+    min-height: 60px;
+    align-items: flex-start;
+    padding: 0.6rem 1.25rem;
+  }
 `;
 
 const NavLinks = styled.ul`
@@ -23,6 +31,13 @@ const NavLinks = styled.ul`
   padding: 0;
   display: flex;
   gap: 2rem;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.55rem 1.1rem;
+    max-width: 100%;
+  }
 `;
 
 const NavItem = styled.li``;
@@ -74,6 +89,7 @@ const Header: React.FC = () => {
 
   const isReadme = pathname === '/readme';
   const isChangelog = pathname === '/changelog';
+  const isLab = pathname === '/lab' || pathname.startsWith('/lab/');
   const isWork = pathname === '/work';
   const isWriting = pathname === '/writing' || pathname.startsWith('/writing/');
   const isConnect = pathname === '/connect';
@@ -89,6 +105,9 @@ const Header: React.FC = () => {
         </NavItem>
         <NavItem>
           <NavLink to="/changelog" $active={isChangelog}>Changelog<ActiveUnderline show={isChangelog} /></NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink to="/lab" $active={isLab}>Lab<ActiveUnderline show={isLab} /></NavLink>
         </NavItem>
         <NavItem>
           <NavLink to="/work" $active={isWork}>Work<ActiveUnderline show={isWork} /></NavLink>

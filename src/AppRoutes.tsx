@@ -15,6 +15,10 @@ const WritingPost = lazy(() => import('./pages/WritingPost'));
 const AdminPosts = lazy(() => import('./pages/admin/AdminPosts'));
 const AdminEditor = lazy(() => import('./pages/admin/AdminEditor'));
 
+// Lazy so each bespoke entry page stays off the landing bundle.
+const Lab = lazy(() => import('./pages/Lab'));
+const LabEntryRoute = lazy(() => import('./pages/lab/LabEntryRoute'));
+
 const AppRoutes: React.FC = () => {
   const location = useLocation();
 
@@ -31,6 +35,8 @@ const AppRoutes: React.FC = () => {
           <Route path="/writing/admin/new" element={<AdminEditor />} />
           <Route path="/writing/admin/:id" element={<AdminEditor />} />
           <Route path="/writing/:slug" element={<WritingPost />} />
+          <Route path="/lab" element={<Lab />} />
+          <Route path="/lab/:slug" element={<LabEntryRoute />} />
           <Route path="/connect" element={<Connect />} />
           <Route path="/loading" element={<LoadingScreen isVisible={true} />} />
         </Routes>

@@ -67,3 +67,19 @@ export interface BlogPost extends BlogPostSummary {
   createdAt: number;
   updatedAt: number;
 }
+
+// --- Lab ---
+
+export type LabKind = 'learning' | 'case-study' | 'experiment';
+
+// Each Lab entry is a bespoke, hand-coded page (no shared template). The registry
+// in src/data/labEntries.ts is the single source of truth for both the index list
+// and route resolution. `Component` is typed lazy so entry pages are guaranteed to
+// stay off the landing bundle.
+export interface LabEntry {
+  slug: string;
+  title: string;
+  kind: LabKind;
+  date: string; // ISO 8601 (YYYY-MM-DD)
+  Component: React.LazyExoticComponent<React.ComponentType>;
+}
