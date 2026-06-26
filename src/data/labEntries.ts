@@ -12,13 +12,6 @@ export const labEntries: LabEntry[] = [
     date: '2026-06-26',
     Component: lazy(() => import('../pages/lab/entries/InterfacesThatFeelBetter')),
   },
-  {
-    slug: 'building-the-lab',
-    title: 'Building the Lab',
-    kind: 'case-study',
-    date: '2026-06-26',
-    Component: lazy(() => import('../pages/lab/entries/BuildingTheLab')),
-  },
 ];
 
 // Pure, side-effect-free so ordering is unit-testable with fixtures.

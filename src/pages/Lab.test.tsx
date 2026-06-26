@@ -25,7 +25,7 @@ beforeEach(() => vi.resetAllMocks());
 describe('Lab index', () => {
   it('lists entries as links with a "year · kind" meta line', () => {
     vi.mocked(labEntriesByDate).mockReturnValue([
-      entry({ slug: 'building-the-lab', title: 'Building the Lab', kind: 'case-study', date: '2026-06-26' }),
+      entry({ slug: 'sample-entry', title: 'Sample Entry', kind: 'case-study', date: '2026-06-26' }),
     ]);
 
     render(
@@ -34,11 +34,11 @@ describe('Lab index', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Building the Lab')).toBeInTheDocument();
+    expect(screen.getByText('Sample Entry')).toBeInTheDocument();
     expect(screen.getByText('2026 · Case study')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Building the Lab/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Sample Entry/ })).toHaveAttribute(
       'href',
-      '/lab/building-the-lab',
+      '/lab/sample-entry',
     );
   });
 
