@@ -20,6 +20,8 @@ const ARTICLE_URL = 'https://jakub.kr/writing/details-that-make-interfaces-feel-
 const SKILL_URL = 'https://github.com/jakubkrehel/make-interfaces-feel-better';
 const TRANSITIONS_URL = 'https://transitions.dev';
 const TRANSITIONS_SKILL_URL = 'https://github.com/Jakubantalik/transitions.dev';
+const EMIL_URL = 'https://emilkowal.ski/ui/7-practical-animation-tips';
+const EMIL_SKILL_URL = 'https://emilkowal.ski/skill';
 
 const CARD_SHADOW =
   '0 0 0 1px rgba(255,255,255,0.10), 0 2px 8px rgba(0,0,0,0.35), 0 10px 30px rgba(0,0,0,0.25)';
@@ -167,6 +169,10 @@ const AnimationsDemo: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [subtleExit, setSubtleExit] = useState(true);
   const [chips, setChips] = useState(['alpha', 'beta', 'gamma']);
+  const [fromZero, setFromZero] = useState(false);
+  const [popKey, setPopKey] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [originTrigger, setOriginTrigger] = useState(true);
 
   const copy = () => {
     setCopied(true);
@@ -243,6 +249,66 @@ const AnimationsDemo: React.FC = () => {
           reset
         </Btn>
       </ButtonRow>
+
+      <Divider />
+
+      <DemoCaption>Pop a card in. From scale(0) it balloons through the layout; from 0.9 it just settles.</DemoCaption>
+      <PopCardStage>
+        <PopCard
+          key={popKey}
+          initial={{ opacity: 0, scale: fromZero ? 0 : 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', duration: 0.4, bounce: 0.25 }}
+        >
+          Card
+        </PopCard>
+      </PopCardStage>
+      <ButtonRow>
+        <Btn
+          on={fromZero}
+          onClick={() => {
+            setFromZero((f) => !f);
+            setPopKey((k) => k + 1);
+          }}
+        >
+          from: scale({fromZero ? '0' : '0.9'})
+        </Btn>
+        <Btn on={false} onClick={() => setPopKey((k) => k + 1)}>
+          replay
+        </Btn>
+      </ButtonRow>
+
+      <Divider />
+
+      <DemoCaption>
+        Open the menu, then switch where it scales from. Origin at the trigger feels attached; from center it
+        feels detached.
+      </DemoCaption>
+      <OriginControls>
+        <Btn on={menuOpen} onClick={() => setMenuOpen((o) => !o)}>
+          {menuOpen ? 'close menu' : 'open menu'}
+        </Btn>
+        <Btn on={false} onClick={() => setOriginTrigger((t) => !t)}>
+          origin: {originTrigger ? 'trigger' : 'center'}
+        </Btn>
+      </OriginControls>
+      <OriginStage>
+        <AnimatePresence>
+          {menuOpen && (
+            <Popover
+              $trigger={originTrigger}
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.85 }}
+              transition={{ duration: 0.18, ease }}
+            >
+              <PopItem>Profile</PopItem>
+              <PopItem>Settings</PopItem>
+              <PopItem>Sign out</PopItem>
+            </Popover>
+          )}
+        </AnimatePresence>
+      </OriginStage>
     </DemoCard>
   );
 };
@@ -543,9 +609,21 @@ img { outline: 1px solid rgba(0, 0, 0, 0.1); outline-offset: -1px; }`,
 <motion.div exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.15 }} />`,
       },
       {
+        name: 'Don’t animate from scale(0)',
+        keys: ['initial scale ~0.9', 'not 0'],
+        body: 'Scaling an entrance up from 0 balloons the element through the layout and reads as rubbery. Start around 0.9 — the eye sees a settle, not a zoom.',
+        lang: 'javascript',
+        code: `// Settle in from 0.9, never from 0
+<motion.div
+  initial={{ opacity: 0, scale: 0.9 }}
+  animate={{ opacity: 1, scale: 1 }}
+  transition={{ type: "spring", duration: 0.4, bounce: 0.25 }}
+/>`,
+      },
+      {
         name: 'Animate icon swaps',
         keys: ['scale', 'opacity', 'blur', 'spring'],
-        body: 'On a state change, cross-fade the icons with scale 0.25 → 1, opacity 0 → 1, and blur 4px → 0. A spring (duration 0.3, no bounce) makes the swap feel responsive.',
+        body: 'On a state change, cross-fade the icons with scale 0.25 → 1, opacity 0 → 1, and blur 4px → 0. A spring (duration 0.3, no bounce) makes the swap feel responsive. A 15px icon is small enough to pop from a low scale — the ~0.9 floor above is for full panels and cards.',
         lang: 'javascript',
         code: `<AnimatePresence initial={false} mode="popLayout">
   <motion.span
@@ -566,6 +644,18 @@ img { outline: 1px solid rgba(0, 0, 0, 0.1); outline-offset: -1px; }`,
         lang: 'css',
         code: `/* Tactile press — never below ~0.95 */
 .button:active { scale: 0.96; }`,
+      },
+      {
+        name: 'Scale from the trigger, not the center',
+        keys: ['transform-origin', 'grow from the trigger'],
+        body: 'A popover should grow out of the control that opened it. Point transform-origin at the trigger — menu libraries hand you its position as a CSS variable — so the panel feels attached instead of ballooning from its own middle.',
+        lang: 'css',
+        code: `/* Grow from the trigger, not the panel’s middle */
+.menu {
+  /* the menu lib reports where the trigger sits */
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin);
+  transition: opacity 150ms ease-out, scale 150ms ease-out;
+}`,
       },
       {
         name: 'Skip the animation on first paint',
@@ -648,8 +738,8 @@ img { outline: 1px solid rgba(0, 0, 0, 0.1); outline-offset: -1px; }`,
       },
       {
         name: 'Tooltip',
-        body: 'Delay the tooltip ~80ms on enter so a cursor passing through doesn’t flash it, and remove the delay on exit so it dismisses the instant you leave.',
-        keys: ['transition-delay: 80ms', 'opacity', 'scale: 0.98'],
+        body: 'Delay the tooltip ~80ms on enter so a cursor passing through doesn’t flash it, and remove the delay on exit so it dismisses the instant you leave. Once one tooltip in a group has opened, drop the delay on the rest — a warm group should feel instant, not re-charge 80ms at every target.',
+        keys: ['transition-delay: 80ms', 'instant when warm', 'scale: 0.98'],
         lang: 'css',
         code: `/* Delay in, instant out */
 .tip {
@@ -657,7 +747,9 @@ img { outline: 1px solid rgba(0, 0, 0, 0.1); outline-offset: -1px; }`,
   transform: translateY(4px) scale(0.98);
   transition: opacity 150ms ease-out, transform 150ms ease-out;
 }
-.target:hover .tip { opacity: 1; transform: none; transition-delay: 80ms; }`,
+.target:hover .tip { opacity: 1; transform: none; transition-delay: 80ms; }
+/* group already warm — skip the wait on the next tip */
+.target:hover .tip[data-instant] { transition-delay: 0ms; }`,
       },
       {
         name: 'Error shake',
@@ -787,7 +879,7 @@ const InterfacesThatFeelBetter: React.FC = () => {
 
             <Lede {...rise(0.2)}>
               Great interfaces are a collection of small things that compound into a great
-              experience. Here are twenty-two of those details — across typography, surfaces,
+              experience. Here are twenty-four of those details — across typography, surfaces,
               animation, performance, and transitions, each one playable.
             </Lede>
 
@@ -804,7 +896,11 @@ const InterfacesThatFeelBetter: React.FC = () => {
               <A href={TRANSITIONS_URL} target="_blank" rel="noreferrer noopener">
                 transitions.dev
               </A>{' '}
-              by Jakub Antalik.
+              by Jakub Antalik, plus animation tips from{' '}
+              <A href={EMIL_URL} target="_blank" rel="noreferrer noopener">
+                Emil Kowalski
+              </A>
+              .
             </Credit>
 
             {GROUPS.map((group, i) => {
@@ -891,6 +987,25 @@ const InterfacesThatFeelBetter: React.FC = () => {
                       <RefMeta>Agent skill by Jakub Antalik</RefMeta>
                     </RefLine>
                     <RefInstall>npx skills add Jakubantalik/transitions.dev</RefInstall>
+                  </RefEntry>
+                </RefGroup>
+                <RefGroup>
+                  <RefEntry>
+                    <RefLine>
+                      <A href={EMIL_URL} target="_blank" rel="noreferrer noopener">
+                        7 practical animation tips
+                      </A>
+                      <RefMeta>Article by Emil Kowalski</RefMeta>
+                    </RefLine>
+                  </RefEntry>
+                  <RefEntry>
+                    <RefLine>
+                      <A href={EMIL_SKILL_URL} target="_blank" rel="noreferrer noopener">
+                        emil-design-eng
+                      </A>
+                      <RefMeta>Agent skill by Emil Kowalski</RefMeta>
+                    </RefLine>
+                    <RefInstall>npx skills add emilkowalski/skill</RefInstall>
                   </RefEntry>
                 </RefGroup>
               </RefList>
@@ -1500,6 +1615,64 @@ const ChipRow = styled.div`
   min-height: 2.4rem;
   align-items: center;
   margin-bottom: 1.1rem;
+`;
+
+const PopCardStage = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 92px;
+  margin-bottom: 1.1rem;
+`;
+
+const PopCard = styled(motion.div)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 110px;
+  height: 64px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.8);
+`;
+
+const OriginControls = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.9rem;
+`;
+
+const OriginStage = styled.div`
+  position: relative;
+  min-height: 132px;
+`;
+
+const Popover = styled(motion.div)<{ $trigger: boolean }>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 150px;
+  padding: 0.35rem;
+  border-radius: 10px;
+  background: #0c0a1f;
+  box-shadow: ${CARD_SHADOW};
+  transform-origin: ${(p) => (p.$trigger ? 'top left' : 'center')};
+`;
+
+const PopItem = styled.div`
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.78);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
 `;
 
 /* Performance demo */
