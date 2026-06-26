@@ -197,7 +197,7 @@ const AnimationsDemo: React.FC = () => {
       <DemoCaption>Press the button — the icon swaps on a spring, and the whole thing dips to 0.96.</DemoCaption>
       <PressButton type="button" $on={copied} onClick={copy} whileTap={{ scale: 0.96 }}>
         <IconSlot>
-          <AnimatePresence initial={false} mode="wait">
+          <AnimatePresence initial={false} mode="popLayout">
             <motion.span
               key={copied ? 'check' : 'copy'}
               initial={{ scale: 0.25, opacity: 0, filter: 'blur(4px)' }}
@@ -547,11 +547,12 @@ img { outline: 1px solid rgba(0, 0, 0, 0.1); outline-offset: -1px; }`,
         keys: ['scale', 'opacity', 'blur', 'spring'],
         body: 'On a state change, cross-fade the icons with scale 0.25 → 1, opacity 0 → 1, and blur 4px → 0. A spring (duration 0.3, no bounce) makes the swap feel responsive.',
         lang: 'javascript',
-        code: `<AnimatePresence initial={false} mode="wait">
+        code: `<AnimatePresence initial={false} mode="popLayout">
   <motion.span
     key={copied ? "check" : "copy"}
     initial={{ scale: 0.25, opacity: 0, filter: "blur(4px)" }}
     animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
+    exit={{ scale: 0.25, opacity: 0, filter: "blur(4px)" }}
     transition={{ type: "spring", duration: 0.3, bounce: 0 }}
   >
     {copied ? <CheckIcon /> : <CopyIcon />}
@@ -1362,6 +1363,7 @@ const ButtonRow = styled.div`
 `;
 
 const IconSlot = styled.span`
+  position: relative;
   display: inline-flex;
   width: 15px;
   height: 15px;
