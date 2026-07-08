@@ -617,6 +617,12 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     ctx.addCleanup(() => osvg.remove());
 
     let bmap: HTMLElement | null = null;   // <feImage id="bridgeMap">, resolved lazily
+    // geometry the blob map was last regenerated for — generateBlobMap's output depends
+    // only on (cx1,cy1,r1,cx2,cy2,r2), not on wob, so a held merge (lenses static) can
+    // keep reusing the same encoded map instead of re-running the SDF raster + toDataURL()
+    // every frame. null forces a regen on the next merged frame; reset on separation so
+    // the next merge always starts fresh.
+    let lastBlobGeom: [number, number, number, number, number, number] | null = null;
     const setDiscFx = (vis: boolean): void => {
       ctx.qa('[data-lens]').forEach((lens) => {
         const fx = lens.querySelector<HTMLElement>('[data-lens-fx]');
@@ -649,7 +655,19 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
         const bh = Math.max(cy1 + r1, cy2 + r2) + pad - by0;
 
         if (!bmap) bmap = ctx.q('#bridgeMap');
-        if (bmap) bmap.setAttribute('href', generateBlobMap(cx1, cy1, r1, cx2, cy2, r2, bx0, by0, bw, bh));
+        if (bmap) {
+          const geomChanged = !lastBlobGeom ||
+            Math.abs(cx1 - lastBlobGeom[0]) > 0.5 ||
+            Math.abs(cy1 - lastBlobGeom[1]) > 0.5 ||
+            Math.abs(r1 - lastBlobGeom[2]) > 0.5 ||
+            Math.abs(cx2 - lastBlobGeom[3]) > 0.5 ||
+            Math.abs(cy2 - lastBlobGeom[4]) > 0.5 ||
+            Math.abs(r2 - lastBlobGeom[5]) > 0.5;
+          if (geomChanged) {
+            bmap.setAttribute('href', generateBlobMap(cx1, cy1, r1, cx2, cy2, r2, bx0, by0, bw, bh));
+            lastBlobGeom = [cx1, cy1, r1, cx2, cy2, r2];
+          }
+        }
 
         // position the refraction layer to the bbox; align its world clone under it
         blob.style.left = `${bx0}px`;
@@ -672,6 +690,7 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
         if (!wasMerged) { wobEnergy = Math.min(1, wobEnergy + 0.3); wasMerged = true; }   // pop on connect
       } else {
         wasMerged = false;
+        lastBlobGeom = null;   // force a fresh regen on the next merge
         blob.style.display = 'none';
         osvg.style.display = 'none';
         setDiscFx(true);
