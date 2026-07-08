@@ -37,6 +37,12 @@ export function createLandingEngine(root: HTMLElement, _opts: EngineOpts): Landi
     id = requestAnimationFrame(frame);
     cleanups.push(() => { alive = false; cancelAnimationFrame(id); });
   };
+  // cancellable setTimeout — every timer used by the reveal choreography (Task 4)
+  // goes through this so a mid-load teardown can't fire DOM mutations after unmount.
+  const later = (fn: () => void, ms: number) => {
+    const id = window.setTimeout(fn, ms);
+    cleanups.push(() => clearTimeout(id));
+  };
 
   // ---- Task 1: head-track (video load, onMove/onLeave, main tick's seek portion) ----
   const cfg = { j: { ...JOJO }, o: { ...OLLIE } };
@@ -93,25 +99,139 @@ export function createLandingEngine(root: HTMLElement, _opts: EngineOpts): Landi
   };
   applyFrost(FROST_BLUR, FROST_STYLE);
 
-  // Blob load — deliberately the SAME seek path production uses (Task 4 only adds
-  // byte-progress on top), so this spike gate tests the real thing. Guard the .then
-  // with `destroyed`, register the URL for revoke, and swallow the abort rejection.
-  const loadClip = (vid: HTMLVideoElement | null, c: ClipCfg, clearSeekMark: () => void) => {
+  // ---- Task 4: loading overlay (real byte-progress fill + reveal choreography) ----
+  const loader = q('[data-loader]');
+  const fillRect = q('[data-fill-rect]');
+  const prog: Record<'j' | 'o', number> = { j: 0, o: 0 };
+  const done: Record<'j' | 'o', boolean> = { j: false, o: false };
+  let dispProg = 0;
+  // mutable flag Task 3 hardcoded to `true` (no loader existed yet); finishLoader below
+  // is the sole writer. The main tick's seam/hairline glow (further down) reads it.
+  let loaderDone = false;
+  let finished = false;
+  const loaderStart = performance.now();
+
+  // dark ink of the logo rises bottom→top with progress p (0..1) (source 798-804)
+  const setLoaderFill = (p: number) => {
+    if (!fillRect) return;
+    const H = 390;
+    fillRect.setAttribute('y', (H * (1 - p)).toFixed(1));
+    fillRect.setAttribute('height', (H * p).toFixed(1));
+  };
+
+  // spring the center lockup's four corner brackets in — the loading brackets have
+  // already opened to this exact position, so this is a seamless handoff (source 501-506)
+  const bounceBrackets = () => {
+    qa('[data-brk-frame]').forEach((f) => { f.style.opacity = '1'; });
+  };
+
+  // everything loaded: fill to full, flip the logo, split the brackets open,
+  // materialize the hero lockup, then dissolve (source 806-861, omitting the
+  // lens intro at source 860 — not in scope for this task)
+  const finishLoader = () => {
+    if (finished) return;
+    finished = true;
+    loaderDone = true;
+    setLoaderFill(1);
+    const box = q('[data-brk-box]');
+    const flip = q('[data-flip]');
+    const lock = q('[data-load-lockup]');
+    const fades = qa('[data-lk-fade]');
+    // measure the lockup's own box so the brackets frame it exactly like the landing hero's
+    const lr = lock ? lock.getBoundingClientRect() : { width: 460, height: 200 };
+    // 1) the logo flips in place (same element, no fade) to reveal its final, uncut
+    //    form, while the brackets split to frame the full lockup
+    later(() => {
+      if (flip) flip.style.transform = 'rotateY(180deg)';
+      if (box) { box.style.width = `${Math.round(lr.width)}px`; box.style.height = `${Math.round(lr.height)}px`; }
+    }, 100);
+    // 2) text slides in AND the curtains part from the center — together, revealing the videos
+    later(() => {
+      fades.forEach((el, i) => {
+        later(() => { el.style.opacity = '1'; el.style.transform = 'none'; }, i * 45);
+      });
+      const cl = q('[data-curtain="l"]');
+      const cr = q('[data-curtain="r"]');
+      const fx = q('[data-loader-fx]');
+      if (fx) fx.style.opacity = '0';
+      if (cl) cl.style.transform = 'translateX(-100%)';
+      if (cr) cr.style.transform = 'translateX(100%)';
+    }, 300);
+    // corner brackets: springs in after the reveal
+    later(() => { bounceBrackets(); }, 700);
+    // 3) once the lockup has read over the live video, fade it out
+    later(() => {
+      if (lock) { lock.style.transition = 'opacity .3s ease'; lock.style.opacity = '0'; }
+      if (box) { box.style.transition = 'opacity .3s ease'; box.style.opacity = '0'; }
+    }, 720);
+    later(() => { if (loader) loader.style.display = 'none'; }, 1020);
+    // 4) pet captions slide in, snappy + staggered, once the videos are exposed
+    later(() => {
+      (['j', 'o'] as const).forEach((key, i) => {
+        const els = qa(`[data-pet-cap="${key}"]`);
+        later(() => {
+          els.forEach((el) => { el.style.opacity = '1'; el.style.transform = 'none'; });
+        }, i * 70);
+      });
+    }, 680);
+  };
+
+  // eased catch-up of dispProg toward real (byte) progress or a time-based creep
+  // fallback (keeps the fill moving even without a Content-Length); finishes once
+  // both clips are done and the fill has visually reached 1 (source 908-920)
+  loop(() => {
+    if (loaderDone) return;
+    const real = (prog.j + prog.o) / 2;
+    const t = (performance.now() - loaderStart) / 1000;
+    const creep = 1 - Math.exp(-t / 6);
+    const allDone = done.j && done.o;
+    const target = allDone ? 1 : Math.max(real, Math.min(creep, 0.9));
+    dispProg += (target - dispProg) * 0.08;
+    if (allDone && dispProg > 0.995) dispProg = 1;
+    setLoaderFill(dispProg);
+    if (allDone && dispProg >= 0.999) { finishLoader(); return; }
+  });
+
+  // Blob load — deliberately the SAME seek path production uses, streamed via
+  // res.body.getReader() so prog[key] tracks real downloaded bytes (source 924-952).
+  // Guard the .then with `destroyed`, register the URL for revoke, and swallow the
+  // abort rejection.
+  const loadClip = (vid: HTMLVideoElement | null, c: ClipCfg, clearSeekMark: () => void, key: 'j' | 'o') => {
     if (!vid) return;
     const src = vid.dataset.src;
     if (!src) return;
     fetch(src, { signal: abort.signal })
-      .then((res) => res.blob())
+      .then((res) => {
+        const total = Number(res.headers.get('content-length')) || 0;
+        const body = res.body;
+        if (!body || !total) return res.blob();
+        const reader = body.getReader();
+        const chunks: Uint8Array[] = [];
+        let received = 0;
+        const pump = (): Promise<Blob> => reader.read().then((r) => {
+          // TS 5.9's generic Uint8Array<ArrayBufferLike> doesn't structurally satisfy
+          // BlobPart's ArrayBufferView<ArrayBuffer> — chunks are plain bytes either way.
+          if (r.done) return new Blob(chunks as BlobPart[], { type: 'video/mp4' });
+          chunks.push(r.value);
+          received += r.value.length;
+          prog[key] = received / total;
+          return pump();
+        });
+        return pump();
+      })
       .then((blob) => {
         if (destroyed) return;
         const url = URL.createObjectURL(blob);
         objectUrls.push(url);
         vid.src = url;
+        prog[key] = 1;
         on(vid, 'loadeddata', () => {
           const settle = () => {
+            if (destroyed) return;
             vid.pause();
             vid.currentTime = c.T0 + c.dur * c.rest;
             vid.style.opacity = '1';
+            done[key] = true;
           };
           // play→settle forces the first frame to decode so seeks land reliably
           const p = vid.play();
@@ -120,11 +240,15 @@ export function createLandingEngine(root: HTMLElement, _opts: EngineOpts): Landi
         }, { once: true });
         vid.load();
       })
-      .catch((e) => { if (e.name !== 'AbortError') throw e; });
+      .catch((e) => {
+        if (e.name === 'AbortError') return;
+        prog[key] = 1;
+        done[key] = true;
+      });
     on(vid, 'seeked', () => { clearSeekMark(); });
   };
-  loadClip(vj, cfg.j, () => { seekJ = false; });
-  loadClip(vo, cfg.o, () => { seekO = false; });
+  loadClip(vj, cfg.j, () => { seekJ = false; }, 'j');
+  loadClip(vo, cfg.o, () => { seekO = false; }, 'o');
 
   // ONLY the pet whose half the cursor is in moves; the other holds its last pose.
   const onMove: EventListener = (e) => {
@@ -169,10 +293,6 @@ export function createLandingEngine(root: HTMLElement, _opts: EngineOpts): Landi
     }
     return marked;
   };
-
-  // No loader yet (Task 4 wires the real flag); steady soft-glow base state is correct
-  // until then.
-  const loaderDone = true;
 
   // main tick
   loop(() => {

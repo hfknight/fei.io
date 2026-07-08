@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react';
 import SplitStage from './SplitStage';
 import Lockup from './Lockup';
 import PetCaption from './PetCaption';
+import Loader from './Loader';
 import { createLandingEngine } from './landingEngine';
 
 const Landing: React.FC = () => {
@@ -14,6 +15,8 @@ const Landing: React.FC = () => {
   }, []);
   return (
     <div ref={ref}>
+      {/* position:fixed, so DOM order here is cosmetic — rendered first to overlay */}
+      <Loader />
       <SplitStage />
       <Lockup />
       <PetCaption pet="j" />
