@@ -429,7 +429,21 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
       const cnv = document.createElement('canvas');
       cnv.width = o.videoWidth || 1280;
       cnv.height = o.videoHeight || 720;
-      cnv.setAttribute('style', cl.getAttribute('style') || '');
+      // The video's box/crop styles live in a styled-components CLASS (position, inset,
+      // width/height, object-fit); only object-position + the scaleX(-1) flip are inline.
+      // Copying cl.getAttribute('style') captures ONLY the inline half, so the canvas
+      // lost its sizing/positioning — it rendered at intrinsic 1280x720, statically, and
+      // the flipped right lens landed on empty space (blank). Reproduce the video's
+      // *computed* rendered box instead (fills the half, object-fit cover, same
+      // object-position + flip) so each lens refracts what's actually beneath it.
+      const vs = getComputedStyle(o);
+      cnv.style.position = 'absolute';
+      cnv.style.inset = '0';
+      cnv.style.width = '100%';
+      cnv.style.height = '100%';
+      cnv.style.objectFit = vs.objectFit;
+      cnv.style.objectPosition = vs.objectPosition;
+      cnv.style.transform = vs.transform;
       cnv.style.opacity = '1';
       cl.parentNode?.replaceChild(cnv, cl);
       lensVidPairs.push([o, cnv]);
