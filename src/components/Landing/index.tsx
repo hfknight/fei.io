@@ -1,22 +1,49 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import SplitStage from './SplitStage';
 import Lockup from './Lockup';
 import PetCaption from './PetCaption';
 import Loader from './Loader';
 import { createLandingEngine } from './landingEngine';
 
+// The loader intro plays once per fresh page load. This module-scope flag persists
+// across SPA route changes (the module stays loaded) and resets on a full reload, so
+// re-navigating to "/" skips the intro. It latches on `onRevealed` — the engine's
+// reveal-complete signal — NOT synchronously in the effect: React 19 StrictMode
+// double-mounts effects in dev, and the first mount is torn down (aborting the clip
+// download) before the reveal fires, so only the real, visible mount sets it.
+let hasShownLoading = false;
+
 const Landing: React.FC = () => {
   const ref = useRef<HTMLDivElement>(null);
+  const reducedMotion = !!useReducedMotion();
+  // Touch / no-fine-hover devices get the quick static reveal, not the full loader
+  // (which gates on a ~7 MB download). Read once — capabilities don't change per render.
+  const [canHover] = useState(
+    () => window.matchMedia('(hover: hover) and (pointer: fine)').matches,
+  );
+  // Captured on the mount so it stays stable for this mount's lifetime; a later SPA
+  // re-navigation mounts fresh and re-reads hasShownLoading (now true) → skips.
+  const [playIntro] = useState(
+    () => !hasShownLoading && !reducedMotion && canHover,
+  );
+
   useEffect(() => {
     if (!ref.current) return;
-    const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-    const engine = createLandingEngine(ref.current, { reducedMotion: false, canHover, playIntro: true });
+    const engine = createLandingEngine(ref.current, {
+      reducedMotion,
+      canHover,
+      playIntro,
+      onRevealed: () => { hasShownLoading = true; },
+    });
     return () => engine.destroy();
-  }, []);
+  }, [reducedMotion, canHover, playIntro]);
+
   return (
     <div ref={ref}>
-      {/* position:fixed, so DOM order here is cosmetic — rendered first to overlay */}
-      <Loader />
+      {/* position:fixed, so DOM order here is cosmetic — rendered first to overlay.
+          Only mounted for the full intro; the static path reveals the hero directly. */}
+      {playIntro && <Loader />}
       <SplitStage />
       <Lockup />
       <PetCaption pet="j" />

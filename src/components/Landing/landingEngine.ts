@@ -8,13 +8,14 @@ export interface EngineOpts {
   reducedMotion: boolean;
   canHover: boolean;   // matchMedia('(hover: hover) and (pointer: fine)').matches
   playIntro: boolean;  // false when hasShownLoading → skip loader, jump to steady state
+  onRevealed?: () => void; // fired once the hero is revealed (latches hasShownLoading)
 }
 export interface LandingEngine { destroy(): void; }
 
-// `_opts` is the shared EngineOpts arg wired by later tasks (Task 5: reducedMotion /
-// canHover / playIntro gating); intentionally unused in the Task 1 head-track spike.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function createLandingEngine(root: HTMLElement, _opts: EngineOpts): LandingEngine {
+// `interactive` (fine-hover pointer + motion allowed) gates the head-track/frost; when
+// off, the split hero renders at its resting pose with no listeners, scrub, or effects.
+export function createLandingEngine(root: HTMLElement, opts: EngineOpts): LandingEngine {
+  const interactive = !opts.reducedMotion && opts.canHover;
   // ---- teardown registry (fixes the source's leak) ----
   // App runs under <StrictMode>, so dev double-mounts and calls destroy() between
   // mounts — teardown must abort in-flight work and be idempotent.
@@ -174,23 +175,52 @@ export function createLandingEngine(root: HTMLElement, _opts: EngineOpts): Landi
         }, i * 70);
       });
     }, 680);
+    // the intro has committed to revealing — latch hasShownLoading so SPA re-nav skips
+    // it. Runs on the real (second) StrictMode mount only: the first mount is torn down
+    // before the clips finish downloading, so finishLoader never fires there.
+    opts.onRevealed?.();
+  };
+
+  // Static-path reveal for the !playIntro branch: no loader is mounted, so jump the
+  // captions + bracket-frame straight to the end-state finishLoader produces (minus the
+  // choreography). The videos' own .9s opacity fade-in is the quiet reveal.
+  const revealStatic = () => {
+    if (loaderDone) return;
+    loaderDone = true;
+    bounceBrackets();
+    (['j', 'o'] as const).forEach((key) => {
+      qa(`[data-pet-cap="${key}"]`).forEach((el) => {
+        el.style.opacity = '1';
+        el.style.transform = 'none';
+      });
+    });
+    opts.onRevealed?.();
   };
 
   // eased catch-up of dispProg toward real (byte) progress or a time-based creep
   // fallback (keeps the fill moving even without a Content-Length); finishes once
-  // both clips are done and the fill has visually reached 1 (source 908-920)
-  loop(() => {
-    if (loaderDone) return;
-    const real = (prog.j + prog.o) / 2;
-    const t = (performance.now() - loaderStart) / 1000;
-    const creep = 1 - Math.exp(-t / 6);
-    const allDone = done.j && done.o;
-    const target = allDone ? 1 : Math.max(real, Math.min(creep, 0.9));
-    dispProg += (target - dispProg) * 0.08;
-    if (allDone && dispProg > 0.995) dispProg = 1;
-    setLoaderFill(dispProg);
-    if (allDone && dispProg >= 0.999) { finishLoader(); return; }
-  });
+  // both clips are done and the fill has visually reached 1 (source 908-920).
+  // Only the full-intro path runs the loader-fill choreography; the !playIntro path
+  // waits for the clips and reveals immediately (revealStatic).
+  if (opts.playIntro) {
+    loop(() => {
+      if (loaderDone) return;
+      const real = (prog.j + prog.o) / 2;
+      const t = (performance.now() - loaderStart) / 1000;
+      const creep = 1 - Math.exp(-t / 6);
+      const allDone = done.j && done.o;
+      const target = allDone ? 1 : Math.max(real, Math.min(creep, 0.9));
+      dispProg += (target - dispProg) * 0.08;
+      if (allDone && dispProg > 0.995) dispProg = 1;
+      setLoaderFill(dispProg);
+      if (allDone && dispProg >= 0.999) { finishLoader(); return; }
+    });
+  } else {
+    loop(() => {
+      if (loaderDone) return;
+      if (done.j && done.o) revealStatic();
+    });
+  }
 
   // Blob load — deliberately the SAME seek path production uses, streamed via
   // res.body.getReader() so prog[key] tracks real downloaded bytes (source 924-952).
@@ -280,8 +310,13 @@ export function createLandingEngine(root: HTMLElement, _opts: EngineOpts): Landi
     if (frostL) frostL.style.opacity = '0';
     if (frostR) frostR.style.opacity = '0';
   };
-  on(window, 'mousemove', onMove);
-  on(window, 'mouseleave', onLeave);
+  // reduced-motion OR no fine-hover pointer → static path: no scrub, no frost. Skip the
+  // pointer listeners and the whole effect/easing tick; the clips stay parked at their
+  // rest frame (settled in loadClip) and the seam keeps its static-hairline base style.
+  if (interactive) {
+    on(window, 'mousemove', onMove);
+    on(window, 'mouseleave', onLeave);
+  }
 
   // Guarded seek (source 988-993). Returns the updated seek-flag for this video;
   // the flag is cleared by the 'seeked' listener when the browser finishes the seek.
@@ -294,8 +329,8 @@ export function createLandingEngine(root: HTMLElement, _opts: EngineOpts): Landi
     return marked;
   };
 
-  // main tick
-  loop(() => {
+  // main tick — effects + easing/seek. Registered only on the interactive path.
+  if (interactive) loop(() => {
     // seam edge-sheen: lit while a side is frosted (driven every frame so the toggle
     // is live) (source 999-1014)
     if (seam) {

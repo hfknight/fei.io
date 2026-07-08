@@ -16,6 +16,12 @@ const Wrapper = styled.div`
   align-items: center;
   text-align: center;
   padding: 22px 38px;
+  /* never let the lockup push past the viewport (no horizontal page scroll) */
+  max-width: 100vw;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    padding: 16px 20px;
+  }
 `;
 
 const Tagline = styled.div`
@@ -24,6 +30,12 @@ const Tagline = styled.div`
   letter-spacing: 0.34em;
   text-transform: uppercase;
   margin-bottom: 13px;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    font-size: 9px;
+    letter-spacing: 0.28em;
+    margin-bottom: 10px;
+  }
 `;
 
 const Title = styled.h1`
@@ -36,6 +48,11 @@ const Title = styled.h1`
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   column-gap: 0.22em;
+
+  /* scale the hero down on phones so "I'm [logo] Fei" fits without overflowing */
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    font-size: clamp(34px, 11vw, 56px);
+  }
 `;
 
 const Roles = styled.div`
@@ -47,6 +64,12 @@ const Roles = styled.div`
   grid-template-columns: 1fr 1fr;
   column-gap: 20px;
   align-items: center;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    margin-top: 12px;
+    font-size: 11px;
+    column-gap: 12px;
+  }
 `;
 
 // shared corner-bracket geometry (source 116-119); each corner overrides the two

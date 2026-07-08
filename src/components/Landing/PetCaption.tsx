@@ -14,6 +14,13 @@ const Cap = styled.div`
   z-index: 8;
   pointer-events: none;
   text-align: left;
+
+  /* The captions sit in the video halves flanking the centered lockup; below the
+     lg breakpoint they'd collide with it, so drop them (the spec allows
+     simplifying/hiding captions on narrow screens). Keeps the 50/50 split clean. */
+  @media (max-width: ${({ theme }) => theme.breakpoints.lg}) {
+    display: none;
+  }
 `;
 
 const Name = styled.div`
