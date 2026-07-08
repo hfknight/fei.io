@@ -3,7 +3,7 @@ interface LensProps {
 }
 
 // One draggable liquid-glass lens — ported verbatim from design source lines 134-140
-// (lens 2 repeats the same markup at 143-148). landingEngine (via lenses.ts:
+// (lens 2 repeats the same markup at 143-148). landingEngine (via lensEngine.ts:
 // createLenses) mutates position/size/opacity/filter imperatively on these exact
 // elements, so every style below is a literal inline style (matching source) rather
 // than a styled-components class — inline styles win the specificity fight either way,
@@ -52,7 +52,7 @@ const Lens: React.FC<LensProps> = ({ value }) => (
   </div>
 );
 
-// Two lenses + the container-scoped SVG filter host that lenses.ts injects the Snell
+// Two lenses + the container-scoped SVG filter host that lensEngine.ts injects the Snell
 // refraction filter defs into (createLenses' initLens). Only mounted by index.tsx when
 // `interactive` — reduced-motion / no-hover visitors never pay for this DOM or filters.
 const Lenses: React.FC = () => (
