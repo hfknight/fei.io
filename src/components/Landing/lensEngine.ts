@@ -176,6 +176,169 @@ function buildLensFilter(): string {
   );
 }
 
+// R/G displacement for one point given its inward edge-distance + outward normal, in the
+// same normalized convention the disc map uses (so magnitudes match everywhere) — port of
+// source 203-221 (`_encodeDisp`). generateLensMap (above) inlines this same math for the
+// single-disc case (matching the source's own duplication between the two); this copy is
+// what generateBlobMap (below) shares across the whole merged blob.
+function encodeDisp(
+  edgeDist: number,
+  rn: number,
+  nx: number,
+  ny: number,
+  R: number,
+  bezelPx: number,
+  disp1d: number[],
+  samples: number,
+  magnify: number,
+): [number, number] {
+  let dispPx = Math.max(0, Math.min(1, rn)) * magnify * 60;
+  if (edgeDist >= 0 && edgeDist <= bezelPx) {
+    const t = edgeDist / bezelPx;
+    const idx = Math.min(samples - 1, Math.floor(t * samples));
+    let raw = disp1d[idx] * 0.5 * (R / 110);
+    const env = bezelPx * 0.85 * (1 - t);
+    if (raw > env) raw = env;
+    if (raw < -env) raw = -env;
+    dispPx += raw;
+  }
+  let m = dispPx / 64;
+  if (m > 1) m = 1;
+  if (m < -1) m = -1;
+  return [
+    Math.max(0, Math.min(255, Math.round(128 - nx * m * 127))),
+    Math.max(0, Math.min(255, Math.round(128 - ny * m * 127))),
+  ];
+}
+
+// per-frame smooth-union (metaball) displacement map spanning both discs + the neck, so
+// the refraction field is one continuous surface across the bridge. Supersampled 2x to
+// match the disc map's density (keeps displacement magnitude identical) — port of source
+// 226-274, including its canvas.toDataURL() at the end: the perf gate (measured after
+// this port, not baked in ahead of time) decides whether that becomes createImageBitmap.
+function generateBlobMap(
+  x1: number, y1: number, r1: number,
+  x2: number, y2: number, r2: number,
+  bx0: number, by0: number, bw: number, bh: number,
+): string {
+  const magnify = LENS.magnify;
+  const bezW = LENS.bezelWidth;
+  const surf = SURF[LENS.surfaceProfile] || SURF['Convex circle'];
+  const { disp1d, samples } = snellDisp1d(surf, LENS.refractiveIndex, LENS.glassThickness, bezW);
+
+  let ss = 2;
+  const maxDim = 1100;
+  if (Math.max(bw, bh) * ss > maxDim) ss = maxDim / Math.max(bw, bh);
+  const cw = Math.max(4, Math.round(bw * ss));
+  const ch = Math.max(4, Math.round(bh * ss));
+  // everything below is in canvas px (screen px * ss)
+  const X1 = (x1 - bx0) * ss, Y1 = (y1 - by0) * ss, R1 = r1 * ss;
+  const X2 = (x2 - bx0) * ss, Y2 = (y2 - by0) * ss, R2 = r2 * ss;
+  const Ravg = (R1 + R2) / 2;
+  const bezelPx = Math.max(2, Math.min((bezW / 110) * Ravg, Ravg));
+  const kBlend = Math.min(R1, R2) * 0.9;
+
+  const sdf = (px: number, py: number): number => {
+    const d1 = Math.sqrt((px - X1) * (px - X1) + (py - Y1) * (py - Y1)) - R1;
+    const d2 = Math.sqrt((px - X2) * (px - X2) + (py - Y2) * (py - Y2)) - R2;
+    const hh = Math.max(0, Math.min(1, 0.5 + 0.5 * (d2 - d1) / kBlend));
+    return d2 + (d1 - d2) * hh - kBlend * hh * (1 - hh);
+  };
+
+  const c = document.createElement('canvas');
+  c.width = cw;
+  c.height = ch;
+  const c2d = c.getContext('2d')!;
+  const img = c2d.createImageData(cw, ch);
+  const data = img.data;
+  for (let y = 0; y < ch; y++) {
+    for (let x = 0; x < cw; x++) {
+      const px = x + 0.5, py = y + 0.5;
+      const d0 = sdf(px, py);
+      let rC = 128, gC = 128, a = 0;
+      if (d0 <= 0) {
+        a = 255;
+        const gx = sdf(px + 1, py) - sdf(px - 1, py);
+        const gy = sdf(px, py + 1) - sdf(px, py - 1);
+        const gl = Math.sqrt(gx * gx + gy * gy) || 0.0001;
+        const nx = gx / gl, ny = gy / gl;   // outward normal
+        const edgeDist = -d0;               // inward from blob edge
+        const rn = 1 - edgeDist / Ravg;     // center-like deep inside, rim-like at edge
+        const enc = encodeDisp(edgeDist, rn, nx, ny, Ravg, bezelPx, disp1d, samples, magnify);
+        rC = enc[0]; gC = enc[1];
+      }
+      const i = (y * cw + x) * 4;
+      data[i] = rC; data[i + 1] = gC; data[i + 2] = 0; data[i + 3] = a;
+    }
+  }
+  c2d.putImageData(img, 0, 0);
+  return c.toDataURL();
+}
+
+// smooth-union connector between two discs (the same merge shape generateBlobMap bends the
+// refraction field to) — its outline reads as one liquid blob while the discs overlap
+// enough to bridge. Returns null (source: '') when they're too far apart, too close
+// (concentric), or one fully swallows the other — port of source 641-687.
+function metaballPath(
+  x1: number, y1: number, r1: number,
+  x2: number, y2: number, r2: number,
+  wob = 0,
+): { fill: string; outline: string } | null {
+  const d = Math.hypot(x2 - x1, y2 - y1);
+  const maxDist = r1 + r2 + Math.min(r1, r2) * 0.35;
+  if (d < 1 || d > maxDist || d <= Math.abs(r1 - r2)) return null;
+  let u1 = 0, u2 = 0;
+  if (d < r1 + r2) {
+    u1 = Math.acos(Math.max(-1, Math.min(1, (r1 * r1 + d * d - r2 * r2) / (2 * r1 * d))));
+    u2 = Math.acos(Math.max(-1, Math.min(1, (r2 * r2 + d * d - r1 * r1) / (2 * r2 * d))));
+  }
+  const ab = Math.atan2(y2 - y1, x2 - x1);
+  const v = 0.5, handleLenRate = 2.4;
+  const spread = Math.acos(Math.max(-1, Math.min(1, (r1 - r2) / d)));
+  const a1 = ab + u1 + (spread - u1) * v;
+  const a2 = ab - u1 - (spread - u1) * v;
+  const a3 = ab + Math.PI - u2 - (Math.PI - u2 - spread) * v;
+  const a4 = ab - Math.PI + u2 + (Math.PI - u2 - spread) * v;
+  const pt = (x: number, y: number, r: number, a: number): [number, number] => [x + r * Math.cos(a), y + r * Math.sin(a)];
+  const p1 = pt(x1, y1, r1, a1), p2 = pt(x1, y1, r1, a2), p3 = pt(x2, y2, r2, a3), p4 = pt(x2, y2, r2, a4);
+  const total = r1 + r2;
+  const d2 = Math.min(v * handleLenRate, Math.hypot(p3[0] - p1[0], p3[1] - p1[1]) / total) * Math.min(1, (d * 2) / total);
+  // wobble sways the two neck curves in opposite phase -> the waist jiggles like liquid
+  const hr1 = r1 * d2, hr2 = r2 * d2;
+  const wTop = 1 + wob, wBot = 1 - wob;
+  const H = Math.PI / 2;
+  const h = (p: [number, number], a: number, r: number): string =>
+    `${(p[0] + r * Math.cos(a)).toFixed(1)},${(p[1] + r * Math.sin(a)).toFixed(1)}`;
+  const P = (p: [number, number]): string => `${p[0].toFixed(1)},${p[1].toFixed(1)}`;
+  // far-side arc of a circle, sampled from aStart to aEnd the way that passes through aVia
+  const TAU = Math.PI * 2;
+  const norm = (x: number): number => ((x % TAU) + TAU) % TAU;
+  const arc = (cx: number, cy: number, r: number, aStart: number, aEnd: number, aVia: number, N: number): string => {
+    const inc = norm(aEnd - aStart), viaInc = norm(aVia - aStart);
+    let dir: number, tot: number;
+    if (viaInc <= inc) { dir = 1; tot = inc; } else { dir = -1; tot = TAU - inc; }
+    let out = '';
+    for (let k = 1; k <= N; k++) {
+      const an = aStart + dir * tot * (k / N);
+      out += `L${(cx + r * Math.cos(an)).toFixed(1)},${(cy + r * Math.sin(an)).toFixed(1)}`;
+    }
+    return out;
+  };
+  // p1 -curve-> p3 -arc(far of c2)-> p4 -curve-> p2 -arc(far of c1)-> p1
+  const c1 = `C${h(p1, a1 - H, hr1 * wTop)} ${h(p3, a3 + H, hr2 * wTop)} ${P(p3)}`;
+  const c2 = `C${h(p4, a4 - H, hr2 * wBot)} ${h(p2, a2 + H, hr1 * wBot)} ${P(p2)}`;
+  const outline = `M${P(p1)}${c1}${arc(x2, y2, r2, a3, a4, ab, 20)}${c2}${arc(x1, y1, r1, a2, a1, ab + Math.PI, 20)}Z`;
+  return { fill: outline, outline };
+}
+
+// translate every coordinate pair in an SVG path string by (dx,dy) — used to shift the
+// metaball outline from root-relative into the blob layer's own local coordinate space for
+// clip-path — port of source 790-795.
+function shiftPath(pathStr: string, dx: number, dy: number): string {
+  return pathStr.replace(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g, (_m, xs: string, ys: string) =>
+    `${(parseFloat(xs) + dx).toFixed(1)},${(parseFloat(ys) + dy).toFixed(1)}`);
+}
+
 // find a pet's description block by its heading name ("Jojo"/"Ollie") — port of source
 // 424-433, scoped to ctx.root (never `document`) since the lens layer only ever needs
 // to see this hero's own DOM.
@@ -408,13 +571,123 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     ctx.on(window, 'pointerup', onUp);
   };
 
-  // inject the refraction filters + wire both lenses at their rest positions — port of
-  // source 415-421, minus initBridge() (Task 3's merge machinery, out of scope here).
+  // bridge the two lenses into a single connected metaball blob while they overlap: a
+  // third buildLensWorld clone clipped to the metaball outline and refracted through the
+  // shared lensRefractBridge filter, plus a unified rim traced along that same outline.
+  // Snaps back to the two discs the instant metaballPath reports no overlap. Port of
+  // source 689-789, minus the `_lensReady` gate — that flag exists to hide the blob before
+  // Task 4's stacked-center intro runs; Task 4 isn't ported yet, so there's no pre-intro
+  // state to hide it from (lenses are already visible at rest, same deviation Task 1 made).
+  const initBridge = (a: HTMLElement, b: HTMLElement): void => {
+    const root = ctx.root;
+
+    // refracting blob layer: a full-hero world clone, clipped to the metaball shape and
+    // bent by the continuous smooth-union displacement map -> refraction flows across the neck
+    const blob = document.createElement('div');
+    blob.setAttribute('data-lens-bridge', '');
+    blob.style.cssText =
+      `position:absolute;left:0;top:0;width:${root.offsetWidth}px;height:${root.offsetHeight}px;` +
+      `z-index:11;pointer-events:none;display:none;filter:drop-shadow(0 15px 30px rgba(0,0,0,.10))`;
+    const blobFx = document.createElement('div');
+    blobFx.setAttribute('data-lens-bridge', '');
+    blobFx.style.cssText = 'position:absolute;inset:0;filter:url(#lensRefractBridge)';
+    const blobWorld = buildLensWorld();
+    blobFx.appendChild(blobWorld);
+    blob.appendChild(blobFx);
+    root.appendChild(blob);
+    ctx.addCleanup(() => blob.remove());
+
+    // unified glass rim + specular along the blob outline
+    const osvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    osvg.setAttribute('data-lens-bridge', '');
+    osvg.style.cssText =
+      `position:absolute;left:0;top:0;width:${root.offsetWidth}px;height:${root.offsetHeight}px;` +
+      `z-index:12;pointer-events:none;overflow:visible;display:none`;
+    const rimSoft = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    rimSoft.setAttribute('fill', 'none');
+    rimSoft.setAttribute('stroke', 'rgba(255,255,255,.10)');
+    rimSoft.setAttribute('stroke-width', '2.5');
+    const rimHair = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    rimHair.setAttribute('fill', 'none');
+    rimHair.setAttribute('stroke', 'rgba(255,255,255,.16)');
+    rimHair.setAttribute('stroke-width', '1');
+    osvg.appendChild(rimSoft);
+    osvg.appendChild(rimHair);
+    root.appendChild(osvg);
+    ctx.addCleanup(() => osvg.remove());
+
+    let bmap: HTMLElement | null = null;   // <feImage id="bridgeMap">, resolved lazily
+    const setDiscFx = (vis: boolean): void => {
+      ctx.qa('[data-lens]').forEach((lens) => {
+        const fx = lens.querySelector<HTMLElement>('[data-lens-fx]');
+        const rim = lens.querySelector<HTMLElement>('[data-lens-rim]');
+        if (fx) fx.style.visibility = vis ? 'visible' : 'hidden';
+        if (rim) rim.style.opacity = vis ? '1' : '0';
+      });
+    };
+
+    let wobEnergy = 0, wobPhase = 0, wasMerged = false;
+    let pcx: number | null = null, pcy: number | null = null;
+    ctx.loop(() => {
+      const r1 = a.offsetWidth / 2, r2 = b.offsetWidth / 2;
+      const cx1 = a.offsetLeft + r1, cy1 = a.offsetTop + r1;
+      const cx2 = b.offsetLeft + r2, cy2 = b.offsetTop + r2;
+      // wobble energy: kicked by relative motion of the two lenses + on first connect
+      const mx = (cx1 + cx2) / 2, my = (cy1 + cy2) / 2;
+      if (pcx !== null && pcy !== null) wobEnergy = Math.min(1, wobEnergy + Math.hypot(mx - pcx, my - pcy) * 0.03);
+      pcx = mx; pcy = my;
+      wobEnergy *= 0.90;   // decay to rest (faster = calmer)
+      wobPhase += 0.34;    // oscillation speed
+      const wob = Math.sin(wobPhase) * wobEnergy * 0.26;
+      const d = metaballPath(cx1, cy1, r1, cx2, cy2, r2, wob);
+      if (d) {
+        // union bounding box (+ padding for displaced samples & rim)
+        const pad = Math.max(r1, r2) * 0.5 + 24;
+        const bx0 = Math.min(cx1 - r1, cx2 - r2) - pad;
+        const by0 = Math.min(cy1 - r1, cy2 - r2) - pad;
+        const bw = Math.max(cx1 + r1, cx2 + r2) + pad - bx0;
+        const bh = Math.max(cy1 + r1, cy2 + r2) + pad - by0;
+
+        if (!bmap) bmap = ctx.q('#bridgeMap');
+        if (bmap) bmap.setAttribute('href', generateBlobMap(cx1, cy1, r1, cx2, cy2, r2, bx0, by0, bw, bh));
+
+        // position the refraction layer to the bbox; align its world clone under it
+        blob.style.left = `${bx0}px`;
+        blob.style.top = `${by0}px`;
+        blob.style.width = `${bw}px`;
+        blob.style.height = `${bh}px`;
+        const M = LENS.magnifyScale;
+        blobWorld.style.transformOrigin = `${mx}px ${my}px`;
+        blobWorld.style.transform = `translate(${-bx0}px,${-by0}px) scale(${M})`;
+        // clip-path is in the layer's local coords -> shift the metaball path by -bbox origin
+        const localFill = shiftPath(d.fill, -bx0, -by0);
+        blob.style.clipPath = `path('${localFill}')`;
+        (blob.style as CSSStyleDeclaration & { webkitClipPath: string }).webkitClipPath = `path('${localFill}')`;
+        blob.style.display = 'block';
+
+        rimSoft.setAttribute('d', d.outline);
+        rimHair.setAttribute('d', d.outline);
+        osvg.style.display = 'block';
+        setDiscFx(false);   // hide the two circular refractions; the blob covers both
+        if (!wasMerged) { wobEnergy = Math.min(1, wobEnergy + 0.3); wasMerged = true; }   // pop on connect
+      } else {
+        wasMerged = false;
+        blob.style.display = 'none';
+        osvg.style.display = 'none';
+        setDiscFx(true);
+      }
+    });
+  };
+
+  // inject the refraction filters + wire both lenses at their rest positions, then bridge
+  // them into a single connected metaball once both are live — port of source 415-421.
   const svg = ctx.q('[data-lens-filter-host]');
   if (svg) svg.innerHTML = buildLensFilter();
   lastPropsKey = lensPropsKey();
-  ctx.qa('[data-lens]').forEach((lens, i) => setupLens(lens, i));
+  const lensEls = ctx.qa('[data-lens]');
+  lensEls.forEach((lens, i) => setupLens(lens, i));
   applyLensProps();
+  if (lensEls.length >= 2) initBridge(lensEls[0], lensEls[1]);
 
   return {
     // real intro (stacked-center split + fly-out) lands in Task 4; the lenses already
