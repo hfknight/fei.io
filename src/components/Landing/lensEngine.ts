@@ -503,14 +503,13 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     const pos = lensDefaultPos(ctx, idx);
     if (ctx.opts.playIntro) {
       // split-from-center intro (Task 4): start stacked concentric at viewport center —
-      // centered on this lens's own size so both centers coincide exactly — only lens 1
-      // visible until playLensIntro() reveals + splits them apart to _restPos. The
-      // opacity transition lets the second lens's reveal (playLensIntro) cross-fade in
-      // rather than pop — port of source 574-578.
+      // centered on this lens's own size so both centers coincide exactly. Both lenses
+      // start HIDDEN (opacity 0); playLensIntro() fades lens 0 in (via the .4s transition)
+      // and later reveals + splits them apart to _restPos — port of source 574-578.
       const vcx = window.innerWidth / 2, vcy = window.innerHeight / 2;
       lens.style.left = `${Math.round(vcx - size / 2)}px`;
       lens.style.top = `${Math.round(vcy - size / 2)}px`;
-      lens.style.opacity = idx === 0 ? '1' : '0';
+      lens.style.opacity = '0';
       lens.style.transition = 'opacity .4s ease';
     } else {
       lens.style.left = `${pos.x}px`;
