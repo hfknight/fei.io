@@ -202,6 +202,17 @@ function lensDefaultPos(ctx: LensCtx, idx: number): { x: number; y: number } {
   return { x: window.innerWidth - 220, y: Math.max(40, window.innerHeight - 380) };
 }
 
+// per-lens deformation hooks + rest-position/sync stash, exposed as plain DOM
+// properties (not a side table) so Task 4's intro (playLensIntro) can drive an
+// already-live lens without a second lookup — port of source 572-573, 608-610.
+type LensEl = HTMLElement & {
+  _restPos?: { x: number; y: number };
+  _sync?: () => void;
+  _clickBounce?: () => void;
+  _wobbleKick?: (amt?: number) => void;
+  _pushMotion?: (vx: number, vy: number) => void;
+};
+
 export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): void } {
   // live video -> lens-world canvas pairs, painted every frame by paintWorlds(). Scoped
   // to this createLenses() call so a StrictMode destroy+remount starts a fresh array
@@ -291,9 +302,11 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     }
   };
 
-  // minimal per-lens setup: fixed rest position, sized world clone, refraction wired.
-  // No drag/spring here — Task 2 layers those onto this same DOM. Port of source
-  // 547-579, minus the pointer handlers and the spring/wobble tick.
+  // full per-lens setup: fixed rest position, sized world clone, refraction wired,
+  // liquid-spring deformation, and pointer drag. Port of source 547-638, minus the
+  // stacked-at-center/opacity-0/transition placement (source 574-578) — that's the
+  // split-from-center intro's starting state (Task 4); this task keeps Task 1's
+  // immediate rest placement so there's something to drag before the intro exists.
   const setupLens = (lens: HTMLElement, idx: number): void => {
     const fx = lens.querySelector<HTMLElement>('[data-lens-fx]');
     if (!fx) return;
@@ -320,6 +333,79 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     lens.style.top = `${pos.y}px`;
     sync();
     lens.style.opacity = '1';
+
+    // stash rest position + sync so the intro's fly-out (Task 4) can read them back
+    // off the live element — port of source 572-573.
+    const el = lens as LensEl;
+    el._restPos = pos;
+    el._sync = sync;
+
+    // spring-driven liquid deformation: stretch along motion, damped bounce on
+    // settle — port of source 582-607, minus `_lensIntroMoving` (Task 4's intro
+    // fly-out isn't wired yet, so only an active drag drives the stretch/wobble).
+    let drag: { dx: number; dy: number } | null = null;
+    let lastX = 0, lastY = 0, velX = 0, velY = 0;
+    let amt = 0, vAmt = 0, ang = 0;
+    let wobE = 0, wobP = 0;   // decaying jelly-wobble oscillator
+    ctx.loop(() => {
+      const speed = Math.hypot(velX, velY);
+      const maxS = LENS.liquidStretch;
+      const liquidActive = !!drag && LENS.liquidEnabled;
+      const target = liquidActive ? Math.min(maxS, speed * 0.012) : 0;
+      vAmt += (target - amt) * 0.30;   // stiffness (higher -> snappier)
+      vAmt *= 0.78;                    // damping (higher retain -> more overshoot/bounce)
+      amt += vAmt;
+      velX *= 0.80; velY *= 0.80;
+      // jelly wobble: oscillation kicked by click + drag speed, decays to still
+      if (liquidActive) wobE = Math.min(0.10, wobE + speed * 0.0018);
+      wobP += 0.5;
+      wobE *= 0.925;                   // slower decay -> a few more bounces before settling
+      const wob = Math.sin(wobP) * wobE;
+      if (Math.abs(amt) > 0.0008 || Math.abs(wob) > 0.0008 || drag) {
+        const deg = (ang * 180) / Math.PI;
+        // directional stretch * oscillating jelly squash (x up while y down, then flip)
+        lens.style.transform =
+          `rotate(${deg}deg) scale(${(1 + amt) * (1 + wob)},${(1 - amt * 0.65) * (1 - wob)}) rotate(${-deg}deg)`;
+      } else if (lens.style.transform) {
+        lens.style.transform = '';
+      }
+    });
+    el._clickBounce = () => { wobE = Math.min(0.16, wobE + 0.12); };   // pop on click/press
+    el._wobbleKick = (bump?: number) => { wobE = Math.min(0.34, wobE + (bump || 0.12)); };   // parametrized kick (e.g. arrival bounce)
+    el._pushMotion = (vx: number, vy: number) => {   // feed travel velocity (intro split)
+      velX = vx; velY = vy;
+      if (Math.hypot(vx, vy) > 1.5) ang = Math.atan2(vy, vx);
+    };
+
+    // pointer drag — port of source 612-637.
+    const onDown = (e: Event): void => {
+      const pe = e as PointerEvent;
+      drag = { dx: pe.clientX - lens.offsetLeft, dy: pe.clientY - lens.offsetTop };
+      el._clickBounce?.();   // pop on click/press
+      lastX = pe.clientX; lastY = pe.clientY;
+      lens.style.cursor = 'grabbing';
+      lens.setPointerCapture?.(pe.pointerId);
+      pe.preventDefault();
+      pe.stopPropagation();
+    };
+    const onMove = (e: Event): void => {
+      if (!drag) return;
+      const pe = e as PointerEvent;
+      velX = pe.clientX - lastX; velY = pe.clientY - lastY;
+      lastX = pe.clientX; lastY = pe.clientY;
+      if (Math.hypot(velX, velY) > 1.5) ang = Math.atan2(velY, velX);
+      lens.style.left = `${pe.clientX - drag.dx}px`;
+      lens.style.top = `${pe.clientY - drag.dy}px`;
+      sync();
+    };
+    const onUp = (): void => {
+      if (!drag) return;
+      drag = null;
+      lens.style.cursor = 'grab';
+    };
+    ctx.on(lens, 'pointerdown', onDown);
+    ctx.on(window, 'pointermove', onMove);
+    ctx.on(window, 'pointerup', onUp);
   };
 
   // inject the refraction filters + wire both lenses at their rest positions — port of
