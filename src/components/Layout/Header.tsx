@@ -51,12 +51,26 @@ const NavLink = styled(Link)<{ $active?: boolean }>`
   font-size: 0.72rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  transition: opacity 0.3s ease;
+  padding: 8px 15px;
+  border-radius: 7px;
+  transition:
+    opacity 0.35s ease,
+    background 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    backdrop-filter 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   outline: none;
 
   &:hover,
   &:focus-visible {
     opacity: 1;
+    background: linear-gradient(140deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.08));
+    -webkit-backdrop-filter: blur(11px) saturate(205%);
+    backdrop-filter: blur(11px) saturate(205%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      inset 0 -1px 2px rgba(255, 255, 255, 0.14),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+      0 6px 20px rgba(0, 0, 0, 0.22);
   }
 `;
 
