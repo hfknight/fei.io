@@ -4,7 +4,7 @@
 
 **Goal:** Add two draggable liquid-glass refraction lenses that merge into a metaball blob, with a split-from-center intro — ported full-fidelity into the existing landing engine.
 
-**Architecture:** Same React shell + imperative engine. A new `Lenses.tsx` renders the lens DOM + a container-scoped SVG filter host; a new `lenses.ts` holds the ported physics as `createLenses(ctx)`, sharing the engine's teardown registry. `landingEngine.ts` wires it in (paint in the tick, intro from `finishLoader`).
+**Architecture:** Same React shell + imperative engine. A new `Lenses.tsx` renders the lens DOM + a container-scoped SVG filter host; a new `lensEngine.ts` holds the ported physics as `createLenses(ctx)`, sharing the engine's teardown registry. `landingEngine.ts` wires it in (paint in the tick, intro from `finishLoader`).
 
 **Tech Stack:** React 19 (strict TS), styled-components 6, framer-motion, Vite 6. Canvas 2D + SVG `feImage`/`feDisplacementMap` filters for the refraction.
 
@@ -27,7 +27,7 @@
 
 **Create:**
 - `src/components/Landing/Lenses.tsx` — two lens `<div>`s (`data-lens="1"/"2"` → `[data-lens-clip]`→`[data-lens-fx]`, `[data-lens-rim]`) + an empty container-scoped `<svg [data-lens-filter-host] width=0 height=0>`. Initial inline styles verbatim from source 134–149.
-- `src/components/Landing/lenses.ts` — `createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): void }`. All ported lens physics. Registers all teardown into the shared registry via `ctx`.
+- `src/components/Landing/lensEngine.ts` — `createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): void }`. All ported lens physics. Registers all teardown into the shared registry via `ctx`.
 
 **Modify:**
 - `src/components/Landing/landingConfig.ts` — add lens tuning constants.
@@ -58,7 +58,7 @@ export const LENS = {
 };
 ```
 
-### `LensCtx` interface (define in `lenses.ts`, construct in `landingEngine.ts`)
+### `LensCtx` interface (define in `lensEngine.ts`, construct in `landingEngine.ts`)
 
 ```ts
 export interface LensCtx {
@@ -82,7 +82,7 @@ export interface LensCtx {
 
 **Goal:** two lenses sit at fixed rest positions and **refract the live hero beneath them** (Snell displacement map + chromatic aberration), video painting into their world clones each frame. No drag, no merge, no intro yet. Establishes + gates the refraction infrastructure.
 
-**Files:** create `Lenses.tsx`, `lenses.ts`; modify `landingConfig.ts`, `landingEngine.ts`, `index.tsx`.
+**Files:** create `Lenses.tsx`, `lensEngine.ts`; modify `landingConfig.ts`, `landingEngine.ts`, `index.tsx`.
 
 **Interfaces:**
 - Produces: `createLenses(ctx): { playIntro, paintWorlds }`; `Lenses` renders `[data-lens="1"|"2"]`, `[data-lens-fx]`, `[data-lens-rim]`, `[data-lens-filter-host]`.
@@ -91,7 +91,7 @@ export interface LensCtx {
 - [ ] **Step 1: `landingConfig.ts`** — add the `LENS` block above.
 - [ ] **Step 2: `Lenses.tsx`** — port lens markup from source **134–149** (two lenses; each: outer `[data-lens="n"]` with the inline styles verbatim incl. `opacity:0`; inner `[data-lens-clip]` with the radial `mask`; `[data-lens-fx]` with `filter:url(#lensRefract)`; `[data-lens-rim]` with the inset rim shadow). Add a container-scoped filter host: `<svg data-lens-filter-host width="0" height="0" style={{position:'absolute',width:0,height:0,pointerEvents:'none'}} />`. Functional component, no props.
 - [ ] **Step 3: `index.tsx`** — render `<Lenses/>` inside the container **only when `interactive`** (`!reducedMotion && canHover`; compute the same way the engine will, or lift the value). Pass nothing.
-- [ ] **Step 4: `lenses.ts` — refraction core.** Author `createLenses(ctx)` porting:
+- [ ] **Step 4: `lensEngine.ts` — refraction core.** Author `createLenses(ctx)` porting:
   - `generateLensMap` (source **278–337**) — the Snell displacement map (256², cached). Uses `LENS.*` in place of `this.props.*`.
   - `lensPropsKey` (**368–373**), `buildLensFilter` (**374–403**, incl. chromatic aberration + the three filter instances `lensRefract1/2/Bridge`), `applyLensProps` (**338–367**) — but `injectLensFilter`/filter mount targets the **React host**: `const svg = ctx.q('[data-lens-filter-host]'); svg.innerHTML = buildLensFilter()`. NO `document.body`, NO id-guard.
   - `buildLensWorld` (**509–546**) — clone the hero `root`, strip `[data-lens]`/`[data-lens-bridge]`/frost/loader nodes, replace `<video>` with `<canvas>` painted from the originals. Register every `resize` listener via `ctx.on` and the appended world node via `ctx.addCleanup(() => world.remove())`.
@@ -103,7 +103,7 @@ export interface LensCtx {
 - [ ] **Step 7: Commit.**
 
 ```bash
-git add src/components/Landing/landingConfig.ts src/components/Landing/lenses.ts \
+git add src/components/Landing/landingConfig.ts src/components/Landing/lensEngine.ts \
   src/components/Landing/Lenses.tsx src/components/Landing/landingEngine.ts src/components/Landing/index.tsx
 git commit -m "feat(landing): static liquid-glass refraction lenses (Phase 2 core)"
 ```
@@ -114,14 +114,14 @@ git commit -m "feat(landing): static liquid-glass refraction lenses (Phase 2 cor
 
 **Goal:** both lenses draggable; each deforms with the spring (directional stretch + jelly wobble), refraction tracking.
 
-**Files:** modify `lenses.ts`.
+**Files:** modify `lensEngine.ts`.
 
 - [ ] **Step 1: Full `setupLens`** — replace Task 1's minimal placement with the full source **547–640**: the `springTick` rAF (directional stretch + decaying jelly wobble), `_clickBounce`/`_wobbleKick`/`_pushMotion`, and the `onDown`/`onMove`/`onUp` pointer drag. **Register via `ctx`:** the `springTick` via `ctx.loop`; `pointerdown` on the lens + `pointermove`/`pointerup` on `window` via `ctx.on`; use `setPointerCapture`. Handlers typed `(e: Event) => void`, narrow to `PointerEvent` internally.
 - [ ] **Step 2: Verify + GATE (drag feel/FPS).** tsc/lint/tests clean. Controller: drag each lens — it follows the cursor, the refraction world tracks, the glass stretches along motion and settles with a jelly wobble; a click gives a bounce. Single-lens drag holds ~60fps.
 - [ ] **Step 3: Commit.**
 
 ```bash
-git add src/components/Landing/lenses.ts
+git add src/components/Landing/lensEngine.ts
 git commit -m "feat(landing): lens drag + liquid-spring deformation"
 ```
 
@@ -131,7 +131,7 @@ git commit -m "feat(landing): lens drag + liquid-spring deformation"
 
 **Goal:** dragging the two lenses together renders a single connected metaball blob with continuous refraction across the neck + a unified rim. **This is the perf-critical task.**
 
-**Files:** modify `lenses.ts`.
+**Files:** modify `lensEngine.ts`.
 
 - [ ] **Step 1: Port the bridge.** Add `metaballPath` (source **641–688**), `shiftPath` (**790–796**), `generateBlobMap` (**226–277**), and `initBridge` (**689–789**): the blob refraction layer (a third `buildLensWorld` clone clipped to the metaball path + `filter:url(#lensRefractBridge)`), the rim SVG (`rimSoft`/`rimHair`), and the rAF `loop` that — while the two lenses overlap — computes the metaball path, regenerates the bridge displacement map, positions/clips the blob layer, draws the rim, and hides the two disc filters; when apart, hides the blob and restores the discs. **Register:** the bridge `loop` via `ctx.loop`; the blob/rim/osvg nodes via `ctx.addCleanup(() => node.remove())`; any `resize` via `ctx.on`. Call `initBridge()` from `initLens` (after both lenses are set up).
 - [ ] **Step 2: MERGED-STATE PERF GATE (controller).** Run the dev server; drag/force the two lenses into overlap and **hold them merged**; measure frame time in that held state (the merge, not a single lens, is the cost). Record fps + worst frame.
@@ -142,7 +142,7 @@ git commit -m "feat(landing): lens drag + liquid-spring deformation"
 - [ ] **Step 4: Commit.**
 
 ```bash
-git add src/components/Landing/lenses.ts
+git add src/components/Landing/lensEngine.ts
 git commit -m "feat(landing): metaball merge bridge with continuous refraction"
 ```
 
@@ -152,7 +152,7 @@ git commit -m "feat(landing): metaball merge bridge with continuous refraction"
 
 **Goal:** on the loading reveal, one lens fades in at center then splits into two that spring out to rest; on interactive re-nav (no loader), lenses place at rest with no split.
 
-**Files:** modify `lenses.ts`, `landingEngine.ts`.
+**Files:** modify `lensEngine.ts`, `landingEngine.ts`.
 
 - [ ] **Step 1: `playLensIntro`** — port source **451–508**: start both lenses stacked concentric at viewport center (only lens 1 visible), then after a hold reveal lens 2 and spring both out to their `_restPos` via an rAF (feeding travel velocity to `_pushMotion` so they stretch in flight; a `_wobbleKick` on arrival). Register the rAF/timeouts via `ctx.loop`/`ctx.later`. Expose as `lenses.playIntro()`.
 - [ ] **Step 2: place-at-rest default** — in `createLenses`, when `!ctx.opts.playIntro`, set each lens directly to its `_restPos` + `opacity:1` (no animation). When `playIntro`, start them hidden/stacked (so `playIntro()` can run the split).
@@ -161,7 +161,7 @@ git commit -m "feat(landing): metaball merge bridge with continuous refraction"
 - [ ] **Step 5: Commit.**
 
 ```bash
-git add src/components/Landing/lenses.ts src/components/Landing/landingEngine.ts
+git add src/components/Landing/lensEngine.ts src/components/Landing/landingEngine.ts
 git commit -m "feat(landing): lens split-from-center intro + loader wiring"
 ```
 
@@ -195,6 +195,6 @@ git commit -m "test(landing): lens interactive-gating + teardown coverage"
 
 **Placeholder scan:** method bodies cite exact in-repo source line ranges (a faithful port, as in Phase 1), with the exact adaptation named (`ctx.*` registry, `LENS` constants, container-scoped host). No TODO/TBD. ✓
 
-**Type consistency:** `createLenses(ctx: LensCtx) → { playIntro, paintWorlds }`, `LensCtx` fields, and the `[data-*]` contract are consistent across `Lenses.tsx`, `lenses.ts`, `landingEngine.ts`. `LENS` config keys match their `this.props.*` origins. ✓
+**Type consistency:** `createLenses(ctx: LensCtx) → { playIntro, paintWorlds }`, `LensCtx` fields, and the `[data-*]` contract are consistent across `Lenses.tsx`, `lensEngine.ts`, `landingEngine.ts`. `LENS` config keys match their `this.props.*` origins. ✓
 
 **Risk gate:** Task 3 Step 2 is the merged-state frame-time gate with a concrete optimization (createImageBitmap) before any escalation — the one thing that could sink the approach is measured with a named fix path, not left to chance.

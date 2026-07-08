@@ -49,7 +49,7 @@ Same **React shell + imperative engine**. Phase 2 additions:
   134–149, **plus** an empty container-scoped SVG filter host
   (`[data-lens-filter-host]`, width/height 0) that the engine populates. Rendered
   by `index.tsx` **only when `interactive`** (reduced-motion/touch get no lens DOM).
-- **`src/components/Landing/lenses.ts`** (new, flat — matches Phase 1's file layout) — the ported lens physics as
+- **`src/components/Landing/lensEngine.ts`** (new, flat — matches Phase 1's file layout) — the ported lens physics as
   `createLenses(ctx) → { playIntro(), paintWorlds(), destroy() }`, where `ctx`
   carries the shared registry helpers (`root`, `q`, `qa`, `on`, `loop`, `later`,
   `opts`, and a getter for the live `[data-jojo]`/`[data-ollie]` video elements).
