@@ -127,6 +127,10 @@ export function createLandingEngine(root: HTMLElement, opts: EngineOpts): Landin
 
 All ported method bodies use `q`/`qa`/`on`/`loop`/`later` instead of the source's `document.querySelector`/`addEventListener`/`requestAnimationFrame`/`setTimeout`, and instead of `this.props.X ?? d` use the `landingConfig` constants. **Any clip fetch** passes `{ signal: abort.signal }`, pushes each created object URL into `objectUrls`, and guards its `.then` callback with `if (destroyed) return;` — so a fetch that resolves after a StrictMode/navigate teardown never mutates dead DOM or leaks a URL.
 
+**Strict-TS accommodations (verified during Task 1 — apply throughout):**
+- `tsconfig.app.json` has `noUnusedLocals`, so each helper closure is declared only in the task that first uses it. **Task 1 declares `q`, `on`, `loop` only; `qa` is added in Task 3; `later` is added in Task 4** (each alongside its first use). The skeleton above lists all five for reference — do not paste an unused one.
+- The custom `on(target, type, fn)` types `fn` as `EventListener`, so it can't infer `MouseEvent` the way DOM `addEventListener` overloads do. Ported pointer handlers (`onMove`/`onLeave`) are therefore typed `(e: Event) => void` and narrow internally (`const me = e as MouseEvent`). `vid.dataset.src` (`string | undefined`) is asserted/guarded before `fetch` (the JSX guarantees the attribute). No runtime/behavior change.
+
 ---
 
 ### Task 1: Split stage + head-track spike (de-risk)
@@ -189,7 +193,7 @@ Copy the exact gradient/shadow overlay divs verbatim from source lines 84–88 (
 
 - [ ] **Step 4: head-track engine body.** In `landingEngine.ts`, after the skeleton helpers, add (adapted from source `componentDidMount` lines 874–1064, head-track subset only — video load + `onMove`/`onLeave` at 957–986 + the `seekTo` at 988–993 + the tick's easing/seek portion at 1003–1013):
 
-  - `const cfg = { j: {...JOJO}, o: {...OLLIE} };` state: `curJ,tgtJ,curO,tgtO` init to `T0 + dur*rest`; `active=false, side=null, seekJ=false, seekO=false`.
+  - `const cfg = { j: {...JOJO}, o: {...OLLIE} };` state: `curJ,tgtJ,curO,tgtO` are **fractions in [0,1]**, init to `cfg.rest` (NOT `T0+dur*rest` — `seekTo` maps fraction→time via `T0 + dur*cur`, and `onMove` sets targets as fractions like `0.42*xn + 0.58*yn`; the video *playhead* is separately settled to `T0 + dur*rest`). Also `active=false, side=null, seekJ=false, seekO=false`.
   - **Blob load** (deliberately the *same* seek path as production — Task 4 only adds byte-progress on top, so this spike gate tests the real thing): `fetch(vid.dataset.src, { signal: abort.signal }).then(r => r.blob())`; guard the `.then` with `if (destroyed) return;`; then `const url = URL.createObjectURL(blob); objectUrls.push(url); vid.src = url;` and on `loadeddata` (once) run `settle`: pause, `vid.currentTime = cfg.T0 + cfg.dur*cfg.rest`, `vid.style.opacity='1'`. Register the `seeked` listener that clears the seek mark (source 1002). Add `.catch(e => { if (e.name !== 'AbortError') throw e; })`.
   - `onMove` (source 957–984): map cursor → per-side gaze target; set only the active side's target. (Skip the frost lines 979–981 and hint line 982 for now — added Task 3.) Register via `on(window,'mousemove',onMove)`.
   - `onLeave` (source 985): `active=false; side=null`. Register via `on(window,'mouseleave',onLeave)`.
@@ -265,8 +269,8 @@ git commit -m "feat(landing): center lockup and pet captions"
 **Interfaces:** Consumes `[data-frost-l]`, `[data-frost-r]`, `[data-seam]`, `[data-hair]`, `[data-logo]` (Tasks 1–2).
 
 - [ ] **Step 1: `applyFrost`** — port source lines 1066–1092 as a local function (uses `FROST_BLUR`/`FROST_STYLE`); apply once at setup to `[data-frost-l]`/`[data-frost-r]`.
-- [ ] **Step 2: onMove frost** — re-add the frost toggle (source 979–981): frost the half the cursor is NOT on (`frostL.style.opacity = side==='R'?'1':'0'`, etc.).
-- [ ] **Step 3: main-tick effects** — add to the existing `loop` the seam sheen (source 1015–1028), hairline glow (source 1030–1044), and logo glow (source 1046–1054). Use `SEAM_SHEEN`/`LOGO_GLOW`; treat `_loaderDone` as `true` here (loader lands in Task 4; until then the "steady soft glow" base state is correct).
+- [ ] **Step 2: onMove frost** — re-add the frost toggle (source **972–974**): frost the half the cursor is NOT on (`frostL.style.opacity = side==='R'?'1':'0'`, etc.). The source's adjacent `[data-hint]` lines (975–977) are null-guarded and there is no `[data-hint]` in our markup — skip or keep, it's a no-op.
+- [ ] **Step 3: main-tick effects** — add to the existing `loop`, BEFORE the easing/seek portion, the seam sheen (source **999–1014**), hairline glow (source **1015–1030**), and logo glow (source **1031–1040**). **SKIP** the lens-world canvas paint (source 1041–1050 — Phase 2). Use `SEAM_SHEEN`/`LOGO_GLOW`; treat `_loaderDone` as `true` here via a local `const loaderDone = true` (the real loader flag lands in Task 4; until then the "steady soft glow" base state is correct). This step first uses `qa` — add the `qa` helper to the registry now (per the Strict-TS note). Needs refs to `[data-seam]`, `[data-hair]` (via `qa`), `[data-logo]` (via `qa`), `[data-frost-l]`, `[data-frost-r]`.
 - [ ] **Step 4: Verify.** `npm run dev`: cursor on the left half frosts the right (liquid-glass), seam brightens, feather + active hairlines glow; leaving the window clears frost. `npx tsc -b`, `npm run lint` clean.
 - [ ] **Step 5: Commit.**
 
