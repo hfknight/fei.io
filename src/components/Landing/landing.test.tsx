@@ -97,3 +97,38 @@ describe('Landing intro gating', () => {
     expect(engineMock.destroy).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('Landing lens gating', () => {
+  // `interactive` (!reducedMotion && canHover) gates <Lenses/> in index.tsx — the same
+  // condition the (mocked) engine uses internally to decide whether to construct the
+  // draggable lenses at all. These assert the DOM seam only; the imperative lens engine
+  // itself is out of scope (fully mocked via createLandingEngine above).
+  it('renders both lenses and the filter host when interactive (hover + no reduced motion)', () => {
+    renderLanding();
+    expect(document.querySelector('[data-lens="1"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-lens="2"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-lens-filter-host]')).toBeInTheDocument();
+  });
+
+  it('renders no lenses when reduced motion is preferred', () => {
+    motionHolder.reduced = true;
+    renderLanding();
+    expect(document.querySelectorAll('[data-lens]')).toHaveLength(0);
+    expect(document.querySelector('[data-lens-filter-host]')).not.toBeInTheDocument();
+  });
+
+  it('renders no lenses without a fine-hover pointer', () => {
+    setHover(false);
+    renderLanding();
+    expect(document.querySelectorAll('[data-lens]')).toHaveLength(0);
+    expect(document.querySelector('[data-lens-filter-host]')).not.toBeInTheDocument();
+  });
+
+  it('tears down cleanly on unmount: destroy fires and the filter host leaves no trace', () => {
+    const { unmount } = renderLanding();
+    expect(document.querySelector('[data-lens-filter-host]')).toBeInTheDocument();
+    unmount();
+    expect(engineMock.destroy).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('[data-lens-filter-host]')).not.toBeInTheDocument();
+  });
+});
