@@ -3,6 +3,7 @@ import {
   FROST_BLUR, FROST_STYLE, SEAM_SHEEN, LOGO_GLOW,
   type ClipCfg,
 } from './landingConfig';
+import { createLenses, type LensCtx } from './lensEngine';
 
 export interface EngineOpts {
   reducedMotion: boolean;
@@ -44,6 +45,8 @@ export function createLandingEngine(root: HTMLElement, opts: EngineOpts): Landin
     const id = window.setTimeout(fn, ms);
     cleanups.push(() => clearTimeout(id));
   };
+  const addCleanup = (fn: () => void) => cleanups.push(fn);
+  const getVideos = () => qa<HTMLVideoElement>('[data-jojo],[data-ollie]');
 
   // ---- Task 1: head-track (video load, onMove/onLeave, main tick's seek portion) ----
   const cfg = { j: { ...JOJO }, o: { ...OLLIE } };
@@ -65,6 +68,12 @@ export function createLandingEngine(root: HTMLElement, opts: EngineOpts): Landin
   const seam = q('[data-seam]');
   const hairs = qa('[data-hair]');
   const logos = qa('[data-logo]');
+
+  // Phase 2 Task 1: static liquid-glass refraction lenses. <Lenses/> (and therefore
+  // [data-lens]) only mounts when `interactive` (see index.tsx), so the non-interactive
+  // path must never construct createLenses — no filter host, no world clones, no paint.
+  const lensCtx: LensCtx = { root, q, qa, on, loop, later, addCleanup, opts, getVideos };
+  const lenses = interactive ? createLenses(lensCtx) : null;
 
   const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 
@@ -387,7 +396,8 @@ export function createLandingEngine(root: HTMLElement, opts: EngineOpts): Landin
         : 'drop-shadow(0 0 0 rgba(255,255,255,0)) drop-shadow(0 0 0 rgba(255,255,255,0))';
       logos.forEach((l) => { l.style.filter = glow; });
     }
-    // lens-world canvas paint (source 1041-1050) skipped — Phase 2, not in scope.
+    // lens-world canvas paint (source 1041-1050).
+    lenses?.paintWorlds();
 
     const spd = TRACKING_SPEED;
     const slow = Math.min(spd, 0.10);

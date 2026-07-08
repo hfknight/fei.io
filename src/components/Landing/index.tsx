@@ -4,6 +4,7 @@ import SplitStage from './SplitStage';
 import Lockup from './Lockup';
 import PetCaption from './PetCaption';
 import Loader from './Loader';
+import Lenses from './Lenses';
 import { createLandingEngine } from './landingEngine';
 
 // The loader intro plays once per fresh page load. This module-scope flag persists
@@ -27,6 +28,10 @@ const Landing: React.FC = () => {
   const [playIntro] = useState(
     () => !hasShownLoading && !reducedMotion && canHover,
   );
+  // Same gate the engine uses internally (`!reducedMotion && canHover`) — the draggable
+  // lenses need a fine-hover pointer and motion allowed, so reduced-motion/touch
+  // visitors never pay for the filter host or the per-frame world-canvas paint.
+  const interactive = !reducedMotion && canHover;
 
   useEffect(() => {
     if (!ref.current) return;
@@ -48,6 +53,7 @@ const Landing: React.FC = () => {
       <Lockup />
       <PetCaption pet="j" />
       <PetCaption pet="o" />
+      {interactive && <Lenses />}
     </div>
   );
 };
