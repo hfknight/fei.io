@@ -382,6 +382,15 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
   // rather than accumulating pairs from a torn-down instance.
   const lensVidPairs: Array<[HTMLVideoElement, HTMLCanvasElement]> = [];
   let lastPropsKey: string | undefined;
+  // gates initBridge's loop so the stacked-center intro setup state never renders a
+  // connected metaball blob before playLensIntro() (or the !playIntro rest-placement
+  // path) says the lenses are in a state worth rendering — port of source's
+  // `_lensReady` (451-508, 731-739).
+  let lensReady = false;
+  // shared across both lenses' spring ticks (setupLens) so the intro's fly-out enables
+  // liquid stretch on both discs at once, not just whichever is being dragged — port of
+  // source's `_lensIntroMoving` (475, 588-589).
+  let introMoving = false;
 
   // clone the hero and mirror its live videos as canvases — port of source 509-545.
   // Canvases (not cloned <video> elements) because a cloned video can't keep pace with
@@ -466,10 +475,10 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
   };
 
   // full per-lens setup: fixed rest position, sized world clone, refraction wired,
-  // liquid-spring deformation, and pointer drag. Port of source 547-638, minus the
-  // stacked-at-center/opacity-0/transition placement (source 574-578) — that's the
-  // split-from-center intro's starting state (Task 4); this task keeps Task 1's
-  // immediate rest placement so there's something to drag before the intro exists.
+  // liquid-spring deformation, and pointer drag. Port of source 547-638. When
+  // ctx.opts.playIntro, the lens starts stacked at viewport center (Task 4's
+  // playLensIntro takes it from there); otherwise it places directly at rest, matching
+  // the non-loader (re-nav) steady state.
   const setupLens = (lens: HTMLElement, idx: number): void => {
     const fx = lens.querySelector<HTMLElement>('[data-lens-fx]');
     if (!fx) return;
@@ -492,10 +501,23 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     lens.style.width = `${size}px`;
     lens.style.height = `${size}px`;
     const pos = lensDefaultPos(ctx, idx);
-    lens.style.left = `${pos.x}px`;
-    lens.style.top = `${pos.y}px`;
+    if (ctx.opts.playIntro) {
+      // split-from-center intro (Task 4): start stacked concentric at viewport center —
+      // centered on this lens's own size so both centers coincide exactly — only lens 1
+      // visible until playLensIntro() reveals + splits them apart to _restPos. The
+      // opacity transition lets the second lens's reveal (playLensIntro) cross-fade in
+      // rather than pop — port of source 574-578.
+      const vcx = window.innerWidth / 2, vcy = window.innerHeight / 2;
+      lens.style.left = `${Math.round(vcx - size / 2)}px`;
+      lens.style.top = `${Math.round(vcy - size / 2)}px`;
+      lens.style.opacity = idx === 0 ? '1' : '0';
+      lens.style.transition = 'opacity .4s ease';
+    } else {
+      lens.style.left = `${pos.x}px`;
+      lens.style.top = `${pos.y}px`;
+      lens.style.opacity = '1';
+    }
     sync();
-    lens.style.opacity = '1';
 
     // stash rest position + sync so the intro's fly-out (Task 4) can read them back
     // off the live element — port of source 572-573.
@@ -504,8 +526,8 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     el._sync = sync;
 
     // spring-driven liquid deformation: stretch along motion, damped bounce on
-    // settle — port of source 582-607, minus `_lensIntroMoving` (Task 4's intro
-    // fly-out isn't wired yet, so only an active drag drives the stretch/wobble).
+    // settle — port of source 582-607. `introMoving` (shared across both lenses) lets
+    // the intro's fly-out drive the stretch/wobble the same way an active drag does.
     let drag: { dx: number; dy: number } | null = null;
     let lastX = 0, lastY = 0, velX = 0, velY = 0;
     let amt = 0, vAmt = 0, ang = 0;
@@ -513,7 +535,7 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     ctx.loop(() => {
       const speed = Math.hypot(velX, velY);
       const maxS = LENS.liquidStretch;
-      const liquidActive = !!drag && LENS.liquidEnabled;
+      const liquidActive = (!!drag || introMoving) && LENS.liquidEnabled;
       const target = liquidActive ? Math.min(maxS, speed * 0.012) : 0;
       vAmt += (target - amt) * 0.30;   // stiffness (higher -> snappier)
       vAmt *= 0.78;                    // damping (higher retain -> more overshoot/bounce)
@@ -575,9 +597,10 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
   // third buildLensWorld clone clipped to the metaball outline and refracted through the
   // shared lensRefractBridge filter, plus a unified rim traced along that same outline.
   // Snaps back to the two discs the instant metaballPath reports no overlap. Port of
-  // source 689-789, minus the `_lensReady` gate — that flag exists to hide the blob before
-  // Task 4's stacked-center intro runs; Task 4 isn't ported yet, so there's no pre-intro
-  // state to hide it from (lenses are already visible at rest, same deviation Task 1 made).
+  // source 689-789, including the `_lensReady` gate (source 731-739): it holds the blob
+  // hidden until playLensIntro() (or the !playIntro rest-placement path) marks the
+  // lenses ready, so the stacked-center intro setup state never renders a connected blob
+  // over the loader.
   const initBridge = (a: HTMLElement, b: HTMLElement): void => {
     const root = ctx.root;
 
@@ -635,6 +658,14 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     let wobEnergy = 0, wobPhase = 0, wasMerged = false;
     let pcx: number | null = null, pcy: number | null = null;
     ctx.loop(() => {
+      // hold everything hidden until the lens intro begins (the two lenses sit at their
+      // stacked-center setup position before then, which would otherwise render the
+      // connected metaball blob over the loader) — port of source 731-739.
+      if (!lensReady) {
+        blob.style.display = 'none';
+        osvg.style.display = 'none';
+        return;
+      }
       const r1 = a.offsetWidth / 2, r2 = b.offsetWidth / 2;
       const cx1 = a.offsetLeft + r1, cy1 = a.offsetTop + r1;
       const cx2 = b.offsetLeft + r2, cy2 = b.offsetTop + r2;
@@ -698,20 +729,82 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     });
   };
 
-  // inject the refraction filters + wire both lenses at their rest positions, then bridge
-  // them into a single connected metaball once both are live — port of source 415-421.
+  // inject the refraction filters + wire both lenses (at rest, or stacked at center
+  // awaiting the split-from-center intro), then bridge them into a single connected
+  // metaball once both are live — port of source 415-421.
   const svg = ctx.q('[data-lens-filter-host]');
   if (svg) svg.innerHTML = buildLensFilter();
   lastPropsKey = lensPropsKey();
   const lensEls = ctx.qa('[data-lens]');
   lensEls.forEach((lens, i) => setupLens(lens, i));
   applyLensProps();
+  // no loader → lenses are already placed at rest, so the bridge can render immediately
+  // (there's no stacked-center setup state to hide) — port of source's `_lensReady`.
+  if (!ctx.opts.playIntro) lensReady = true;
   if (lensEls.length >= 2) initBridge(lensEls[0], lensEls[1]);
 
+  // intro: the two lenses begin stacked at center (reading as one lens), then split
+  // apart and travel to their rest positions. Driven by rAF (not CSS) so each disc's
+  // refraction world stays synced and the bridge loop renders the connected metaball
+  // state while they're still close, snapping into two discs as they separate — port
+  // of source 451-508.
+  const playLensIntro = (): void => {
+    if (!lensEls.length) return;
+    lensReady = true;   // let the bridge loop start rendering from here on
+
+    // 1) ONE clean lens at viewport center. Center EACH lens on its own size so their
+    //    centers coincide exactly (the two lenses differ in size) — concentric means no
+    //    metaball bridge and no doubled refraction. Only the first (larger) lens shows.
+    const vcx = window.innerWidth / 2, vcy = window.innerHeight / 2;
+    lensEls.forEach((l, i) => {
+      const el = l as LensEl;
+      const sz = l.offsetWidth || 128;
+      l.style.left = `${Math.round(vcx - sz / 2)}px`;
+      l.style.top = `${Math.round(vcy - sz / 2)}px`;
+      el._sync?.();
+      l.style.opacity = i === 0 ? '1' : '0';
+    });
+
+    // 2) after a short hold, reveal the second lens and spring both out to their rest
+    //    positions — the metaball connects them while close, snapping into two as they part
+    ctx.later(() => {
+      lensEls.forEach((l) => { l.style.opacity = '1'; });
+      const starts = lensEls.map((l) => ({ x: l.offsetLeft, y: l.offsetTop }));
+      const prev = starts.map((s) => ({ x: s.x, y: s.y }));
+      introMoving = true;   // enable liquid stretch while flying out
+      const t0 = performance.now();
+      const dur = 560;
+      const ease = (t: number) => 1 - Math.pow(1 - t, 3);   // easeOutCubic
+      let settled = false;
+      ctx.loop((now) => {
+        if (settled) return;
+        const t = Math.min(1, (now - t0) / dur);
+        const e = ease(t);
+        lensEls.forEach((l, i) => {
+          const el = l as LensEl;
+          const p = el._restPos;
+          if (!p) return;
+          const nx = starts[i].x + (p.x - starts[i].x) * e;
+          const ny = starts[i].y + (p.y - starts[i].y) * e;
+          el._pushMotion?.(nx - prev[i].x, ny - prev[i].y);   // travel velocity -> stretch
+          prev[i].x = nx; prev[i].y = ny;
+          l.style.left = `${Math.round(nx)}px`;
+          l.style.top = `${Math.round(ny)}px`;
+          el._sync?.();
+        });
+        if (t >= 1) {
+          settled = true;
+          introMoving = false;
+          lensEls.forEach((l) => { (l as LensEl)._wobbleKick?.(0.12); });   // gentle jelly settle
+        }
+      });
+    }, 240);
+  };
+
   return {
-    // real intro (stacked-center split + fly-out) lands in Task 4; the lenses already
-    // sit at rest, so there's nothing to animate yet.
-    playIntro() {},
+    // split-from-center intro: a single lens fades in at viewport center, then splits
+    // into two that spring out to their rest positions — port of source 451-508.
+    playIntro: playLensIntro,
 
     // paint the live video frames into the lens-world canvases — port of source 1041-1050.
     paintWorlds() {

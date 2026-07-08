@@ -136,8 +136,8 @@ export function createLandingEngine(root: HTMLElement, opts: EngineOpts): Landin
   };
 
   // everything loaded: fill to full, flip the logo, split the brackets open,
-  // materialize the hero lockup, then dissolve (source 806-861, omitting the
-  // lens intro at source 860 — not in scope for this task)
+  // materialize the hero lockup, dissolve, then split the lens intro out to rest
+  // (source 806-861)
   const finishLoader = () => {
     if (finished) return;
     finished = true;
@@ -184,6 +184,10 @@ export function createLandingEngine(root: HTMLElement, opts: EngineOpts): Landin
         }, i * 70);
       });
     }, 680);
+    // 5) the lens intro: a single lens fades in at center, then splits into the two
+    //    lenses that travel out to their rest positions (connected blob renders en
+    //    route) — port of source 858-860.
+    later(() => { lenses?.playIntro(); }, 820);
     // the intro has committed to revealing — latch hasShownLoading so SPA re-nav skips
     // it. Runs on the real (second) StrictMode mount only: the first mount is torn down
     // before the clips finish downloading, so finishLoader never fires there.
