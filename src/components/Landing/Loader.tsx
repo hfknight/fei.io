@@ -32,7 +32,7 @@ const gradientText = (background: string): React.CSSProperties => ({
 });
 
 const Loader: React.FC = () => (
-  <Root data-loader>
+  <Root data-loader aria-hidden="true">
     {/* two frosted halves that part from the center like curtains on reveal (33-38) */}
     <div
       data-curtain="l"
@@ -101,6 +101,7 @@ const Loader: React.FC = () => (
         style={{
           opacity: 0, transform: 'translateY(18px)',
           transition: 'opacity .3s ease,transform .38s cubic-bezier(.2,.7,.2,1)',
+          fontFamily: "'Manrope',system-ui,sans-serif",
           fontSize: 10.5, fontWeight: 600, letterSpacing: '.34em', textTransform: 'uppercase', marginBottom: 13,
           ...gradientText('linear-gradient(90deg,oklch(0.60 0.008 265) 0%,oklch(0.74 0.006 265) 30%,oklch(0.88 0.004 265) 49.6%,oklch(0.94 0.003 265) 50.4%,oklch(0.985 0.002 265) 100%)'),
         }}
@@ -191,6 +192,7 @@ const Loader: React.FC = () => (
         style={{
           opacity: 0, transform: 'translateY(-18px)',
           transition: 'opacity .3s ease,transform .38s cubic-bezier(.2,.7,.2,1)',
+          fontFamily: "'Manrope',system-ui,sans-serif",
           marginTop: 18, fontSize: 14, fontWeight: 600, letterSpacing: '.05em',
           display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 20, alignItems: 'center',
         }}

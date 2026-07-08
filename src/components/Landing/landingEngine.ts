@@ -225,11 +225,27 @@ export function createLandingEngine(root: HTMLElement, opts: EngineOpts): Landin
   // Blob load — deliberately the SAME seek path production uses, streamed via
   // res.body.getReader() so prog[key] tracks real downloaded bytes (source 924-952).
   // Guard the .then with `destroyed`, register the URL for revoke, and swallow the
-  // abort rejection.
+  // abort rejection. Only the interactive path needs this: it's what makes the
+  // zero-decode seek-scrubbing reliable. The non-interactive path never seeks, so it
+  // streams straight into the <video> element instead of buffering the whole clip
+  // into a Blob first — cheaper on mobile data.
   const loadClip = (vid: HTMLVideoElement | null, c: ClipCfg, clearSeekMark: () => void, key: 'j' | 'o') => {
     if (!vid) return;
     const src = vid.dataset.src;
     if (!src) return;
+
+    if (!interactive) {
+      vid.src = src;
+      on(vid, 'canplay', () => {
+        if (destroyed) return;
+        vid.currentTime = c.T0 + c.dur * c.rest;
+        vid.style.opacity = '1';
+        done[key] = true;
+      }, { once: true });
+      vid.load();
+      return;
+    }
+
     fetch(src, { signal: abort.signal })
       .then((res) => {
         const total = Number(res.headers.get('content-length')) || 0;

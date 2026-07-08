@@ -25,6 +25,7 @@ const Wrapper = styled.div`
 `;
 
 const Tagline = styled.div`
+  font-family: 'Manrope', system-ui, sans-serif;
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.34em;
@@ -56,6 +57,7 @@ const Title = styled.h1`
 `;
 
 const Roles = styled.div`
+  font-family: 'Manrope', system-ui, sans-serif;
   margin-top: 18px;
   font-size: 14px;
   font-weight: 600;
@@ -93,6 +95,9 @@ const gradientText = (background: string): React.CSSProperties => ({
 const Lockup: React.FC = () => (
   <Wrapper>
     <div data-brk-frame style={{ position: 'absolute', inset: 0, opacity: 0 }}>
+      {/* DOM order is load-bearing: landingEngine.ts indexes these four [data-hair]
+          elements by position (i === 0 || i === 2 are the two LEFT-side brackets) to
+          tint them for glow — reordering these divs would mis-tint the brackets. */}
       <div
         data-hair
         style={{ ...hairBase, top: 0, left: 0, borderTop: '1.5px solid rgba(255,255,255,.28)', borderLeft: '1.5px solid rgba(255,255,255,.28)' }}
