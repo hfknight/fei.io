@@ -14,7 +14,6 @@ const Cap = styled.div`
   z-index: 8;
   pointer-events: none;
   text-align: left;
-  transition: opacity .26s ease, transform .32s cubic-bezier(.2, .8, .2, 1);
 `;
 
 const Name = styled.div`
@@ -33,7 +32,16 @@ const Blurb = styled.p`
 
 const PetCaption: React.FC<Props> = ({ pet }) =>
   pet === 'j' ? (
-    <Cap data-pet-cap="j" style={{ left: '11.5rem', top: 88, opacity: 0, transform: 'translateX(-26px)' }}>
+    <Cap
+      data-pet-cap="j"
+      style={{
+        left: '11.5rem',
+        top: 88,
+        opacity: 0,
+        transform: 'translateX(-26px)',
+        transition: 'opacity .26s ease, transform .32s cubic-bezier(.2, .8, .2, 1)',
+      }}
+    >
       <Name style={{ color: 'oklch(0.42 0.008 265 / 0.72)' }}>Jojo</Name>
       <Blurb style={{ color: 'oklch(0.45 0.006 265 / 0.62)' }}>
         Remarkably patient, endlessly tolerant — zen enough to sunbathe belly-up while the whole stack reloads.
@@ -55,7 +63,16 @@ const PetCaption: React.FC<Props> = ({ pet }) =>
       </svg>
     </Cap>
   ) : (
-    <Cap data-pet-cap="o" style={{ left: 'calc(50% + 6rem)', bottom: 88, opacity: 0, transform: 'translateX(26px)' }}>
+    <Cap
+      data-pet-cap="o"
+      style={{
+        left: 'calc(50% + 6rem)',
+        bottom: 88,
+        opacity: 0,
+        transform: 'translateX(26px)',
+        transition: 'opacity .26s ease, transform .32s cubic-bezier(.2, .8, .2, 1)',
+      }}
+    >
       <Name style={{ color: 'oklch(0.9 0.004 265 / 0.66)' }}>Ollie</Name>
       <Blurb style={{ color: 'oklch(0.86 0.004 265 / 0.55)' }}>
         All warmth and soul, happiest bounding after whatever moves — a rabbit, or the next idea worth building.
