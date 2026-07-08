@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Manrope',system-ui,sans-serif;background:#26272b;overflow:hidden}
+  @keyframes blink{0%,92%,100%{opacity:1}96%{opacity:.25}}
+  .glassnav:hover{
+    opacity:1 !important;
+    background:linear-gradient(140deg,rgba(255,255,255,var(--pillTop,.30)),rgba(255,255,255,var(--pillBot,.08))) !important;
+    -webkit-backdrop-filter:blur(var(--pillBlur,11px)) saturate(205%) !important;
+    backdrop-filter:blur(var(--pillBlur,11px)) saturate(205%) !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,var(--pillHi,.6)),inset 0 -1px 2px rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,var(--pillRim,.18)),0 6px 20px rgba(0,0,0,var(--pillShadow,.22)) !important;
+  }
+</style>
+</helmet>
+<div style="position:relative;width:100vw;height:100vh;overflow:hidden;display:flex;background:#26272b">
+
+  <!-- LOADING overlay: liquid-glass sheet · split logo fills bottom→top by download progress · brackets split to reveal the hero lockup -->
+  <div data-loader="" style="position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:transparent;transition:opacity .4s ease">
+    <!-- two frosted halves that part from the center like curtains on reveal -->
+    <div data-curtain="l" style="position:absolute;top:0;left:0;width:50%;height:100%;overflow:hidden;backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);transition:transform .38s cubic-bezier(.85,0,.15,1);will-change:transform">
+      <div style="position:absolute;top:0;left:0;width:100vw;height:100vh;background:radial-gradient(120% 110% at 50% 40%,rgba(70,72,78,.68) 0%,rgba(40,41,45,.90) 60%,rgba(26,27,31,.96) 100%)"></div>
+    </div>
+    <div data-curtain="r" style="position:absolute;top:0;left:50%;width:50%;height:100%;overflow:hidden;backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);transition:transform .38s cubic-bezier(.85,0,.15,1);will-change:transform">
+      <div style="position:absolute;top:0;left:-50vw;width:100vw;height:100vh;background:radial-gradient(120% 110% at 50% 40%,rgba(70,72,78,.68) 0%,rgba(40,41,45,.90) 60%,rgba(26,27,31,.96) 100%)"></div>
+    </div>
+    <div data-loader-fx="" style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,0) 32%);pointer-events:none;transition:opacity .3s ease"></div>
+
+    <!-- corner-bracket box: expands to frame the revealed lockup -->
+    <div data-brk-box="" style="position:absolute;left:50%;top:50%;width:134px;height:172px;transform:translate(-50%,-50%);transition:width .78s cubic-bezier(.22,1,.36,1),height .78s cubic-bezier(.22,1,.36,1);pointer-events:none">
+      <div style="position:absolute;top:0;left:0;width:22px;height:22px;border-top:1.5px solid rgba(255,255,255,.55);border-left:1.5px solid rgba(255,255,255,.55)"></div>
+      <div style="position:absolute;top:0;right:0;width:22px;height:22px;border-top:1.5px solid rgba(255,255,255,.55);border-right:1.5px solid rgba(255,255,255,.55)"></div>
+      <div style="position:absolute;bottom:0;left:0;width:22px;height:22px;border-bottom:1.5px solid rgba(255,255,255,.55);border-left:1.5px solid rgba(255,255,255,.55)"></div>
+      <div style="position:absolute;bottom:0;right:0;width:22px;height:22px;border-bottom:1.5px solid rgba(255,255,255,.55);border-right:1.5px solid rgba(255,255,255,.55)"></div>
+    </div>
+
+    <!-- reveal: the hero lockup, identical geometry to the landing. The logo is one 3D-flip element:
+         front = the filling silhouette (loading), back = the final colored logo — it flips (no fade) to reveal itself uncut -->
+    <div data-load-lockup="" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;text-align:center;padding:22px 38px;pointer-events:none">
+      <div data-lk-fade="" style="opacity:0;transform:translateY(18px);transition:opacity .3s ease,transform .38s cubic-bezier(.2,.7,.2,1);font-size:10.5px;font-weight:600;letter-spacing:.34em;text-transform:uppercase;margin-bottom:13px;background:linear-gradient(90deg,oklch(0.60 0.008 265) 0%,oklch(0.74 0.006 265) 30%,oklch(0.88 0.004 265) 49.6%,oklch(0.94 0.003 265) 50.4%,oklch(0.985 0.002 265) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent">Elegance. Precision. Intuition</div>
+      <h1 style="font-family:'Cormorant Garamond',serif;font-weight:600;font-size:clamp(52px,6vw,104px);line-height:.95;letter-spacing:-.015em;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:.22em;margin:0;perspective:1000px">
+        <span data-lk-fade="" style="opacity:0;transform:translateX(0.5em);transition:opacity .3s ease,transform .38s cubic-bezier(.2,.7,.2,1);text-align:right;background:linear-gradient(90deg,oklch(0.80 0.006 265 / 0.95) 0%,oklch(0.99 0.002 265 / 0.95) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent">I'm</span>
+        <div data-flip="" style="display:grid;transform-style:preserve-3d;transition:transform .32s cubic-bezier(.3,.9,.25,1);transform:rotateY(0deg)">
+          <svg data-flip-front="" viewBox="0 0 140 390" xmlns="http://www.w3.org/2000/svg" style="grid-area:1/1;height:1.02em;width:auto;display:block;backface-visibility:hidden;-webkit-backface-visibility:hidden;transform:translate(0px,2px)">
+            <defs><clipPath id="loadFillClip"><rect data-fill-rect="" x="0" y="390" width="140" height="0"></rect></clipPath></defs>
+            <path d="M60 195.588V322.076L0 278.791V151.996L60 195.588ZM60 170.867L0 127.274V69.291C0 34.0263 26.0771 4.8523 60 0V170.867Z" fill="rgba(255,255,255,.9)"></path>
+            <path d="M140 278.791L80 322.076V267.188L140 223.596V278.791ZM140 198.874L80 242.468V195.188L140 151.596V198.874ZM80 0C113.923 4.8523 140 34.0263 140 69.291V126.874L80 170.468V0Z" fill="rgba(255,255,255,.9)"></path>
+            <path d="M80 343.291L80 333.291L60 333.291L60 343.291L70 343.291L80 343.291ZM60 379.291C60 384.814 64.4772 389.291 70 389.291C75.5228 389.291 80 384.814 80 379.291L70 379.291L60 379.291ZM70 343.291L60 343.291L60 379.291L70 379.291L80 379.291L80 343.291L70 343.291Z" fill="rgba(255,255,255,.9)"></path>
+            <path d="M60 195.588V322.076L0 278.791V151.996L60 195.588ZM60 170.867L0 127.274V69.291C0 34.0263 26.0771 4.8523 60 0V170.867Z" fill="oklch(0.30 0.008 265)" clip-path="url(#loadFillClip)"></path>
+            <path d="M140 278.791L80 322.076V267.188L140 223.596V278.791ZM140 198.874L80 242.468V195.188L140 151.596V198.874ZM80 0C113.923 4.8523 140 34.0263 140 69.291V126.874L80 170.468V0Z" fill="oklch(0.30 0.008 265)" clip-path="url(#loadFillClip)"></path>
+            <path d="M80 343.291L80 333.291L60 333.291L60 343.291L70 343.291L80 343.291ZM60 379.291C60 384.814 64.4772 389.291 70 389.291C75.5228 389.291 80 384.814 80 379.291L70 379.291L60 379.291ZM70 343.291L60 343.291L60 379.291L70 379.291L80 379.291L80 343.291L70 343.291Z" fill="oklch(0.30 0.008 265)" clip-path="url(#loadFillClip)"></path>
+          </svg>
+          <svg data-flip-back="" viewBox="0 0 140 390" xmlns="http://www.w3.org/2000/svg" style="grid-area:1/1;height:1.02em;width:auto;display:block;backface-visibility:hidden;-webkit-backface-visibility:hidden;transform:rotateY(180deg) translate(0px,2px)">
+            <path d="M60 195.588V322.076L0 278.791V151.996L60 195.588ZM60 170.867L0 127.274V69.291C0 34.0263 26.0771 4.8523 60 0V170.867Z" fill="oklch(0.55 0.008 265)"></path>
+            <path d="M140 278.791L80 322.076V267.188L140 223.596V278.791ZM140 198.874L80 242.468V195.188L140 151.596V198.874ZM80 0C113.923 4.8523 140 34.0263 140 69.291V126.874L80 170.468V0Z" fill="oklch(0.99 0.002 265)"></path>
+            <path d="M80 343.291L80 333.291L60 333.291L60 343.291L70 343.291L80 343.291ZM60 379.291C60 384.814 64.4772 389.291 70 389.291C75.5228 389.291 80 384.814 80 379.291L70 379.291L60 379.291ZM70 343.291L60 343.291L60 379.291L70 379.291L80 379.291L80 343.291L70 343.291Z" fill="oklch(0.99 0.002 265)"></path>
+          </svg>
+        </div>
+        <span data-lk-fade="" style="opacity:0;transform:translateX(-0.5em);transition:opacity .3s ease,transform .38s cubic-bezier(.2,.7,.2,1);text-align:left;background:linear-gradient(90deg,oklch(0.92 0.004 265 / 0.9) 0%,oklch(0.99 0.002 265 / 0.95) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent">Fei</span>
+      </h1>
+      <div data-lk-fade="" style="opacity:0;transform:translateY(-18px);transition:opacity .3s ease,transform .38s cubic-bezier(.2,.7,.2,1);margin-top:18px;font-size:14px;font-weight:600;letter-spacing:.05em;display:grid;grid-template-columns:1fr 1fr;column-gap:20px;align-items:center">
+        <span style="text-align:right;white-space:nowrap;background:linear-gradient(90deg,oklch(0.70 0.006 265) 0%,oklch(0.88 0.004 265) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent">Sr. Frontend Engineer</span>
+        <span style="text-align:left;white-space:nowrap;background:linear-gradient(90deg,oklch(0.90 0.004 265) 0%,oklch(0.985 0.002 265) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent">AI Product Engineer</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEFT · Jojo · light -->
+  <div style="position:relative;width:50%;height:100%;overflow:hidden;background:linear-gradient(120deg,#e9eaeb 0%,#d4d6d8 100%)">
+    <video data-jojo="" data-src="uploads/jojo-clip-2.mp4" muted="" playsinline="" preload="auto" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:14% 66%;opacity:0;transition:opacity .9s ease"></video>
+    <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(233,234,235,0) 50%,rgba(233,234,235,.35) 84%,rgba(226,227,229,.7) 100%);pointer-events:none"></div>
+    <div style="position:absolute;inset:0;box-shadow:inset 0 0 200px rgba(70,72,76,.14);pointer-events:none"></div>
+    <!-- frosts when the cursor is on the OTHER side -->
+    <div data-frost-l="" style="position:absolute;inset:0;backdrop-filter:blur(9px) saturate(108%);-webkit-backdrop-filter:blur(9px) saturate(108%);background:rgba(228,229,231,.32);opacity:0;transition:opacity .55s ease;pointer-events:none;z-index:4"></div>
+  </div>
+
+  <!-- RIGHT · Ollie · dark -->
+  <div style="position:relative;width:50%;height:100%;overflow:hidden;background:linear-gradient(120deg,#54565b 0%,#33343a 100%)">
+    <video data-ollie="" data-src="uploads/ollie-clip-3.mp4" muted="" playsinline="" preload="auto" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:36% 70%;transform:scaleX(-1);opacity:0;transition:opacity .9s ease"></video>
+    <div style="position:absolute;inset:0;background:linear-gradient(120deg,rgba(40,41,45,0) 60%,rgba(36,37,41,.34) 100%);pointer-events:none"></div>
+    <div style="position:absolute;inset:0;box-shadow:inset 0 0 220px rgba(15,16,19,.34);pointer-events:none"></div>
+    <!-- soft light bleed from the bright side across the seam -->
+    <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,253,248,.22) 0%,rgba(255,253,248,.08) 14%,rgba(255,253,248,0) 34%);pointer-events:none;z-index:1"></div>
+    <!-- frosts when the cursor is on the OTHER side -->
+    <div data-frost-r="" style="position:absolute;inset:0;backdrop-filter:blur(9px) saturate(108%);-webkit-backdrop-filter:blur(9px) saturate(108%);background:rgba(28,29,33,.36);opacity:0;transition:opacity .55s ease;pointer-events:none;z-index:4"></div>
+  </div>
+
+  <!-- center seam -->
+  <div data-seam="" style="position:absolute;top:0;bottom:0;left:50%;width:1px;transform:translateX(-.5px);background:linear-gradient(180deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.28) 30%,rgba(255,255,255,.28) 70%,rgba(255,255,255,0) 100%);pointer-events:none;z-index:6;transition:box-shadow .5s ease,background .5s ease"></div>
+
+  <!-- top bar · nav (wired from portfolio Header) -->
+  <nav style="position:absolute;top:0;right:0;display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;padding:0 2rem;height:60px;z-index:9">
+    <a href="/readme" style="color:#fff;opacity:.72;text-decoration:none;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;padding:8px 15px;border-radius:7px;transition:opacity .35s ease,background .4s cubic-bezier(.22,1,.36,1),box-shadow .4s cubic-bezier(.22,1,.36,1),backdrop-filter .4s cubic-bezier(.22,1,.36,1)" class="glassnav">Readme</a>
+    <a href="/changelog" style="color:#fff;opacity:.72;text-decoration:none;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;padding:8px 15px;border-radius:7px;transition:opacity .35s ease,background .4s cubic-bezier(.22,1,.36,1),box-shadow .4s cubic-bezier(.22,1,.36,1),backdrop-filter .4s cubic-bezier(.22,1,.36,1)" class="glassnav">Changelog</a>
+    <a href="/lab" style="color:#fff;opacity:.72;text-decoration:none;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;padding:8px 15px;border-radius:7px;transition:opacity .35s ease,background .4s cubic-bezier(.22,1,.36,1),box-shadow .4s cubic-bezier(.22,1,.36,1),backdrop-filter .4s cubic-bezier(.22,1,.36,1)" class="glassnav">Lab</a>
+    <a href="/work" style="color:#fff;opacity:.72;text-decoration:none;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;padding:8px 15px;border-radius:7px;transition:opacity .35s ease,background .4s cubic-bezier(.22,1,.36,1),box-shadow .4s cubic-bezier(.22,1,.36,1),backdrop-filter .4s cubic-bezier(.22,1,.36,1)" class="glassnav">Work</a>
+    <a href="/writing" style="color:#fff;opacity:.72;text-decoration:none;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;padding:8px 15px;border-radius:7px;transition:opacity .35s ease,background .4s cubic-bezier(.22,1,.36,1),box-shadow .4s cubic-bezier(.22,1,.36,1),backdrop-filter .4s cubic-bezier(.22,1,.36,1)" class="glassnav">Writing</a>
+    <a href="/connect" style="color:#fff;opacity:.72;text-decoration:none;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;padding:8px 15px;border-radius:7px;transition:opacity .35s ease,background .4s cubic-bezier(.22,1,.36,1),box-shadow .4s cubic-bezier(.22,1,.36,1),backdrop-filter .4s cubic-bezier(.22,1,.36,1)" class="glassnav">Connect</a>
+  </nav>
+
+  <!-- center-top lockup (over the open sky; dogs' chests fill the lower-center) -->
+  <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 8; pointer-events: none; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 22px 38px">
+    <div data-brk-frame="" style="position:absolute;inset:0;opacity:0">
+    <div data-hair="" style="position:absolute;top:0;left:0;width:22px;height:22px;border-top:1.5px solid rgba(255,255,255,.28);border-left:1.5px solid rgba(255,255,255,.28);transition:border-color .5s ease,filter .5s ease"></div>
+    <div data-hair="" style="position:absolute;top:0;right:0;width:22px;height:22px;border-top:1.5px solid rgba(255,255,255,.28);border-right:1.5px solid rgba(255,255,255,.28);transition:border-color .5s ease,filter .5s ease"></div>
+    <div data-hair="" style="position:absolute;bottom:0;left:0;width:22px;height:22px;border-bottom:1.5px solid rgba(255,255,255,.28);border-left:1.5px solid rgba(255,255,255,.28);transition:border-color .5s ease,filter .5s ease"></div>
+    <div data-hair="" style="position:absolute;bottom:0;right:0;width:22px;height:22px;border-bottom:1.5px solid rgba(255,255,255,.28);border-right:1.5px solid rgba(255,255,255,.28);transition:border-color .5s ease,filter .5s ease"></div>
+    </div>
+    
+    <div style="font-size: 10.5px; font-weight: 600; letter-spacing: .34em; text-transform: uppercase; margin-bottom: 13px; background:linear-gradient(90deg,oklch(0.26 0.010 265) 0%,oklch(0.40 0.009 265) 30%,oklch(0.56 0.008 265) 49.6%,oklch(0.88 0.004 265) 50.4%,oklch(0.985 0.002 265) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent">Elegance. Precision. Intuition</div>
+    <h1 style="font-family:'Cormorant Garamond',serif;font-weight:600;font-size:clamp(52px,6vw,104px);line-height:.95;letter-spacing:-.015em;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:.22em"><span style="text-align:right;background:linear-gradient(90deg,oklch(0.28 0.010 265 / 0.9) 0%,oklch(0.55 0.008 265 / 0.8) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent">I'm</span><svg data-logo="" data-logo-variant="split" viewBox="0 0 140 390" xmlns="http://www.w3.org/2000/svg" style="height: 1.02em; width: auto; display: block; transform: translate(0px, 2px); transition: filter .5s ease"><path d="M60 195.588V322.076L0 278.791V151.996L60 195.588ZM60 170.867L0 127.274V69.291C0 34.0263 26.0771 4.8523 60 0V170.867Z" fill="oklch(0.55 0.008 265)"></path><path d="M140 278.791L80 322.076V267.188L140 223.596V278.791ZM140 198.874L80 242.468V195.188L140 151.596V198.874ZM80 0C113.923 4.8523 140 34.0263 140 69.291V126.874L80 170.468V0Z" fill="oklch(0.99 0.002 265)"></path><path d="M80 343.291L80 333.291L60 333.291L60 343.291L70 343.291L80 343.291ZM60 379.291C60 384.814 64.4772 389.291 70 389.291C75.5228 389.291 80 384.814 80 379.291L70 379.291L60 379.291ZM70 343.291L60 343.291L60 379.291L70 379.291L80 379.291L80 343.291L70 343.291Z" fill="oklch(0.99 0.002 265)"></path></svg><span style="text-align:left;background:linear-gradient(90deg,oklch(0.92 0.004 265 / 0.72) 0%,oklch(0.99 0.002 265 / 0.78) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent">Fei</span></h1>
+    <div style="margin-top:18px;font-size:14px;font-weight:600;letter-spacing:.05em;display:grid;grid-template-columns:1fr 1fr;column-gap:20px;align-items:center"><span style="text-align:right;white-space:nowrap;background:linear-gradient(90deg,oklch(0.26 0.010 265) 0%,oklch(0.54 0.008 265) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent">Sr. Frontend Engineer</span><span style="text-align:left;white-space:nowrap;background:linear-gradient(90deg,oklch(0.90 0.004 265) 0%,oklch(0.985 0.002 265) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent">AI Product Engineer</span></div>
+  </div>
+
+  <!-- per-pet caption · Jojo (light half) -->
+  <div data-pet-cap="j" style="position: absolute; left: 11.5rem; top: 88px; max-width: 230px; z-index: 8; pointer-events: none; text-align: left; opacity:0; transform:translateX(-26px); transition:opacity .26s ease, transform .32s cubic-bezier(.2,.8,.2,1)">
+    <div style="font-family:'Cormorant Garamond',serif;font-weight:500;font-size:22px;line-height:1;color:oklch(0.42 0.008 265 / 0.72);margin-bottom:6px">Jojo</div>
+    <p style="margin:0;font-size:13px;line-height:1.5;color:oklch(0.45 0.006 265 / 0.62)">Remarkably patient, endlessly tolerant — zen enough to sunbathe belly-up while the whole stack reloads. Unbothered poise, a sharp eye: refined taste and a quiet command of the craft.</p>
+    <svg viewBox="0 0 34 34" width="19" height="19" fill="none" style="position:absolute; bottom:-30px; left:-2rem; overflow: visible" stroke="oklch(0.45 0.008 265 / 0.55)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M23 11 L3 31"></path><path d="M3 31 L24 31 M3 31 L3 10"></path></svg>
+  </div>
+
+  <!-- draggable liquid-glass circle lens -->
+  <div data-lens="1" title="Drag me" style="position:absolute;opacity:0;width:128px;height:128px;border-radius:50%;z-index:11;cursor:grab;box-shadow:0 15px 30px rgba(0,0,0,.10);touch-action:none">
+    <div data-lens-clip="" style="position:absolute;inset:0;border-radius:50%;overflow:hidden;-webkit-mask:radial-gradient(circle closest-side,#000 98.4%,rgba(0,0,0,0) 100%);mask:radial-gradient(circle closest-side,#000 98.4%,rgba(0,0,0,0) 100%)">
+      <div data-lens-fx="" style="position:absolute;inset:0;filter:url(#lensRefract)"></div>
+    </div>
+    <div data-lens-rim="" style="position:absolute;inset:0;border-radius:50%;pointer-events:none;box-shadow:inset 0 1px 1px rgba(255,255,255,.40),inset 0 0 0 1px rgba(255,255,255,.09),inset 0 -2px 6px rgba(0,0,0,.06)"></div>
+  </div>
+
+  <!-- second mergeable lens (rests by the Ollie arrow) -->
+  <div data-lens="2" title="Drag me" style="position:absolute;opacity:0;width:128px;height:128px;border-radius:50%;z-index:11;cursor:grab;box-shadow:0 15px 30px rgba(0,0,0,.10);touch-action:none">
+    <div data-lens-clip="" style="position:absolute;inset:0;border-radius:50%;overflow:hidden;-webkit-mask:radial-gradient(circle closest-side,#000 98.4%,rgba(0,0,0,0) 100%);mask:radial-gradient(circle closest-side,#000 98.4%,rgba(0,0,0,0) 100%)">
+      <div data-lens-fx="" style="position:absolute;inset:0;filter:url(#lensRefract)"></div>
+    </div>
+    <div data-lens-rim="" style="position:absolute;inset:0;border-radius:50%;pointer-events:none;box-shadow:inset 0 1px 1px rgba(255,255,255,.40),inset 0 0 0 1px rgba(255,255,255,.09),inset 0 -2px 6px rgba(0,0,0,.06)"></div>
+  </div>
+
+  <!-- per-pet caption · Ollie (dark half) -->
+  <div data-pet-cap="o" style="position: absolute; left: calc(50% + 6rem); bottom: 88px; max-width: 230px; z-index: 8; pointer-events: none; text-align: left; opacity:0; transform:translateX(26px); transition:opacity .26s ease, transform .32s cubic-bezier(.2,.8,.2,1)">
+    <div style="font-family:'Cormorant Garamond',serif;font-weight:500;font-size:22px;line-height:1;color:oklch(0.9 0.004 265 / 0.66);margin-bottom:6px">Ollie</div>
+    <p style="margin:0;font-size:13px;line-height:1.5;color:oklch(0.86 0.004 265 / 0.55)">All warmth and soul, happiest bounding after whatever moves — a rabbit, or the next idea worth building. Loyal company, headstrong when it counts, with instincts it trusts enough to ship.</p>
+    <svg viewBox="0 0 34 34" width="19" height="19" fill="none" style="position:absolute; top:-30px; right:-2rem; overflow: visible" stroke="oklch(0.86 0.004 265 / 0.55)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 23 L31 3"></path><path d="M31 3 L10 3 M31 3 L31 24"></path></svg>
+  </div>
+
+  <!-- footer (wired from portfolio Footer) -->
+  <footer style="position:absolute;bottom:0;left:0;display:flex;align-items:center;justify-content:flex-start;padding:0 2rem;height:48px;z-index:9">
+    <span style="color:oklch(0.28 0.006 265 / 0.9);font-family:'JetBrains Mono','Fira Code',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;text-shadow:0 1px 6px rgba(240,240,242,.55)">Copyright 2026 Fei Hu</span>
+  </footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;surfaceProfile&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Convex circle&quot;,&quot;Convex squircle&quot;,&quot;Concave&quot;,&quot;Lip&quot;],&quot;default&quot;:&quot;Convex circle&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Surface&quot;},&quot;refractiveIndex&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1.5,&quot;min&quot;:1,&quot;max&quot;:2.2,&quot;step&quot;:0.05,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Surface&quot;},&quot;glassThickness&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:10,&quot;min&quot;:0,&quot;max&quot;:40,&quot;step&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Surface&quot;},&quot;bezelWidth&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:45,&quot;min&quot;:10,&quot;max&quot;:110,&quot;step&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Surface&quot;},&quot;magnify&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0.05,&quot;min&quot;:0,&quot;max&quot;:0.5,&quot;step&quot;:0.01,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Surface&quot;},&quot;lensSize&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:128,&quot;min&quot;:64,&quot;max&quot;:280,&quot;step&quot;:4,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Geometry&quot;},&quot;magnifyScale&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:1,&quot;max&quot;:2.5,&quot;step&quot;:0.05,&quot;unit&quot;:&quot;x&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Geometry&quot;},&quot;liquidEnabled&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Liquid Interaction&quot;},&quot;liquidStretch&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0.16,&quot;min&quot;:0,&quot;max&quot;:0.4,&quot;step&quot;:0.01,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Liquid Interaction&quot;},&quot;chromaticAberration&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Chromatic Aberration&quot;},&quot;chromaticStrength&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0.2,&quot;min&quot;:0,&quot;max&quot;:1,&quot;step&quot;:0.05,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Chromatic Aberration&quot;},&quot;logoGlow&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Logo&quot;},&quot;pillHover&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0,&quot;min&quot;:0,&quot;max&quot;:1,&quot;step&quot;:0.05,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;trackingSpeed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0.14,&quot;min&quot;:0.04,&quot;max&quot;:0.4,&quot;step&quot;:0.01,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Head tracking&quot;},&quot;scopeInsetY&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0,&quot;min&quot;:0,&quot;max&quot;:40,&quot;step&quot;:1,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Head tracking&quot;},&quot;frostStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Liquid glass&quot;,&quot;Frosted&quot;,&quot;Dim only&quot;],&quot;default&quot;:&quot;Liquid glass&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Inactive-side glass&quot;},&quot;frostBlur&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:11,&quot;min&quot;:0,&quot;max&quot;:28,&quot;step&quot;:1,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Inactive-side glass&quot;},&quot;seamSheen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Inactive-side glass&quot;}}">
+class Component extends DCLogic {
+  componentDidUpdate() { this.applyPill(); this.applyLensProps(); }
+
+  _surfFns() {
+    return {
+      'Convex circle': function (x) { return Math.sqrt(1 - Math.pow(1 - x, 2)); },
+      'Convex squircle': function (x) { return Math.pow(1 - Math.pow(1 - x, 4), 0.25); },
+      'Concave': function (x) { return 1 - Math.sqrt(1 - Math.pow(1 - x, 2)); },
+      'Lip': function (x) {
+        var convex = Math.pow(Math.max(0, 1 - Math.pow(1 - x * 2, 4)), 0.25);
+        var concave = 1 - Math.sqrt(1 - Math.pow(1 - x, 2)) + 0.1;
+        var s = 6 * Math.pow(x, 5) - 15 * Math.pow(x, 4) + 10 * Math.pow(x, 3);
+        return convex * (1 - s) + concave * s;
+      }
+    };
+  }
+
+  // 1D refraction across the bezel via Snell's law (from the repo's displacement-map.ts)
+  _snellDisp1d(surf, refr, thick, bezW) {
+    var samples = 128, eta = 1 / refr, disp1d = new Array(samples);
+    for (var s = 0; s < samples; s++) {
+      var xx = s / samples;
+      var yy = surf(xx);
+      var dx = xx < 1 ? 0.0001 : -0.0001;
+      var deriv = (surf(xx + dx) - yy) / dx;
+      var mg = Math.sqrt(deriv * deriv + 1);
+      var nX = -deriv / mg, nY = -1 / mg;
+      var dot = nY, k = 1 - eta * eta * (1 - dot * dot);
+      if (k < 0) { disp1d[s] = 0; continue; }
+      var ks = Math.sqrt(k);
+      var rx = -(eta * dot + ks) * nX;
+      var ry = eta - (eta * dot + ks) * nY;
+      var remaining = yy * bezW + thick;
+      disp1d[s] = Math.abs(ry) < 0.001 ? 0 : rx * (remaining / ry);
+    }
+    return { disp1d: disp1d, samples: samples };
+  }
+
+  // R/G displacement for one point given its inward edge-distance + outward normal,
+  // in the same normalized convention the disc map uses (so magnitudes match everywhere)
+  _encodeDisp(edgeDist, rn, nx, ny, R, bezelPx, disp1d, samples, magnify) {
+    var dispPx = Math.max(0, Math.min(1, rn)) * magnify * 60;
+    if (edgeDist >= 0 && edgeDist <= bezelPx) {
+      var t = edgeDist / bezelPx;
+      var idx = Math.min(samples - 1, Math.floor(t * samples));
+      var raw = disp1d[idx] * 0.5 * (R / 110);
+      var env = bezelPx * 0.85 * (1 - t);
+      if (raw > env) raw = env; if (raw < -env) raw = -env;
+      dispPx += raw;
+    }
+    var m = dispPx / 64;
+    if (m > 1) m = 1; if (m < -1) m = -1;
+    return [
+      Math.max(0, Math.min(255, Math.round(128 - nx * m * 127))),
+      Math.max(0, Math.min(255, Math.round(128 - ny * m * 127)))
+    ];
+  }
+
+  // smooth-union (metaball) displacement map spanning both discs + the neck, so the
+  // refraction field is one continuous surface across the bridge. Supersampled 2x to
+  // match the disc map's density (keeps displacement magnitude identical).
+  generateBlobMap(x1, y1, r1, x2, y2, r2, bx0, by0, bw, bh) {
+    var magnify = this.props.magnify ?? 0.05;
+    var bezW = this.props.bezelWidth ?? 45;
+    var surf = this._surfFns()[this.props.surfaceProfile ?? 'Convex circle'] || this._surfFns()['Convex circle'];
+    var disp = this._snellDisp1d(surf, this.props.refractiveIndex ?? 1.5, this.props.glassThickness ?? 10, bezW);
+    var disp1d = disp.disp1d, samples = disp.samples;
+
+    var ss = 2;
+    var maxDim = 1100;
+    if (Math.max(bw, bh) * ss > maxDim) ss = maxDim / Math.max(bw, bh);
+    var cw = Math.max(4, Math.round(bw * ss)), ch = Math.max(4, Math.round(bh * ss));
+    // everything below is in canvas px (screen px * ss)
+    var X1 = (x1 - bx0) * ss, Y1 = (y1 - by0) * ss, R1 = r1 * ss;
+    var X2 = (x2 - bx0) * ss, Y2 = (y2 - by0) * ss, R2 = r2 * ss;
+    var Ravg = (R1 + R2) / 2;
+    var bezelPx = Math.max(2, Math.min((bezW / 110) * Ravg, Ravg));
+    var kBlend = Math.min(R1, R2) * 0.9;
+
+    var sdf = function (px, py) {
+      var d1 = Math.sqrt((px - X1) * (px - X1) + (py - Y1) * (py - Y1)) - R1;
+      var d2 = Math.sqrt((px - X2) * (px - X2) + (py - Y2) * (py - Y2)) - R2;
+      var hh = Math.max(0, Math.min(1, 0.5 + 0.5 * (d2 - d1) / kBlend));
+      return (d2 + (d1 - d2) * hh) - kBlend * hh * (1 - hh);
+    };
+
+    var c = document.createElement('canvas'); c.width = cw; c.height = ch;
+    var ctx = c.getContext('2d'); var img = ctx.createImageData(cw, ch); var data = img.data;
+    for (var y = 0; y < ch; y++) {
+      for (var x = 0; x < cw; x++) {
+        var px = x + 0.5, py = y + 0.5;
+        var d0 = sdf(px, py);
+        var rC = 128, gC = 128, a = 0;
+        if (d0 <= 0) {
+          a = 255;
+          var gx = sdf(px + 1, py) - sdf(px - 1, py);
+          var gy = sdf(px, py + 1) - sdf(px, py - 1);
+          var gl = Math.sqrt(gx * gx + gy * gy) || 0.0001;
+          var nx = gx / gl, ny = gy / gl;      // outward normal
+          var edgeDist = -d0;                  // inward from blob edge
+          var rn = 1 - edgeDist / Ravg;        // center-like deep inside, rim-like at edge
+          var enc = this._encodeDisp(edgeDist, rn, nx, ny, Ravg, bezelPx, disp1d, samples, magnify);
+          rC = enc[0]; gC = enc[1];
+        }
+        var i = (y * cw + x) * 4; data[i] = rC; data[i + 1] = gC; data[i + 2] = 0; data[i + 3] = a;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return c.toDataURL();
+  }
+
+  // glass disc displacement map — port of the demo's Snell-law model:
+  // a surface-profile bezel refracts through glass thickness; the flat center magnifies
+  generateLensMap() {
+    var profile = this.props.surfaceProfile ?? 'Convex circle';
+    var refr = this.props.refractiveIndex ?? 1.5;
+    var thick = this.props.glassThickness ?? 10;
+    var bezW = this.props.bezelWidth ?? 45;
+    var magnify = this.props.magnify ?? 0.05;
+
+    var SURF = {
+      'Convex circle': function (x) { return Math.sqrt(1 - Math.pow(1 - x, 2)); },
+      'Convex squircle': function (x) { return Math.pow(1 - Math.pow(1 - x, 4), 0.25); },
+      'Concave': function (x) { return 1 - Math.sqrt(1 - Math.pow(1 - x, 2)); },
+      'Lip': function (x) {
+        var convex = Math.pow(Math.max(0, 1 - Math.pow(1 - x * 2, 4)), 0.25);
+        var concave = 1 - Math.sqrt(1 - Math.pow(1 - x, 2)) + 0.1;
+        var s = 6 * Math.pow(x, 5) - 15 * Math.pow(x, 4) + 10 * Math.pow(x, 3);
+        return convex * (1 - s) + concave * s;
+      }
+    };
+    var surf = SURF[profile] || SURF['Convex circle'];
+
+    var disp = this._snellDisp1d(surf, refr, thick, bezW);
+    var disp1d = disp.disp1d, samples = disp.samples;
+    var W = 256, R = W / 2 - 1;
+    var bezelPx = Math.max(2, Math.min((bezW / 110) * R, R));
+    var c = document.createElement('canvas'); c.width = W; c.height = W;
+    var ctx = c.getContext('2d'); var img = ctx.createImageData(W, W); var d = img.data;
+    var cx = W / 2, cy = W / 2;
+    for (var y = 0; y < W; y++) {
+      for (var x = 0; x < W; x++) {
+        var px = x + 0.5 - cx, py = y + 0.5 - cy;
+        var dist = Math.sqrt(px * px + py * py) || 0.0001;
+        var rn = dist / R;
+        var edgeDist = R - dist;
+        var rC = 128, gC = 128;
+        if (rn <= 1) {
+          var nx = px / dist, ny = py / dist;      // outward normal
+          // work in pixel space like the shader: flat magnified center + clamped bezel refraction
+          var dispPx = rn * magnify * 60;          // magnification: linear inward pull
+          if (edgeDist >= 0 && edgeDist <= bezelPx) {
+            var t = edgeDist / bezelPx;            // 0 rim -> 1 inner edge of bezel
+            var idx = Math.min(samples - 1, Math.floor(t * samples));
+            var raw = disp1d[idx] * 0.5 * (R / 110);   // scale_ratio*0.5*displacement_scale
+            // no-fold envelope: displacement may never outrun the distance back to the
+            // bezel's inner edge, so the mapping stays injective (no duplicated text)
+            var env = bezelPx * 0.85 * (1 - t);
+            if (raw > env) raw = env; if (raw < -env) raw = -env;
+            dispPx += raw;
+          }
+          var m = dispPx / 64;
+          if (m > 1) m = 1; if (m < -1) m = -1;
+          rC = Math.max(0, Math.min(255, Math.round(128 - nx * m * 127)));
+          gC = Math.max(0, Math.min(255, Math.round(128 - ny * m * 127)));
+        }
+        var i = (y * W + x) * 4; d[i] = rC; d[i + 1] = gC; d[i + 2] = 0; d[i + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return c.toDataURL();
+  }
+
+  applyLensProps() {
+    var size = this.props.lensSize ?? 128;
+    var M = this.props.magnifyScale ?? 1;
+    document.querySelectorAll('[data-lens]').forEach(function (lens, i) {
+      var s = i === 0 ? Math.round(size * 1.45) : size;  // left lens larger
+      lens.style.width = s + 'px';
+      lens.style.height = s + 'px';
+      var world = lens.querySelector('[data-lens-world]');
+      if (world) {
+        var r = lens.offsetWidth / 2;
+        world.style.transformOrigin = (lens.offsetLeft + r) + 'px ' + (lens.offsetTop + r) + 'px';
+        world.style.transform = 'translate(' + (-lens.offsetLeft) + 'px,' + (-lens.offsetTop) + 'px) scale(' + M + ')';
+      }
+    });
+    var key = this.lensPropsKey();
+    if (key !== this._lensMapKey) {
+      this._lensMapKey = key;
+      var svg = document.getElementById('lensRefractSvg');
+      if (svg) {
+        svg.innerHTML = this.buildLensFilter();
+        // force Chromium to re-resolve the rebuilt filter defs on every lens
+        document.querySelectorAll('[data-lens-fx]').forEach(function (fx, i) {
+          var v = 'url(#lensRefract' + (i + 1) + ')';
+          fx.style.filter = 'none';
+          requestAnimationFrame(function () { fx.style.filter = v; });
+        });
+      }
+    }
+  }
+
+  lensPropsKey() {
+    return JSON.stringify([this.props.surfaceProfile, this.props.refractiveIndex, this.props.glassThickness, this.props.bezelWidth, this.props.magnify, this.props.chromaticAberration, this.props.chromaticStrength]);
+  }
+
+  // chromatic aberration = R/G/B displaced by slightly different amounts (like the shader's
+  // displaced_r / displaced_g / displaced_b), via channel isolation + screen recombine
+  buildLensFilter() {
+    var url = this.generateLensMap();
+    var S = 64;
+    var chrom = this.props.chromaticAberration ?? true;
+    var d = S * (this.props.chromaticStrength ?? 0.2) * 0.4;
+    // one filter instance per lens — Chromium only renders an feImage-bearing
+    // filter for a single referencing element, so sharing one id breaks lens 2
+    var makeFilter = function (id, mapId, mapUrl) {
+      var html = '<filter id="' + id + '" color-interpolation-filters="sRGB" x="0%" y="0%" width="100%" height="100%">' +
+        '<feGaussianBlur in="SourceGraphic" stdDeviation="0.3" result="soft"></feGaussianBlur>' +
+        '<feImage ' + (mapId ? 'id="' + mapId + '" ' : '') + 'href="' + (mapUrl || url) + '" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map"></feImage>';
+      if (chrom && d > 0.05) {
+        html +=
+          '<feColorMatrix in="soft" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="cR"></feColorMatrix>' +
+          '<feColorMatrix in="soft" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="cG"></feColorMatrix>' +
+          '<feColorMatrix in="soft" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="cB"></feColorMatrix>' +
+          '<feDisplacementMap in="cR" in2="map" scale="' + (S - d) + '" xChannelSelector="R" yChannelSelector="G" result="dR"></feDisplacementMap>' +
+          '<feDisplacementMap in="cG" in2="map" scale="' + S + '" xChannelSelector="R" yChannelSelector="G" result="dG"></feDisplacementMap>' +
+          '<feDisplacementMap in="cB" in2="map" scale="' + (S + d) + '" xChannelSelector="R" yChannelSelector="G" result="dB"></feDisplacementMap>' +
+          '<feBlend in="dR" in2="dG" mode="screen" result="dRG"></feBlend>' +
+          '<feBlend in="dRG" in2="dB" mode="screen"></feBlend>';
+      } else {
+        html += '<feDisplacementMap in="soft" in2="map" scale="' + S + '" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>';
+      }
+      return html + '</filter>';
+    };
+    // bridge filter carries a dynamic smooth-union map (href updated each frame while merged)
+    return makeFilter('lensRefract1') + makeFilter('lensRefract2') + makeFilter('lensRefractBridge', 'bridgeMap', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg==');
+  }
+
+  injectLensFilter() {
+    if (document.getElementById('lensRefractSvg')) return;
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.id = 'lensRefractSvg';
+    svg.setAttribute('width', '0'); svg.setAttribute('height', '0');
+    svg.style.cssText = 'position:absolute;width:0;height:0;pointer-events:none';
+    svg.innerHTML = this.buildLensFilter();
+    document.body.appendChild(svg);
+    this._lensMapKey = this.lensPropsKey();  // primed: no redundant rebuild at mount
+  }
+
+  initLens() {
+    this.injectLensFilter();
+    this.lensVidPairs = [];
+    this.lensEls = Array.from(document.querySelectorAll('[data-lens]'));
+    if (!this.lensEls.length) return;
+    for (var i = 0; i < this.lensEls.length; i++) this.setupLens(this.lensEls[i], i);
+    this.initBridge();
+  }
+
+  // find a pet's description block by its heading name (e.g. "Jojo"/"Ollie")
+  captionRect(name) {
+    var divs = document.querySelectorAll('div');
+    for (var i = 0; i < divs.length; i++) {
+      var el = divs[i];
+      var h = el.querySelector(':scope > div');
+      if (h && h.textContent.trim() === name && el.querySelector('p')) return el.getBoundingClientRect();
+    }
+    return null;
+  }
+
+  // each lens rests relative to its pet's description block
+  lensDefaultPos(idx, size) {
+    if (idx === 0) {
+      var j = this.captionRect('Jojo');
+      if (j) return { x: Math.round(j.left - 90), y: Math.round(j.top - 21) };
+      return { x: 56, y: 210 };
+    }
+    var o = this.captionRect('Ollie');
+    if (o) return { x: Math.round(o.left + 150), y: Math.round(o.top - 102) };
+    return { x: window.innerWidth - 220, y: Math.max(40, window.innerHeight - 380) };
+  }
+
+  // intro: the two lenses begin stacked at center (reading as one lens), then split
+  // apart and travel to their rest positions. Driven by rAF (not CSS) so each disc's
+  // refraction world stays synced and the bridge loop renders the connected metaball
+  // state while they're still close, snapping into two discs as they separate.
+  playLensIntro() {
+    var lenses = this.lensEls || [];
+    if (!lenses.length) return;
+    this._lensReady = true;   // let the bridge loop start rendering from here on
+    var self = this;
+    // 1) ONE clean lens at viewport center. Center EACH lens on its own size so their
+    //    centers coincide exactly (the two lenses differ in size) — concentric means no
+    //    metaball bridge and no doubled refraction. Only the first (larger) lens is shown.
+    var vcx = window.innerWidth / 2, vcy = window.innerHeight / 2;
+    lenses.forEach(function (l, i) {
+      var sz = l.offsetWidth || 128;
+      l.style.left = Math.round(vcx - sz / 2) + 'px';
+      l.style.top = Math.round(vcy - sz / 2) + 'px';
+      if (l._sync) l._sync();
+      l.style.opacity = (i === 0) ? '1' : '0';
+    });
+    // TEMP: split paused for verification — set _pauseLensSplit=false to resume
+    if (this._pauseLensSplit) return;
+    // 2) after a short hold, reveal the second lens and spring both out to their rest
+    //    positions — the metaball connects them while close, snapping into two as they part
+    setTimeout(function () {
+      lenses.forEach(function (l) { l.style.opacity = '1'; });
+      var starts = lenses.map(function (l) { return { x: l.offsetLeft, y: l.offsetTop }; });
+      var prev = starts.map(function (s) { return { x: s.x, y: s.y }; });
+      self._lensIntroMoving = true;   // enable liquid stretch while flying out
+      var t0 = performance.now(), dur = 560;
+      var ease = function (t) { return 1 - Math.pow(1 - t, 3); };   // easeOutCubic
+      var step = function (now) {
+        var t = Math.min(1, (now - t0) / dur), e = ease(t);
+        lenses.forEach(function (l, i) {
+          var p = l._restPos; if (!p) return;
+          var nx = starts[i].x + (p.x - starts[i].x) * e;
+          var ny = starts[i].y + (p.y - starts[i].y) * e;
+          if (l._pushMotion) l._pushMotion(nx - prev[i].x, ny - prev[i].y);   // travel velocity -> stretch
+          prev[i].x = nx; prev[i].y = ny;
+          l.style.left = Math.round(nx) + 'px';
+          l.style.top = Math.round(ny) + 'px';
+          if (l._sync) l._sync();
+        });
+        if (t < 1) { requestAnimationFrame(step); }
+        else {
+          self._lensIntroMoving = false;
+          lenses.forEach(function (l) { if (l._wobbleKick) l._wobbleKick(0.12); });  // gentle jelly settle on arrival
+        }
+      };
+      requestAnimationFrame(step);
+    }, 240);
+  }
+
+  // spring the center lockup's four corner brackets in with an overshoot (finishing flourish)
+  bounceBrackets() {
+    // the landing brackets simply appear at their final open frame — the white loading
+    // brackets have already opened to this exact position, so this is a seamless handoff
+    var frames = [].slice.call(document.querySelectorAll('[data-brk-frame]'));
+    frames.forEach(function (f) { f.style.opacity = '1'; });
+  }
+
+  // a live clone of the hero, painted from the real videos each frame, refracted by filter
+  buildLensWorld(root) {
+    var world = root.cloneNode(true);
+    world.querySelectorAll('[data-lens]').forEach(function (n) { n.remove(); });
+    world.querySelectorAll('[data-lens-bridge]').forEach(function (n) { n.remove(); });
+    // the lens punches through the inactive-side frost: never frost inside the lens world
+    world.querySelectorAll('[data-frost-l],[data-frost-r]').forEach(function (n) { n.remove(); });
+    // the loading overlay is fixed & transient — never bake it into a lens/blob clone
+    world.querySelectorAll('[data-loader]').forEach(function (n) { n.remove(); });
+    world.setAttribute('data-lens-world', '');
+    // additive overrides — keep the root's inline layout styles (flex split!) intact
+    world.setAttribute('style', root.getAttribute('style') || '');
+    world.style.position = 'absolute';
+    world.style.left = '0'; world.style.top = '0';
+    world.style.width = root.offsetWidth + 'px';
+    world.style.height = root.offsetHeight + 'px';
+    world.style.margin = '0';
+    world.style.pointerEvents = 'none';
+    world.style.transformOrigin = '0 0';
+    // mirror the live videos as canvases painted from the originals each frame —
+    // clone <video> elements can't keep up with scrub-driven originals (seek storm)
+    var ov = root.querySelectorAll('video'), cv = world.querySelectorAll('video');
+    for (var i = 0; i < cv.length; i++) {
+      var o = ov[i], cl = cv[i]; if (!o || !cl) continue;
+      var cnv = document.createElement('canvas');
+      cnv.width = o.videoWidth || 1280; cnv.height = o.videoHeight || 720;
+      cnv.setAttribute('style', cl.getAttribute('style') || '');
+      cnv.style.opacity = '1';
+      cl.parentNode.replaceChild(cnv, cl);
+      this.lensVidPairs.push([o, cnv]);
+    }
+    var self = this;
+    window.addEventListener('resize', function () {
+      world.style.width = root.offsetWidth + 'px';
+      world.style.height = root.offsetHeight + 'px';
+    });
+    return world;
+  }
+
+  setupLens(lens, idx) {
+    var fx = lens.querySelector('[data-lens-fx]');
+    if (!fx) return;
+    fx.style.filter = 'url(#lensRefract' + (idx + 1) + ')';
+
+    var root = lens.offsetParent || document.body;
+    var world = this.buildLensWorld(root);
+    fx.appendChild(world);
+    window.addEventListener('resize', function () {
+      world.style.width = root.offsetWidth + 'px';
+      world.style.height = root.offsetHeight + 'px';
+    });
+
+    var self = this;
+    var sync = function () {
+      var M = self.props.magnifyScale ?? 1;
+      var r = lens.offsetWidth / 2;
+      var ox = lens.offsetLeft + r, oy = lens.offsetTop + r;   // lens center in world coords
+      world.style.transformOrigin = ox + 'px ' + oy + 'px';
+      world.style.transform = 'translate(' + (-lens.offsetLeft) + 'px,' + (-lens.offsetTop) + 'px) scale(' + M + ')';
+    };
+
+    // rest position is anchored to the pet's description block — stash it; the lens
+    // starts life stacked at viewport center (as the single lens) and splits out to here
+    var p = this.lensDefaultPos(idx, lens.offsetWidth);
+    lens._restPos = p;
+    lens._sync = sync;
+    var s = lens.offsetWidth || 128;
+    lens.style.left = Math.round(window.innerWidth / 2 - s / 2) + 'px';
+    lens.style.top = Math.round(window.innerHeight / 2 - s / 2) + 'px';
+    lens.style.opacity = '0';
+    lens.style.transition = 'opacity .4s ease';
+    sync();
+
+    // spring-driven liquid deformation: stretch along motion, damped bounce on settle
+    var drag = null, lastX = 0, lastY = 0, velX = 0, velY = 0;
+    var amt = 0, vAmt = 0, ang = 0;
+    var wobE = 0, wobP = 0;            // decaying jelly-wobble oscillator
+    var springTick = () => {
+      var speed = Math.hypot(velX, velY);
+      var maxS = this.props.liquidStretch ?? 0.16;
+      // liquid stretch tracks motion during a drag AND during the intro split fly-out
+      var liquidActive = (drag || this._lensIntroMoving) && (this.props.liquidEnabled ?? true);
+      var target = liquidActive ? Math.min(maxS, speed * 0.012) : 0;
+      vAmt += (target - amt) * 0.30;   // stiffness (higher -> snappier)
+      vAmt *= 0.78;                    // damping (higher retain -> more overshoot/bounce)
+      amt += vAmt;
+      velX *= 0.80; velY *= 0.80;
+      // jelly wobble: oscillation kicked by click + drag/travel speed, decays to still
+      if (liquidActive) wobE = Math.min(0.10, wobE + speed * 0.0018);
+      wobP += 0.5;
+      wobE *= 0.925;                   // slower decay -> a few more bounces before settling
+      var wob = Math.sin(wobP) * wobE;
+      if (Math.abs(amt) > 0.0008 || Math.abs(wob) > 0.0008 || drag) {
+        var deg = ang * 180 / Math.PI;
+        // directional stretch * oscillating jelly squash (x up while y down, then flip)
+        lens.style.transform = 'rotate(' + deg + 'deg) scale(' + ((1 + amt) * (1 + wob)) + ',' + ((1 - amt * 0.65) * (1 - wob)) + ') rotate(' + (-deg) + 'deg)';
+      } else if (lens.style.transform) { lens.style.transform = ''; }
+      requestAnimationFrame(springTick);
+    };
+    requestAnimationFrame(springTick);
+    lens._clickBounce = function () { wobE = Math.min(0.16, wobE + 0.12); };  // wobble kick on click
+    lens._wobbleKick = function (amt) { wobE = Math.min(0.34, wobE + (amt || 0.12)); };  // parametrized kick (e.g. arrival bounce)
+    lens._pushMotion = function (vx, vy) { velX = vx; velY = vy; if (Math.hypot(vx, vy) > 1.5) ang = Math.atan2(vy, vx); };  // feed travel velocity (intro split)
+
+    var onDown = (e) => {
+      drag = { dx: e.clientX - lens.offsetLeft, dy: e.clientY - lens.offsetTop };
+      this.lensDragging = true;
+      lens._clickBounce();   // pop on click/press
+      lastX = e.clientX; lastY = e.clientY;
+      lens.style.cursor = 'grabbing';
+      if (lens.setPointerCapture) lens.setPointerCapture(e.pointerId);
+      e.preventDefault(); e.stopPropagation();
+    };
+    var onMove = (e) => {
+      if (!drag) return;
+      velX = e.clientX - lastX; velY = e.clientY - lastY;
+      lastX = e.clientX; lastY = e.clientY;
+      if (Math.hypot(velX, velY) > 1.5) ang = Math.atan2(velY, velX);
+      lens.style.left = (e.clientX - drag.dx) + 'px';
+      lens.style.top = (e.clientY - drag.dy) + 'px';
+      sync();
+    };
+    var onUp = () => {
+      if (!drag) return;
+      drag = null; this.lensDragging = false;
+      lens.style.cursor = 'grab';
+    };
+    lens.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  // metaball connector (smooth-union analog of the shader's smin merge)
+  metaballPath(x1, y1, r1, x2, y2, r2, wob) {
+    wob = wob || 0;
+    var d = Math.hypot(x2 - x1, y2 - y1);
+    var maxDist = r1 + r2 + Math.min(r1, r2) * 0.35;
+    if (d < 1 || d > maxDist || d <= Math.abs(r1 - r2)) return '';
+    var u1 = 0, u2 = 0;
+    if (d < r1 + r2) {
+      u1 = Math.acos(Math.max(-1, Math.min(1, (r1 * r1 + d * d - r2 * r2) / (2 * r1 * d))));
+      u2 = Math.acos(Math.max(-1, Math.min(1, (r2 * r2 + d * d - r1 * r1) / (2 * r2 * d))));
+    }
+    var ab = Math.atan2(y2 - y1, x2 - x1);
+    var v = 0.5, handleLenRate = 2.4;
+    var spread = Math.acos(Math.max(-1, Math.min(1, (r1 - r2) / d)));
+    var a1 = ab + u1 + (spread - u1) * v;
+    var a2 = ab - u1 - (spread - u1) * v;
+    var a3 = ab + Math.PI - u2 - (Math.PI - u2 - spread) * v;
+    var a4 = ab - Math.PI + u2 + (Math.PI - u2 - spread) * v;
+    var pt = function (x, y, r, a) { return [x + r * Math.cos(a), y + r * Math.sin(a)]; };
+    var p1 = pt(x1, y1, r1, a1), p2 = pt(x1, y1, r1, a2), p3 = pt(x2, y2, r2, a3), p4 = pt(x2, y2, r2, a4);
+    var total = r1 + r2;
+    var d2 = Math.min(v * handleLenRate, Math.hypot(p3[0] - p1[0], p3[1] - p1[1]) / total) * Math.min(1, d * 2 / total);
+    // wobble sways the two neck curves in opposite phase -> the waist jiggles like liquid
+    var hr1 = r1 * d2, hr2 = r2 * d2;
+    var wTop = 1 + wob, wBot = 1 - wob;
+    var H = Math.PI / 2;
+    var h = function (p, a, r) { return (p[0] + r * Math.cos(a)).toFixed(1) + ',' + (p[1] + r * Math.sin(a)).toFixed(1); };
+    var P = function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); };
+    // far-side arc of a circle, sampled from aStart to aEnd the way that passes through aVia
+    var TAU = Math.PI * 2, norm = function (x) { return ((x % TAU) + TAU) % TAU; };
+    var arc = function (cx, cy, r, aStart, aEnd, aVia, N) {
+      var inc = norm(aEnd - aStart), viaInc = norm(aVia - aStart), dir, tot;
+      if (viaInc <= inc) { dir = 1; tot = inc; } else { dir = -1; tot = TAU - inc; }
+      var out = '';
+      for (var k = 1; k <= N; k++) {
+        var an = aStart + dir * tot * (k / N);
+        out += 'L' + (cx + r * Math.cos(an)).toFixed(1) + ',' + (cy + r * Math.sin(an)).toFixed(1);
+      }
+      return out;
+    };
+    // p1 -curve-> p3 -arc(far of c2)-> p4 -curve-> p2 -arc(far of c1)-> p1
+    var c1 = 'C' + h(p1, a1 - H, hr1 * wTop) + ' ' + h(p3, a3 + H, hr2 * wTop) + ' ' + P(p3);
+    var c2 = 'C' + h(p4, a4 - H, hr2 * wBot) + ' ' + h(p2, a2 + H, hr1 * wBot) + ' ' + P(p2);
+    var outline = 'M' + P(p1) + c1 +
+      arc(x2, y2, r2, a3, a4, ab, 20) + c2 +
+      arc(x1, y1, r1, a2, a1, ab + Math.PI, 20) + 'Z';
+    return { fill: outline, outline: outline };
+  }
+
+  initBridge() {
+    if (this.lensEls.length < 2) return;
+    var self = this;
+    var a = this.lensEls[0], b = this.lensEls[1];
+    var root = a.offsetParent || document.body;
+
+    // refracting blob layer: a full-hero world clone, clipped to the metaball shape and
+    // bent by the continuous smooth-union displacement map -> refraction flows across the neck
+    var blob = document.createElement('div');
+    blob.setAttribute('data-lens-bridge', '');
+    blob.style.cssText = 'position:absolute;left:0;top:0;width:' + root.offsetWidth + 'px;height:' + root.offsetHeight + 'px;z-index:11;pointer-events:none;display:none;filter:drop-shadow(0 15px 30px rgba(0,0,0,.10))';
+    var blobFx = document.createElement('div');
+    blobFx.setAttribute('data-lens-bridge', '');
+    blobFx.style.cssText = 'position:absolute;inset:0;filter:url(#lensRefractBridge)';
+    var blobWorld = this.buildLensWorld(root);
+    blobFx.appendChild(blobWorld);
+    blob.appendChild(blobFx);
+    root.appendChild(blob);
+
+    // unified glass rim + specular along the blob outline
+    var osvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    osvg.setAttribute('data-lens-bridge', '');
+    osvg.style.cssText = 'position:absolute;left:0;top:0;width:' + root.offsetWidth + 'px;height:' + root.offsetHeight + 'px;z-index:12;pointer-events:none;overflow:visible;display:none';
+    var rimSoft = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    rimSoft.setAttribute('fill', 'none'); rimSoft.setAttribute('stroke', 'rgba(255,255,255,.10)'); rimSoft.setAttribute('stroke-width', '2.5');
+    var rimHair = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    rimHair.setAttribute('fill', 'none'); rimHair.setAttribute('stroke', 'rgba(255,255,255,.16)'); rimHair.setAttribute('stroke-width', '1');
+    osvg.appendChild(rimSoft); osvg.appendChild(rimHair);
+    root.appendChild(osvg);
+
+    var bmap = null; // <feImage id="bridgeMap">, resolved lazily
+    var setDiscFx = function (vis) {
+      self.lensEls.forEach(function (l) {
+        var fx = l.querySelector('[data-lens-fx]');
+        var rim = l.querySelector('[data-lens-rim]');
+        if (fx) fx.style.visibility = vis ? 'visible' : 'hidden';
+        if (rim) rim.style.opacity = vis ? '1' : '0';
+      });
+    };
+
+    var wobEnergy = 0, wobPhase = 0, pcx = null, pcy = null, wasMerged = false;
+    var loop = function () {
+      // hold everything hidden until the lens intro begins (the two lenses sit at
+      // slightly-offset setup positions before then, which would otherwise render the
+      // connected metaball blob over the loader)
+      if (!self._lensReady) {
+        blob.style.display = 'none';
+        osvg.style.display = 'none';
+        requestAnimationFrame(loop);
+        return;
+      }
+      var r1 = a.offsetWidth / 2, r2 = b.offsetWidth / 2;
+      var cx1 = a.offsetLeft + r1, cy1 = a.offsetTop + r1;
+      var cx2 = b.offsetLeft + r2, cy2 = b.offsetTop + r2;
+      // wobble energy: kicked by relative motion of the two lenses + on first connect
+      var mx = (cx1 + cx2) / 2, my = (cy1 + cy2) / 2;
+      if (pcx !== null) wobEnergy = Math.min(1, wobEnergy + Math.hypot(mx - pcx, my - pcy) * 0.03);
+      pcx = mx; pcy = my;
+      wobEnergy *= 0.90;                 // decay to rest (faster = calmer)
+      wobPhase += 0.34;                  // oscillation speed
+      var wob = Math.sin(wobPhase) * wobEnergy * 0.26;
+      var d = self.metaballPath(cx1, cy1, r1, cx2, cy2, r2, wob);
+      if (d) {
+        // union bounding box (+ padding for displaced samples & rim)
+        var pad = Math.max(r1, r2) * 0.5 + 24;
+        var bx0 = Math.min(cx1 - r1, cx2 - r2) - pad;
+        var by0 = Math.min(cy1 - r1, cy2 - r2) - pad;
+        var bw = (Math.max(cx1 + r1, cx2 + r2) + pad) - bx0;
+        var bh = (Math.max(cy1 + r1, cy2 + r2) + pad) - by0;
+
+        if (!bmap) bmap = document.getElementById('bridgeMap');
+        if (bmap) bmap.setAttribute('href', self.generateBlobMap(cx1, cy1, r1, cx2, cy2, r2, bx0, by0, bw, bh));
+
+        // position the refraction layer to the bbox; align its world clone under it
+        blob.style.left = bx0 + 'px'; blob.style.top = by0 + 'px';
+        blob.style.width = bw + 'px'; blob.style.height = bh + 'px';
+        var M = self.props.magnifyScale ?? 1;
+        blobWorld.style.transformOrigin = mx + 'px ' + my + 'px';
+        blobWorld.style.transform = 'translate(' + (-bx0) + 'px,' + (-by0) + 'px) scale(' + M + ')';
+        // clip-path is in the layer's local coords -> shift the metaball path by -bbox origin
+        var localFill = self.shiftPath(d.fill, -bx0, -by0);
+        blob.style.clipPath = "path('" + localFill + "')";
+        blob.style.webkitClipPath = "path('" + localFill + "')";
+        blob.style.display = 'block';
+
+        rimSoft.setAttribute('d', d.outline); rimHair.setAttribute('d', d.outline);
+        osvg.style.display = 'block';
+        setDiscFx(false);   // hide the two circular refractions; the blob covers both
+        if (!wasMerged) { wobEnergy = Math.min(1, wobEnergy + 0.3); wasMerged = true; }  // pop on connect
+      } else {
+        wasMerged = false;
+        blob.style.display = 'none';
+        osvg.style.display = 'none';
+        setDiscFx(true);
+      }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
+
+  // translate every coordinate pair in an SVG path string by (dx,dy)
+  shiftPath(pathStr, dx, dy) {
+    var i = 0;
+    return pathStr.replace(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g, function (m, xs, ys) {
+      return (parseFloat(xs) + dx).toFixed(1) + ',' + (parseFloat(ys) + dy).toFixed(1);
+    });
+  }
+
+  // dark ink of the logo rises bottom→top with progress p (0..1)
+  setLoaderFill(p) {
+    if (!this.fillRect) return;
+    var H = 390;
+    this.fillRect.setAttribute('y', (H * (1 - p)).toFixed(1));
+    this.fillRect.setAttribute('height', (H * p).toFixed(1));
+  }
+
+  // everything loaded: fill to full, split the brackets open, materialize the hero lockup, then dissolve
+  finishLoader() {
+    if (this._finished) return;
+    this._finished = true;
+    this._loaderDone = true;
+    var self = this;
+    this._pauseLensSplit = false;   // split enabled
+    this.setLoaderFill(1);
+    var loader = this.loader;
+    var box = document.querySelector('[data-brk-box]');
+    var flip = document.querySelector('[data-flip]');
+    var lock = document.querySelector('[data-load-lockup]');
+    var fades = document.querySelectorAll('[data-lk-fade]');
+    // measure the lockup's own box so the brackets frame it exactly like the landing hero's
+    var lr = lock ? lock.getBoundingClientRect() : { width: 460, height: 200 };
+    // 1) the logo flips in place (same element, no fade) to reveal its final, uncut form,
+    //    while the brackets split left & right to frame the full lockup
+    setTimeout(function () {
+      if (flip) flip.style.transform = 'rotateY(180deg)';
+      if (box) { box.style.width = Math.round(lr.width) + 'px'; box.style.height = Math.round(lr.height) + 'px'; }
+    }, 100);
+    // 2) text slides in AND the curtains part from the center — together, revealing the videos
+    setTimeout(function () {
+      fades.forEach(function (el, i) {
+        setTimeout(function () { el.style.opacity = '1'; el.style.transform = 'none'; }, i * 45);
+      });
+      var cl = document.querySelector('[data-curtain="l"]');
+      var cr = document.querySelector('[data-curtain="r"]');
+      var fx = document.querySelector('[data-loader-fx]');
+      if (fx) fx.style.opacity = '0';
+      if (cl) cl.style.transform = 'translateX(-100%)';
+      if (cr) cr.style.transform = 'translateX(100%)';
+    }, 300);
+    // corner brackets: the single set springs in after the reveal — squeeze in, open out
+    // to their final frame, then one overshoot settle (no loading brackets, so no crossfade)
+    setTimeout(function () { self.bounceBrackets(); }, 700);
+    // 3) once the lockup has read over the live video, fade it out
+    setTimeout(function () {
+      if (lock) { lock.style.transition = 'opacity .3s ease'; lock.style.opacity = '0'; }
+      if (box) { box.style.transition = 'opacity .3s ease'; box.style.opacity = '0'; }
+    }, 720);
+    setTimeout(function () { if (loader) loader.style.display = 'none'; }, 1020);
+    // 4) pet captions slide in, snappy + staggered, once the videos are exposed.
+    //    Reveal every copy — the real captions AND the lens-world clones (static
+    //    cloneNode snapshots) — so the captions also read through the refraction.
+    setTimeout(function () {
+      ['j', 'o'].forEach(function (key, i) {
+        var els = [].slice.call(document.querySelectorAll('[data-pet-cap="' + key + '"]'));
+        setTimeout(function () {
+          els.forEach(function (el) { el.style.opacity = '1'; el.style.transform = 'none'; });
+        }, i * 70);
+      });
+    }, 680);
+    // 5) the lens intro: a single lens fades in at center, then splits into the two
+    //    lenses that travel out to their rest positions (connected blob renders en route)
+    setTimeout(function () { self.playLensIntro(); }, 820);
+  }
+
+  applyPill() {
+    var k = this.props.pillHover ?? 0;
+    var r = document.documentElement.style;
+    r.setProperty('--pillTop', (0.08 + 0.34 * k).toFixed(3));
+    r.setProperty('--pillBot', (0.02 + 0.11 * k).toFixed(3));
+    r.setProperty('--pillBlur', (3 + 13 * k).toFixed(1) + 'px');
+    r.setProperty('--pillHi', (0.22 + 0.42 * k).toFixed(3));
+    r.setProperty('--pillRim', (0.06 + 0.18 * k).toFixed(3));
+    r.setProperty('--pillShadow', (0.06 + 0.20 * k).toFixed(3));
+  }
+
+  componentDidMount() {
+    this.vj = document.querySelector('[data-jojo]');
+    this.vo = document.querySelector('[data-ollie]');
+    this.hint = document.querySelector('[data-hint]');
+    this.frostL = document.querySelector('[data-frost-l]');
+    this.frostR = document.querySelector('[data-frost-r]');
+    this._blur = null; this._style = null;
+    this.seam = document.querySelector('[data-seam]');
+    this.hairs = Array.from(document.querySelectorAll('[data-hair]'));
+    this.logos = Array.from(document.querySelectorAll('[data-logo]'));
+    this.applyPill();
+    this.initLens();
+    this.applyLensProps();
+
+    // per-clip usable gaze windows (up -> down arc)
+    this.J = { T0: 0.15, T1: 6.00, rest: 0.015 };
+    this.O = { T0: 0.20, T1: 6.20, rest: 0.010 };
+    this.J.dur = this.J.T1 - this.J.T0;
+    this.O.dur = this.O.T1 - this.O.T0;
+
+    this.curJ = this.J.rest; this.tgtJ = this.J.rest;
+    this.curO = this.O.rest; this.tgtO = this.O.rest;
+    this.active = false; this.side = null; this.seekJ = false; this.seekO = false;
+
+    // ---- loading overlay ----
+    this.loader = document.querySelector('[data-loader]');
+    this.fillRect = document.querySelector('[data-fill-rect]');
+    this.loaderWord = document.querySelector('[data-loader-word]');
+    this.brackets = Array.from(document.querySelectorAll('[data-lbrk]'));
+    this.prog = { j: 0, o: 0 };
+    this.done = { j: false, o: false };
+    this.dispProg = 0;
+    this._loaderDone = false;
+    this.loaderStart = performance.now();
+    var loaderTick = () => {
+      if (this._loaderDone) return;
+      var real = (this.prog.j + this.prog.o) / 2;
+      var t = (performance.now() - this.loaderStart) / 1000;
+      var creep = 1 - Math.exp(-t / 6);                    // motion even without content-length
+      var allDone = this.done.j && this.done.o;
+      var target = allDone ? 1 : Math.max(real, Math.min(creep, 0.9));
+      this.dispProg += (target - this.dispProg) * 0.08;    // eased catch-up
+      if (allDone && this.dispProg > 0.995) this.dispProg = 1;
+      this.setLoaderFill(this.dispProg);
+      if (allDone && this.dispProg >= 0.999) { this.finishLoader(); return; }
+      requestAnimationFrame(loaderTick);
+    };
+    requestAnimationFrame(loaderTick);
+
+    // stream each clip so the fill tracks real bytes; fall back to a plain blob if no length
+    var loadBlob = (vid, cfg, mark, key) => {
+      var self = this;
+      fetch(vid.getAttribute('data-src')).then(function (res) {
+        var total = +(res.headers.get('content-length')) || 0;
+        if (!res.body || !total) return res.blob();
+        var reader = res.body.getReader();
+        var received = 0, chunks = [];
+        var pump = function () {
+          return reader.read().then(function (r) {
+            if (r.done) return new Blob(chunks, { type: 'video/mp4' });
+            chunks.push(r.value); received += r.value.length;
+            self.prog[key] = received / total;
+            return pump();
+          });
+        };
+        return pump();
+      }).then(function (b) {
+        if (!b) { self.prog[key] = 1; self.done[key] = true; return; }
+        self.prog[key] = 1;
+        vid.src = URL.createObjectURL(b);
+        vid.addEventListener('loadeddata', function () {
+          var p = vid.play();
+          var settle = function () { vid.pause(); vid.currentTime = cfg.T0 + cfg.dur * cfg.rest; vid.style.opacity = '1'; self.done[key] = true; };
+          if (p && p.then) p.then(settle).catch(settle); else settle();
+        }, { once: true });
+        vid.load();
+      }).catch(function () { self.prog[key] = 1; self.done[key] = true; });
+      vid.addEventListener('seeked', () => { this[mark] = false; });
+    };
+    loadBlob(this.vj, this.J, 'seekJ', 'j');
+    loadBlob(this.vo, this.O, 'seekO', 'o');
+
+    var clamp01 = (n) => Math.max(0, Math.min(1, n));
+    this.onMove = (e) => {
+      var W = window.innerWidth, H = window.innerHeight, half = W / 2;
+      var iy = (this.props.scopeInsetY ?? 0) / 100;
+      var yn = clamp01((e.clientY / H - iy) / (1 - 2 * iy));
+      // ONLY the pet whose half the cursor is in moves; the other rests
+      // only the pet on the cursor's side updates; the other keeps its last pose
+      if (e.clientX < half) {
+        this.side = 'L';
+        var xnL = clamp01(e.clientX / half);
+        this.tgtJ = clamp01(0.42 * xnL + 0.58 * yn);   // Jojo tracks
+      } else {
+        this.side = 'R';
+        var xnR = clamp01((e.clientX - half) / half);
+        this.tgtO = clamp01(0.42 * (1 - xnR) + 0.58 * yn); // Ollie tracks (mirrored)
+      }
+      // frost the half the cursor is NOT on
+      if (this.frostL) this.frostL.style.opacity = this.side === 'R' ? '1' : '0';
+      if (this.frostR) this.frostR.style.opacity = this.side === 'L' ? '1' : '0';
+      if (!this.active) {
+        this.active = true;
+        if (this.hint) this.hint.style.opacity = '0';
+      }
+    };
+    this.onLeave = () => {
+      this.active = false; this.side = null;
+      if (this.frostL) this.frostL.style.opacity = '0';
+      if (this.frostR) this.frostR.style.opacity = '0';
+    };
+    window.addEventListener('mousemove', this.onMove);
+    window.addEventListener('mouseleave', this.onLeave);
+
+    var seekTo = (vid, cfg, cur, mark) => {
+      var t = cfg.T0 + cfg.dur * cur;
+      if (vid && vid.readyState >= 2 && !this[mark] && Math.abs(vid.currentTime - t) > 0.012) {
+        this[mark] = true;
+        vid.currentTime = t;
+      }
+    };
+    const tick = () => {
+      // re-skin the frost panels when a tweak changes
+      var fb = this.props.frostBlur ?? 10, fs = this.props.frostStyle ?? 'Frosted';
+      if (fb !== this._blur || fs !== this._style) { this._blur = fb; this._style = fs; this.applyFrost(fb, fs); }
+      // seam edge-sheen: lit while a side is frosted (driven every frame so the toggle is live)
+      if (this.seam) {
+        var sheenOn = this.props.seamSheen ?? true;
+        var lit = this.active && this.side && sheenOn;       // cursor on a side → bright
+        var base = this._loaderDone && sheenOn && !lit;       // loading finished → steady soft glow
+        this.seam.style.transition = 'box-shadow .6s ease, background .6s ease, width .3s ease';
+        this.seam.style.width = lit ? '2px' : (base ? '1.5px' : '1px');
+        this.seam.style.boxShadow = lit
+          ? '0 0 26px 2px rgba(255,255,255,.85), 0 0 7px 1px rgba(255,255,255,.95)'
+          : (base ? '0 0 14px 1px rgba(255,255,255,.42), 0 0 4px 0 rgba(255,255,255,.55)' : 'none');
+        this.seam.style.background = lit
+          ? 'rgba(255,255,255,.95)'
+          : (base
+            ? 'linear-gradient(180deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.55) 30%,rgba(255,255,255,.55) 70%,rgba(255,255,255,0) 100%)'
+            : 'linear-gradient(180deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.28) 30%,rgba(255,255,255,.28) 70%,rgba(255,255,255,0) 100%)');
+      }
+      // hairlines mirror the seam's edge-sheen (horizontal fade + glow when a side is lit)
+      if (this.hairs && this.hairs.length) {
+        var hlit = this.active && this.side;
+        for (var i = 0; i < this.hairs.length; i++) {
+          var h = this.hairs[i];
+          // left brackets (i 0,2) sit on the light half → dark ink; right brackets → white
+          var isLeft = (i === 0 || i === 2);
+          if (isLeft) {
+            h.style.borderColor = hlit ? 'rgba(70,72,78,.72)' : 'rgba(70,72,78,.52)';
+            h.style.filter = hlit ? 'drop-shadow(0 0 4px rgba(70,72,78,.32))' : 'none';
+          } else {
+            h.style.borderColor = hlit ? 'rgba(255,255,255,.92)' : 'rgba(255,255,255,.55)';
+            h.style.filter = hlit ? 'drop-shadow(0 0 4px rgba(255,255,255,.6))' : 'none';
+          }
+        }
+      }
+      // logo glyph glows white like the seam when a side is lit
+      if (this.logos && this.logos.length) {
+        var llit = this.active && this.side && (this.props.logoGlow ?? true);
+        var glow = llit
+          ? 'drop-shadow(0 0 5px rgba(255,255,255,.5)) drop-shadow(0 0 2px rgba(255,255,255,.6))'
+          : 'drop-shadow(0 0 0 rgba(255,255,255,0)) drop-shadow(0 0 0 rgba(255,255,255,0))';
+        for (var li = 0; li < this.logos.length; li++) {
+          this.logos[li].style.filter = glow;
+        }
+      }
+      // paint the live video frames into the lens-world canvases
+      if (this.lensVidPairs && this.lensVidPairs.length) {
+        for (var vi = 0; vi < this.lensVidPairs.length; vi++) {
+          var pr = this.lensVidPairs[vi];
+          if (pr[0].readyState >= 2) {
+            if (pr[1].width !== pr[0].videoWidth && pr[0].videoWidth) { pr[1].width = pr[0].videoWidth; pr[1].height = pr[0].videoHeight; }
+            try { pr[1].getContext('2d').drawImage(pr[0], 0, 0, pr[1].width, pr[1].height); } catch (e) {}
+          }
+        }
+      }
+      // no reset: each pet holds its last target when idle / when the cursor is on the other side
+      var spd = this.props.trackingSpeed ?? 0.14;
+      var slow = Math.min(spd, 0.10);
+      // active pet catches up quickly; the resting pet eases back gently
+      var jEase = (this.active && this.side === 'L') ? spd : slow;
+      var oEase = (this.active && this.side === 'R') ? spd : slow;
+      this.curJ += (this.tgtJ - this.curJ) * jEase;
+      this.curO += (this.tgtO - this.curO) * oEase;
+      seekTo(this.vj, this.J, this.curJ, 'seekJ');
+      seekTo(this.vo, this.O, this.curO, 'seekO');
+      this.raf = requestAnimationFrame(tick);
+    };
+    tick();
+  }
+
+  applyFrost(blur, style) {
+    // monochrome grain (real frosted glass has micro-texture)
+    var NOISE = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E\")";
+    // graduated blur: full frost at the outer edge, easing toward the seam
+    var lMask = 'linear-gradient(90deg, rgba(0,0,0,1) 30%, rgba(0,0,0,.4) 100%)';
+    var rMask = 'linear-gradient(90deg, rgba(0,0,0,.4) 0%, rgba(0,0,0,1) 70%)';
+    var set = (el, bf, bg, blend, mask) => {
+      if (!el) return;
+      el.style.backdropFilter = bf; el.style.webkitBackdropFilter = bf;
+      el.style.background = bg; el.style.backgroundBlendMode = blend;
+      el.style.maskImage = mask; el.style.webkitMaskImage = mask;
+    };
+    if (style === 'Liquid glass') {
+      set(this.frostL, 'blur(' + blur + 'px) saturate(172%) brightness(1.05)',
+        NOISE + ', linear-gradient(125deg, rgba(255,255,255,.34), rgba(228,229,231,.22) 50%, rgba(203,206,212,.34))',
+        'soft-light, normal', lMask);
+      set(this.frostR, 'blur(' + blur + 'px) saturate(172%) brightness(1.04)',
+        NOISE + ', linear-gradient(125deg, rgba(255,255,255,.18), rgba(30,31,36,.26) 50%, rgba(8,9,12,.46))',
+        'soft-light, normal', rMask);
+    } else if (style === 'Dim only') {
+      set(this.frostL, 'none', 'rgba(214,216,219,.52)', 'normal', 'none');
+      set(this.frostR, 'none', 'rgba(12,13,16,.56)', 'normal', 'none');
+    } else { // Frosted
+      set(this.frostL, 'blur(' + blur + 'px) saturate(110%)', 'rgba(228,229,231,.32)', 'normal', lMask);
+      set(this.frostR, 'blur(' + blur + 'px) saturate(110%)', 'rgba(28,29,33,.36)', 'normal', rMask);
+    }
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('mousemove', this.onMove);
+    window.removeEventListener('mouseleave', this.onLeave);
+    cancelAnimationFrame(this.raf);
+  }
+}
+</script>
+</body>
+</html>
