@@ -86,7 +86,7 @@ const Column = styled.div`
 
 const Label = styled(motion.span)`
   display: block;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.62rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -95,7 +95,7 @@ const Label = styled(motion.span)`
 `;
 
 const Status = styled.p`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-weight: 200;
   color: ${p => p.theme.color.inkMuted};
 `;
@@ -124,7 +124,7 @@ const EntryLink = styled(Link)`
 
 const Date = styled.span`
   display: block;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.6rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -133,7 +133,7 @@ const Date = styled.span`
 `;
 
 const EntryTitle = styled.h2`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: clamp(1.4rem, 3vw, 1.9rem);
   font-weight: 300;
   line-height: 1.2;

@@ -67,7 +67,7 @@ const Page = styled.div`
   padding: 5rem 1.5rem;
   max-width: 820px;
   margin: 0 auto;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
 `;
 
 const Bar = styled.div`

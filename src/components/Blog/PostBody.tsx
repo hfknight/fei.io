@@ -45,7 +45,7 @@ export function PostBody({ markdown }: { markdown: string }) {
 
 const Prose = styled.div`
   color: ${p => p.theme.color.ink};
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 1.05rem;
   line-height: 1.75;
 
@@ -108,7 +108,7 @@ const Prose = styled.div`
   th { background: color-mix(in srgb, ${p => p.theme.color.ink} 4%, transparent); }
 
   code {
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-family: ${p => p.theme.font.mono};
     font-size: 0.88em;
   }
   :not(pre) > code {

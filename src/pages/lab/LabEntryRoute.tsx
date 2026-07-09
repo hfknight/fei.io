@@ -45,7 +45,7 @@ const Column = styled.div`
 
 const BackLink = styled(Link)`
   display: inline-block;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.62rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -59,7 +59,7 @@ const BackLink = styled(Link)`
 `;
 
 const Status = styled.p`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-weight: 200;
   color: rgba(255, 255, 255, 0.55);
 `;

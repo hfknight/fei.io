@@ -49,7 +49,7 @@ const Column = styled.div`
 
 const DateLabel = styled.span`
   display: block;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.62rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -59,7 +59,7 @@ const DateLabel = styled.span`
 
 const Title = styled.h1`
   color: ${p => p.theme.color.ink};
-  font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: ${p => p.theme.font.display};
   font-size: clamp(2.3rem, 5.5vw, 3.4rem);
   font-weight: 400;
   line-height: 1.1;

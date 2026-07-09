@@ -196,7 +196,7 @@ const Page = styled.div`
   padding: 4rem 1.5rem;
   max-width: 1100px;
   margin: 0 auto;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
 `;
 
 const TopBar = styled.div`
@@ -259,7 +259,8 @@ const inputStyles = `
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 6px;
   color: #fff;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  /* A plain template literal, not a styled component, so it cannot reach the theme. */
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   padding: 0.6rem 0.75rem;
   outline: none;

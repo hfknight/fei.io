@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { staticVars, lightVars, invertedVars, GLASS, GLASS_K, SURFACE_DEEP } from './tokens';
 import { theme } from './theme';
 
@@ -51,6 +53,39 @@ function luminance(value: string, bg?: [number, number, number]): number {
 
 /** The landing's right plate, from SplitStage.tsx. #54565b / #33343a, exact. */
 const PLATES = ['oklch(0.453 0.008 268.5)', 'oklch(0.326 0.011 278.3)'];
+
+describe('tokens: the system faces have exactly one definition', () => {
+  /**
+   * The colour system has always been a single source of truth; the type system was not —
+   * 76 components hardcoded their own font stack, so `--font-body` had one consumer and
+   * changing the body face meant a 28-file sweep. This guard keeps them wired.
+   *
+   * Big Shoulders Display is exempt: LoadingScreen paints it into a canvas via `ctx.font`,
+   * and a canvas cannot read a CSS custom property.
+   */
+  const FACES = ["'Inter'", "'Archivo'", "'JetBrains Mono'"];
+
+  const walk = (dir: string, out: string[] = []): string[] => {
+    for (const entry of readdirSync(dir)) {
+      const path = join(dir, entry);
+      if (statSync(path).isDirectory()) walk(path, out);
+      else if (/\.tsx?$/.test(path) && !/\.test\.tsx?$/.test(path)) out.push(path);
+    }
+    return out;
+  };
+
+  it('no component hardcodes a system font stack', () => {
+    // jsdom's import.meta.url is not a file: URL, so resolve from the vitest root instead.
+    const src = join(process.cwd(), 'src') + '/';
+    const offenders = walk(src)
+      .filter(file => !file.endsWith(join('styles', 'tokens.ts')))
+      .flatMap(file => {
+        const text = readFileSync(file, 'utf8');
+        return FACES.filter(face => text.includes(face)).map(face => `${file.slice(src.length)} → ${face}`);
+      });
+    expect(offenders, 'author ${p => p.theme.font.x}, never a raw stack').toEqual([]);
+  });
+});
 
 describe('tokens: no hex or rgb anywhere', () => {
   it('every token colour is oklch', () => {

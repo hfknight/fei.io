@@ -24,7 +24,7 @@ const Cap = styled.div`
 `;
 
 const Name = styled.div`
-  font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: ${p => p.theme.font.display};
   font-weight: 700;
   font-size: 12px;
   line-height: 1;

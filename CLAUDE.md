@@ -37,11 +37,18 @@ npm run test:run   # tests
 ## Fonts
 
 Loaded via Google Fonts in `index.html`:
-- **Archivo** (400–700) — display face, headings
-- **Inter** (200–500) — body text, inherited copy
-- **JetBrains Mono** (400–500) — chrome and labels
-- **Big Shoulders Display** (800) — loaded, unused
-- **Playfair Display** (400, 500, italic) — loaded, unused
+- **Archivo** (400–700) — display face, headings. `--font-display`
+- **Inter** (200–500) — body text, inherited copy. `--font-body`
+- **JetBrains Mono** (400–500) — chrome and labels. `--font-mono`
+- **Big Shoulders Display** (800) — `LoadingScreen` only, in CSS and in a canvas `ctx.font`.
+  Deliberately outside the token system: a canvas cannot read a CSS custom property.
+- **Playfair Display** (400, 500, italic) — loaded, genuinely unused
+
+The three system faces have exactly one definition each, in `tokens.ts`. Author
+`${p => p.theme.font.body}` — never a raw stack. Changing a face is a one-line change there.
+Inline style objects (`React.CSSProperties`) cannot reach the theme, so they use
+`'var(--font-mono)'` directly. `/changelog` keeps its own `--day-font-*` faces, as it keeps
+its own palette.
 
 ## Routes
 

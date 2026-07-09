@@ -1024,7 +1024,8 @@ export default InterfacesThatFeelBetter;
 /* ------------------------------------------------------------------ */
 
 const chipStyle: React.CSSProperties = {
-  fontFamily: "'JetBrains Mono', monospace",
+  // An inline style object, so it reads the custom property directly rather than the theme.
+  fontFamily: 'var(--font-mono)',
   fontSize: '0.72rem',
   letterSpacing: '0.04em',
   color: 'rgba(255,255,255,0.75)',
@@ -1085,7 +1086,7 @@ const SideInner = styled.div``;
 
 const SideLabel = styled.span`
   display: block;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.58rem;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -1112,7 +1113,7 @@ const SideItem = styled.button<{ $active: boolean }>`
   border: none;
   padding: 0;
   cursor: pointer;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.92rem;
   font-weight: 300;
   color: ${(p) => (p.$active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)')};
@@ -1133,7 +1134,7 @@ const SideItem = styled.button<{ $active: boolean }>`
 `;
 
 const SideIdx = styled.span<{ $active: boolean }>`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-variant-numeric: tabular-nums;
   font-size: 0.62rem;
   color: ${(p) => (p.$active ? 'color-mix(in srgb, var(--accent) 90%, transparent)' : 'rgba(255,255,255,0.3)')};
@@ -1166,7 +1167,7 @@ const Crumb = styled(Link)`
 
 const Kicker = styled(motion.span)`
   display: block;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.62rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1175,7 +1176,7 @@ const Kicker = styled(motion.span)`
 `;
 
 const Title = styled(motion.h1)`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: clamp(2.2rem, 5vw, 3.2rem);
   font-weight: 300;
   line-height: 1.1;
@@ -1185,7 +1186,7 @@ const Title = styled(motion.h1)`
 `;
 
 const Lede = styled(motion.p)`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: clamp(1.1rem, 2.2vw, 1.3rem);
   line-height: 1.8;
   text-wrap: pretty;
@@ -1195,7 +1196,7 @@ const Lede = styled(motion.p)`
 `;
 
 const Credit = styled(motion.p)`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.92rem;
   line-height: 1.7;
   color: rgba(255, 255, 255, 0.5);
@@ -1257,7 +1258,7 @@ const GroupTitleRow = styled.div`
 `;
 
 const GroupBlurb = styled.p`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.9rem;
   line-height: 1.5;
   text-wrap: pretty;
@@ -1307,7 +1308,7 @@ const RefLine = styled.div`
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.2rem 0.7rem;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 1rem;
 `;
 
@@ -1323,7 +1324,7 @@ const RefInstall = styled.code`
   max-width: 100%;
   overflow-x: auto;
   white-space: nowrap;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.76rem;
   color: rgba(255, 255, 255, 0.82);
   background: rgba(0, 0, 0, 0.28);
@@ -1351,7 +1352,7 @@ const DemoCol = styled.div`
 `;
 
 const Idx = styled.span`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-variant-numeric: tabular-nums;
   font-size: 0.7rem;
   letter-spacing: 0.1em;
@@ -1359,7 +1360,7 @@ const Idx = styled.span`
 `;
 
 const GroupTitle = styled.h2`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: clamp(1.5rem, 3vw, 2rem);
   font-weight: 300;
   text-wrap: balance;
@@ -1388,7 +1389,7 @@ const TipItem = styled.li`
 `;
 
 const TipName = styled.h3`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 1.05rem;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.88);
@@ -1396,7 +1397,7 @@ const TipName = styled.h3`
 `;
 
 const TipBody = styled.p`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.98rem;
   line-height: 1.7;
   text-wrap: pretty;
@@ -1413,7 +1414,7 @@ const KeyTags = styled.div`
 `;
 
 const KeyTag = styled.code`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.7rem;
   line-height: 1.55;
   color: color-mix(in srgb, var(--accent) 90%, transparent);
@@ -1436,7 +1437,7 @@ const DemoCard = styled.div`
 `;
 
 const DemoCaption = styled.p`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.82rem;
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.5);
@@ -1454,7 +1455,7 @@ const PressButton = styled(motion.button)<{ $on: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.72rem;
   letter-spacing: 0.04em;
   cursor: pointer;
@@ -1495,7 +1496,7 @@ const NumRow = styled.div`
 `;
 
 const NumValue = styled.span<{ $tabular: boolean }>`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-variant-numeric: ${(p) => (p.$tabular ? 'tabular-nums' : 'normal')};
   font-size: 2rem;
   font-weight: 300;
@@ -1506,7 +1507,7 @@ const NumValue = styled.span<{ $tabular: boolean }>`
 `;
 
 const NumUnit = styled.span`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.7rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1514,7 +1515,7 @@ const NumUnit = styled.span`
 `;
 
 const SampleHeading = styled.p<{ $balance: boolean }>`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 1.25rem;
   font-weight: 300;
   line-height: 1.3;
@@ -1552,7 +1553,7 @@ const SliderRow = styled.label`
 `;
 
 const SliderLabel = styled.span`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.7rem;
   letter-spacing: 0.05em;
   color: rgba(255, 255, 255, 0.6);
@@ -1567,7 +1568,7 @@ const Range = styled.input`
 `;
 
 const Readout = styled.p`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.72rem;
   letter-spacing: 0.05em;
   color: rgba(255, 255, 255, 0.7);
@@ -1590,7 +1591,7 @@ const StaggerStage = styled.div`
 `;
 
 const StaggerLine = styled.span<{ $title: boolean }>`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: ${(p) => (p.$title ? '1.15rem' : '0.92rem')};
   font-weight: ${(p) => (p.$title ? 400 : 200)};
   color: ${(p) => (p.$title ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)')};
@@ -1599,7 +1600,7 @@ const StaggerLine = styled.span<{ $title: boolean }>`
 const FakeButton = styled.span`
   display: inline-flex;
   align-self: flex-start;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.72rem;
   letter-spacing: 0.04em;
   color: var(--accent-ink);
@@ -1634,7 +1635,7 @@ const PopCard = styled(motion.div)`
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.8);
 `;
@@ -1666,7 +1667,7 @@ const Popover = styled(motion.div)<{ $trigger: boolean }>`
 const PopItem = styled.div`
   padding: 0.45rem 0.6rem;
   border-radius: 6px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.7rem;
   color: rgba(255, 255, 255, 0.78);
 
@@ -1721,7 +1722,7 @@ const CompareRow = styled.div`
 `;
 
 const AllBtn = styled.button`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.8);
   background: rgba(255, 255, 255, 0.06);
@@ -1740,7 +1741,7 @@ const AllBtn = styled.button`
 `;
 
 const SpecificBtn = styled.button`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.8);
   background: rgba(255, 255, 255, 0.06);
@@ -1778,7 +1779,7 @@ const TabBtn = styled.button<{ $active: boolean }>`
   cursor: pointer;
   padding: 0.45rem 0.95rem;
   border-radius: 7px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.85rem;
   color: ${(p) => (p.$active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.5)')};
   transition: color 0.2s ease;
@@ -1807,13 +1808,13 @@ const AccHeader = styled.button`
   border-radius: 8px;
   padding: 0.8rem 1rem;
   cursor: pointer;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.92rem;
   color: rgba(255, 255, 255, 0.85);
 `;
 
 const Chevron = styled.span<{ $open: boolean }>`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 1rem;
   line-height: 1;
   transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
@@ -1832,7 +1833,7 @@ const AccClip = styled.div`
 `;
 
 const AccBody = styled.p`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.88rem;
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.6);
@@ -1851,7 +1852,7 @@ const Tip = styled.span`
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
   border-radius: 6px;
   padding: 0.4rem 0.6rem;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.66rem;
   color: rgba(255, 255, 255, 0.8);
   opacity: 0;
@@ -1873,7 +1874,7 @@ const TipWrap = styled.span`
 const TipTarget = styled.span`
   display: inline-block;
   cursor: default;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.8);
   background: rgba(255, 255, 255, 0.06);
@@ -1896,7 +1897,7 @@ const ShakeInput = styled.input<{ $shaking: boolean; $error: boolean }>`
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
   color: rgba(255, 255, 255, 0.9);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.85rem;
   outline: none;
   transition: border-color 0.2s ease;
@@ -1932,7 +1933,7 @@ const Badge = styled(motion.span)`
   border-radius: 999px;
   background: var(--accent);
   color: var(--accent-ink);
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.6rem;
   font-weight: 600;
   display: inline-flex;
@@ -1942,7 +1943,7 @@ const Badge = styled(motion.span)`
 
 const PopRow = styled.div`
   display: inline-flex;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-variant-numeric: tabular-nums;
   font-size: 2rem;
   font-weight: 300;
@@ -1956,7 +1957,7 @@ const Digit = styled(motion.span)`
 
 /* Collapsible code */
 const DiscBtn = styled.button`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.68rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1990,7 +1991,7 @@ const Code = styled.pre`
   overflow-x: auto;
 
   & > code {
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-family: ${p => p.theme.font.mono};
     font-size: 0.78rem;
     line-height: 1.75;
     color: rgba(255, 255, 255, 0.78);

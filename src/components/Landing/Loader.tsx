@@ -101,7 +101,7 @@ const Loader: React.FC = () => (
         style={{
           opacity: 0, transform: 'translateY(18px)',
           transition: 'opacity .3s ease,transform .38s cubic-bezier(.2,.7,.2,1)',
-          fontFamily: "'Archivo','Helvetica Neue',Helvetica,Arial,sans-serif",
+          fontFamily: 'var(--font-display)',
           fontSize: 10.5, fontWeight: 600, letterSpacing: '.34em', textTransform: 'uppercase', marginBottom: 13,
           ...gradientText('linear-gradient(90deg,oklch(0.60 0.008 265) 0%,oklch(0.74 0.006 265) 30%,oklch(0.88 0.004 265) 49.6%,oklch(0.94 0.003 265) 50.4%,oklch(0.985 0.002 265) 100%)'),
         }}
@@ -111,7 +111,7 @@ const Loader: React.FC = () => (
 
       <h1
         style={{
-          fontFamily: "'Archivo','Helvetica Neue',Helvetica,Arial,sans-serif", fontWeight: 700, fontSize: 'clamp(52px,6vw,104px)',
+          fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(52px,6vw,104px)',
           lineHeight: 0.92, letterSpacing: '-.045em', display: 'grid',
           gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', columnGap: '.22em',
           margin: 0, perspective: 1000,
@@ -192,7 +192,7 @@ const Loader: React.FC = () => (
         style={{
           opacity: 0, transform: 'translateY(-18px)',
           transition: 'opacity .3s ease,transform .38s cubic-bezier(.2,.7,.2,1)',
-          fontFamily: "'Archivo','Helvetica Neue',Helvetica,Arial,sans-serif",
+          fontFamily: 'var(--font-display)',
           marginTop: 18, fontSize: 14, fontWeight: 600, letterSpacing: '.05em',
           display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 20, alignItems: 'center',
         }}

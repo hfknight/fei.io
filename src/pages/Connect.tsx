@@ -45,7 +45,7 @@ const Column = styled.div`
 
 const Label = styled(motion.span)`
   display: block;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.62rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -126,7 +126,7 @@ const TextStack = styled.div`
 `;
 
 const LinkName = styled.span`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: clamp(1.1rem, 2.5vw, 1.4rem);
   font-weight: 300;
   letter-spacing: 0.01em;
@@ -138,7 +138,7 @@ const HintText = styled.span`
   position: absolute;
   top: calc(100% + 0.2rem);
   left: 0;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.65rem;
   letter-spacing: 0.1em;
   color: ${p => p.theme.color.inkMuted};
