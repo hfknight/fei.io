@@ -395,6 +395,15 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
   // source's `_lensIntroMoving` (475, 588-589).
   let introMoving = false;
 
+  // Header and Footer live in the global Layout, OUTSIDE ctx.root, so cloning the root
+  // alone drops them and a lens parked over the nav paints video where the links should
+  // be. The design source has its <nav> inside the cloned root (source 104, 552), so the
+  // lens refracts it; cloning the chrome in reproduces that. Captured once, before any
+  // world exists, so a later buildLensWorld() can never clone a previous world's clone.
+  const chromeEls = ['header', 'footer']
+    .map((sel) => document.querySelector<HTMLElement>(sel))
+    .filter((el): el is HTMLElement => el !== null);
+
   // clone the hero and mirror its live videos as canvases — port of source 509-545.
   // Canvases (not cloned <video> elements) because a cloned video can't keep pace with
   // the scrub-driven original (seek storm); paintWorlds() blits the real frame instead.
@@ -412,6 +421,12 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     // document order than the live host and silently shadow it on a future rebuild
     world.querySelectorAll('[data-lens-filter-host]').forEach((n) => n.remove());
     world.setAttribute('data-lens-world', '');
+    // A world is a decorative refraction snapshot, and there are three of them (two lenses
+    // + the metaball bridge). `inert` keeps their clones out of the tab order and the
+    // accessibility tree — without it the cloned nav links below would be three extra sets
+    // of tab stops, and the cloned hero would read "I'm Fei" four times.
+    world.setAttribute('aria-hidden', 'true');
+    world.inert = true;
     // additive overrides — keep the root's inline layout styles (flex split!) intact
     world.setAttribute('style', root.getAttribute('style') || '');
     world.style.position = 'absolute';
@@ -422,6 +437,10 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     world.style.margin = '0';
     world.style.pointerEvents = 'none';
     world.style.transformOrigin = '0 0';
+
+    // position:fixed inside the world resolves against the world's transformed box, not the
+    // viewport, so the chrome lands in place and magnifies with everything else.
+    chromeEls.forEach((el) => world.appendChild(el.cloneNode(true)));
 
     const ov = ctx.getVideos();
     const cv = world.querySelectorAll('video');
