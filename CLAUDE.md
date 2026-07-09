@@ -58,7 +58,7 @@ Loaded via Google Fonts in `index.html`:
 | `/writing/:slug` | `WritingPost` | A post, rendered in its template |
 | `/writing/admin` | `AdminPosts` | Admin post list (Cloudflare Access–gated) |
 | `/writing/admin/new`, `/writing/admin/:id` | `AdminEditor` | Create/edit a post |
-| `/loading` | `LoadingScreen` | Loading screen (dev-only route) |
+| `/loading` | `LoadingScreen` | Animated loading overlay |
 
 All routes are wrapped by `Layout` (renders `Header` + `Footer` globally).
 Blog routes are lazy-loaded so the markdown/highlighter bundle stays off the landing page.
@@ -88,7 +88,7 @@ The portfolio is structured as a **day-journey visualization** — five time-of-
 1. `Day.tsx` fetches `/data/portfolio.json` and transforms it into `TimeSection` objects via `transformJsonToTimeSections()` in `src/utils/`
 2. Scroll position on `Day.tsx` drives `activeSection` + `scrollProgress` state, which gates animations and conditional rendering throughout the tree
 3. Components consume `scrollProgress` as a 0–1 progress value passed as props
-4. `About.tsx` and `Contact.tsx` also fetch `/data/portfolio.json` — `about.content` (string[]) and `contact.links` respectively
+4. `About.tsx` and `Connect.tsx` also fetch `/data/portfolio.json` — `about.content` (string[]) and `contact.links` respectively
 
 ### `public/data/portfolio.json` shape
 
