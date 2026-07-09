@@ -1,9 +1,31 @@
 # Design system derived from the landing page
 
 **Date:** 2026-07-09
-**Status:** approved, ready for planning
+**Status:** implemented, then partly superseded — see below.
 **Scope:** token layer + global chrome. Migrating individual pages off the inverted
 surface is deferred to follow-up specs.
+
+> ### Superseded in two places
+>
+> This document records the design as approved. Implementation and review found two of its
+> decisions wrong. The corrections shipped; `CLAUDE.md` and `src/styles/tokens.ts` are the
+> live truth. The body below is left unedited so the record shows what changed and why.
+>
+> **1. Glass has two tints, not one.** This spec says the alphas are tint-agnostic and only
+> the tint colour changes per surface, via a single `--glass-tint` token. That is wrong for
+> the light surface: the top highlight and the bottom sheen model *reflected light*, not
+> pigment. Tinted with ink they become hard dark lines — `--glass-hi` at alpha `.304`
+> composites to `rgb(187,189,190)` over a `rgb(251,252,253)` ground, reading as a pressed
+> inset rather than glass. Shipped instead: the fill and rim follow the surface, the
+> highlight and sheen are always white, and the drop shadow stays black because it is cast,
+> not reflected. `--glass-tint` was never read by any component and has been deleted.
+>
+> **2. Deleting `color-scheme` left a gap.** This spec puts `color-scheme: light dark` on the
+> must-delete list for `index.css`, but nothing re-declares it, so native `<select>` popups
+> in the admin rendered light chrome under a dark OS. Shipped instead: a `--ui-scheme` token
+> (`light` / `dark`) per surface, with `:root { color-scheme: var(--ui-scheme) }`.
+>
+> Both corrections are in commits `651662d` and `17fa1cc`.
 
 ## Context
 

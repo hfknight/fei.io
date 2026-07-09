@@ -1,5 +1,13 @@
 # Design System Implementation Plan
 
+> **Status: executed. Two of its token decisions were later corrected — do not copy the
+> glass or `color-scheme` code below.** The plan's `glassVars` takes one tint and emits a
+> `--glass-tint` token; shipped code takes two (fill follows the surface, specular is always
+> white) and has no `--glass-tint`. The plan also deletes `color-scheme` without replacing
+> it; shipped code adds a `--ui-scheme` token. `src/styles/tokens.ts` and `CLAUDE.md` are the
+> live truth. See the "Superseded" note atop
+> `docs/superpowers/specs/2026-07-09-design-system-design.md`, and commits `651662d`, `17fa1cc`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the vestigial `theme.ts` with a design system lifted from the landing page — tokens as CSS custom properties generated from one TypeScript source, read through a typed accessor.
