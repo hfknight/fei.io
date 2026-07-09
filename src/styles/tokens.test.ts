@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { staticVars, lightVars, invertedVars, GLASS, GLASS_K, SURFACE_DEEP } from './tokens';
+import { theme } from './theme';
 
 // --- oklch -> sRGB -> relative luminance. No colour library is installed. ---
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -116,4 +117,32 @@ describe('tokens: contrast', () => {
   });
 
   // --color-border is decorative (1.22:1 on the deep surface) and is deliberately not asserted.
+});
+
+describe('theme accessor', () => {
+  /** Every var() the accessor hands out must be a name the CSS actually declares. */
+  const declared = new Set([...Object.keys(staticVars), ...Object.keys(lightVars)]);
+
+  const collectVars = (node: unknown, acc: string[] = []): string[] => {
+    if (typeof node === 'string') {
+      const m = node.match(/^var\((--[\w-]+)\)$/);
+      if (m) acc.push(m[1]);
+      return acc;
+    }
+    if (node && typeof node === 'object') {
+      for (const value of Object.values(node as Record<string, unknown>)) collectVars(value, acc);
+    }
+    return acc;
+  };
+
+  it('references only declared custom properties', () => {
+    const used = collectVars(theme);
+    expect(used.length).toBeGreaterThan(10);
+    for (const name of used) expect(declared, `${name} is used but never declared`).toContain(name);
+  });
+
+  it('keeps breakpoints as literal strings — var() is illegal in @media', () => {
+    expect(theme.breakpoints).toEqual({ sm: '640px', md: '768px', lg: '1024px', xl: '1280px' });
+    expect(JSON.stringify(theme.breakpoints)).not.toContain('var(');
+  });
 });
