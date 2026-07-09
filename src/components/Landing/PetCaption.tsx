@@ -24,11 +24,13 @@ const Cap = styled.div`
 `;
 
 const Name = styled.div`
-  font-family: 'Cormorant Garamond', serif;
-  font-weight: 500;
-  font-size: 22px;
+  font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 12px;
   line-height: 1;
-  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  margin-bottom: 8px;
 `;
 
 const Blurb = styled.p`
@@ -49,8 +51,8 @@ const PetCaption: React.FC<Props> = ({ pet }) =>
         transition: 'opacity .26s ease, transform .32s cubic-bezier(.2, .8, .2, 1)',
       }}
     >
-      <Name style={{ color: 'oklch(0.42 0.008 265 / 0.72)' }}>Jojo</Name>
-      <Blurb style={{ color: 'oklch(0.45 0.006 265 / 0.62)' }}>
+      <Name style={{ color: 'oklch(0.42 0.008 265 / 0.85)' }}>Jojo</Name>
+      <Blurb style={{ color: 'oklch(0.45 0.006 265 / 0.8)' }}>
         Remarkably patient, endlessly tolerant — zen enough to sunbathe belly-up while the whole stack reloads.
         Unbothered poise, a sharp eye: refined taste and a quiet command of the craft.
       </Blurb>
@@ -60,7 +62,7 @@ const PetCaption: React.FC<Props> = ({ pet }) =>
         height="19"
         fill="none"
         style={{ position: 'absolute', bottom: -30, left: '-2rem', overflow: 'visible' }}
-        stroke="oklch(0.45 0.008 265 / 0.55)"
+        stroke="oklch(0.45 0.008 265 / 0.82)"
         strokeWidth={1.4}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -80,8 +82,8 @@ const PetCaption: React.FC<Props> = ({ pet }) =>
         transition: 'opacity .26s ease, transform .32s cubic-bezier(.2, .8, .2, 1)',
       }}
     >
-      <Name style={{ color: 'oklch(0.9 0.004 265 / 0.66)' }}>Ollie</Name>
-      <Blurb style={{ color: 'oklch(0.86 0.004 265 / 0.55)' }}>
+      <Name style={{ color: 'oklch(0.96 0.004 265 / 0.85)' }}>Ollie</Name>
+      <Blurb style={{ color: 'oklch(0.94 0.004 265 / 0.8)' }}>
         All warmth and soul, happiest bounding after whatever moves — a rabbit, or the next idea worth building.
         Loyal company, headstrong when it counts, with instincts it trusts enough to ship.
       </Blurb>
@@ -91,7 +93,7 @@ const PetCaption: React.FC<Props> = ({ pet }) =>
         height="19"
         fill="none"
         style={{ position: 'absolute', top: -30, right: '-2rem', overflow: 'visible' }}
-        stroke="oklch(0.86 0.004 265 / 0.55)"
+        stroke="oklch(0.94 0.004 265 / 0.85)"
         strokeWidth={1.4}
         strokeLinecap="round"
         strokeLinejoin="round"

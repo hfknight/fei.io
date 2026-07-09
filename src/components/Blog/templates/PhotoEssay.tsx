@@ -85,7 +85,7 @@ const DateLabel = styled.span`
 
 const Title = styled.h1`
   color: #fff;
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: clamp(2.8rem, 7vw, 4.4rem);
   font-weight: 400;
   line-height: 1.04;

@@ -25,7 +25,7 @@ const Wrapper = styled.div`
 `;
 
 const Tagline = styled.div`
-  font-family: 'Manrope', system-ui, sans-serif;
+  font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.34em;
@@ -40,11 +40,11 @@ const Tagline = styled.div`
 `;
 
 const Title = styled.h1`
-  font-family: 'Cormorant Garamond', serif;
-  font-weight: 600;
+  font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 700;
   font-size: clamp(52px, 6vw, 104px);
-  line-height: 0.95;
-  letter-spacing: -0.015em;
+  line-height: 0.92;
+  letter-spacing: -0.045em;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -57,7 +57,7 @@ const Title = styled.h1`
 `;
 
 const Roles = styled.div`
-  font-family: 'Manrope', system-ui, sans-serif;
+  font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   margin-top: 18px;
   font-size: 14px;
   font-weight: 600;
