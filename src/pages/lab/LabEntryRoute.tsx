@@ -29,9 +29,12 @@ const LabEntryRoute: React.FC = () => {
 
 export default LabEntryRoute;
 
+// The neutral grey of the landing's right plate, rather than the deep indigo the rest of
+// the inverted surface uses. Lab entries are their own ground; --n-11 sits just under the
+// plate's dark edge. The not-found state matches the entry it stands in for.
 const Page = styled.div`
   min-height: 100dvh;
-  background: #12102a;
+  background: var(--n-11);
   display: flex;
   align-items: flex-start;
   justify-content: center;

@@ -1040,9 +1040,12 @@ const chipStyle: React.CSSProperties = {
 /* Styled — page                                                       */
 /* ------------------------------------------------------------------ */
 
+// The neutral grey of the landing's right plate. Every card, well and rim below was
+// composed on the old near-black indigo; the ground is 4x brighter now, which makes the
+// low-alpha white fills read *more* strongly, not less, since contrast carries a floor.
 const Page = styled.div`
   min-height: 100dvh;
-  background: #12102a;
+  background: var(--n-11);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -1116,7 +1119,7 @@ const SideItem = styled.button<{ $active: boolean }>`
   font-family: ${p => p.theme.font.body};
   font-size: 0.92rem;
   font-weight: 300;
-  color: ${(p) => (p.$active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)')};
+  color: ${(p) => (p.$active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.5)')};
   transition: color 0.25s ease;
 
   &:hover {
@@ -1262,7 +1265,7 @@ const GroupBlurb = styled.p`
   font-size: 0.9rem;
   line-height: 1.5;
   text-wrap: pretty;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.5);
   font-weight: 200;
   margin: 0.7rem 0 0;
 `;
@@ -1314,7 +1317,7 @@ const RefLine = styled.div`
 
 const RefMeta = styled.span`
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.5);
   font-weight: 200;
 `;
 
@@ -1511,7 +1514,7 @@ const NumUnit = styled.span`
   font-size: 0.7rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.5);
 `;
 
 const SampleHeading = styled.p<{ $balance: boolean }>`
@@ -1532,10 +1535,13 @@ const RadiusStage = styled.div`
   padding: 1.5rem 0 1.8rem;
 `;
 
+// The indigo this replaced measured 1.33:1 against the old ground; against the grey it
+// collapses to 1.02:1 and the box disappears. A dark neutral plate restores exactly that
+// separation (1.328:1) and no longer fights the ground's hue.
 const OuterBox = styled.div`
   width: 190px;
   height: 130px;
-  background: linear-gradient(150deg, #2b2654, #211d44);
+  background: linear-gradient(150deg, oklch(0.20 0.010 265), oklch(0.16 0.010 265));
   display: flex;
 `;
 
@@ -1961,7 +1967,7 @@ const DiscBtn = styled.button`
   font-size: 0.68rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.5);
   background: none;
   border: none;
   padding: 0.4rem 0;
