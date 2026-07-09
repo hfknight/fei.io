@@ -171,3 +171,20 @@ palette is deliberately outside the system.
 
 **Known limitation:** `LIGHT_ROUTES` uses exact-string pathname matching, so adding `/lab`
 would not match `/lab/foo` — a future migration needs prefix matching or per-slug enumeration.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as GitHub issues in `hfknight/fei.io`, driven by the `gh` CLI. External PRs are
+not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles map 1:1 onto identically-named labels. See
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root, both created lazily. See
+`docs/agents/domain.md`.
