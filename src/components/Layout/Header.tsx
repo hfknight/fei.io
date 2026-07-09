@@ -1,8 +1,26 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
+
+/**
+ * Glass is driven by GLASS_K in tokens.ts, mirroring the design source's applyPill().
+ * The tint follows the surface, so this reads as white over video and as ink on paper.
+ *
+ * One recipe, two consumers: a link wears it transiently on hover, and the active link
+ * wears it at rest. Keeping them in one block is what stops the two from drifting.
+ */
+const glassPill = css`
+  background: linear-gradient(140deg, ${p => p.theme.glass.top}, ${p => p.theme.glass.bot});
+  -webkit-backdrop-filter: blur(${p => p.theme.glass.blur}) saturate(205%);
+  backdrop-filter: blur(${p => p.theme.glass.blur}) saturate(205%);
+  box-shadow:
+    inset 0 1px 0 ${p => p.theme.glass.hi},
+    inset 0 -1px 2px ${p => p.theme.glass.sheen},
+    inset 0 0 0 1px ${p => p.theme.glass.rim},
+    0 6px 20px ${p => p.theme.glass.shadow};
+`;
 
 const Bar = styled.header`
   position: fixed;
@@ -60,41 +78,40 @@ const NavLink = styled(Link)<{ $active?: boolean }>`
     backdrop-filter 0.4s ${p => p.theme.ease.glass};
   outline: none;
 
-  /* Glass is driven by GLASS_K in tokens.ts, mirroring the design source's applyPill().
-     The tint follows the surface, so this reads as white on video and as ink on paper. */
+  /* The active link already carries the pill, so hovering it must not paint a second one. */
   &:hover,
   &:focus-visible {
     opacity: 1;
-    background: linear-gradient(140deg, ${p => p.theme.glass.top}, ${p => p.theme.glass.bot});
-    -webkit-backdrop-filter: blur(${p => p.theme.glass.blur}) saturate(205%);
-    backdrop-filter: blur(${p => p.theme.glass.blur}) saturate(205%);
-    box-shadow:
-      inset 0 1px 0 ${p => p.theme.glass.hi},
-      inset 0 -1px 2px ${p => p.theme.glass.sheen},
-      inset 0 0 0 1px ${p => p.theme.glass.rim},
-      0 6px 20px ${p => p.theme.glass.shadow};
+    ${p => !p.$active && glassPill}
   }
 `;
 
-// transitions.dev "tabs sliding" (16), adapted to the router-driven nav:
-// a single active-route underline that slides between links via framer's
-// shared-layout animation instead of a per-link width tween.
-const Underline = styled(motion.span)`
+// transitions.dev "tabs sliding" (16), adapted to the router-driven nav: one pill that
+// slides between links via framer's shared-layout animation, rather than each link
+// tweening its own. The pill is the same glass the links wear on hover — the active
+// route simply keeps it.
+const Pill = styled(motion.span)`
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -3px;
-  height: 1px;
-  background: ${p => p.theme.chrome.ink};
-  opacity: 0.6;
+  inset: 0;
+  border-radius: ${p => p.theme.radius.pill};
+  pointer-events: none;
+  ${glassPill}
 `;
 
-const ActiveUnderline: React.FC<{ show: boolean }> = ({ show }) => {
+// The pill is positioned and the label is not, so without this the pill would paint over
+// the text. Raising the label is cheaper than lowering the pill out of the stacking flow.
+const Label = styled.span`
+  position: relative;
+  z-index: 1;
+`;
+
+const ActivePill: React.FC<{ show: boolean }> = ({ show }) => {
   const reduced = useReducedMotion();
   if (!show) return null;
   return (
-    <Underline
-      layoutId="nav-underline"
+    <Pill
+      data-nav-pill
+      layoutId="nav-pill"
       transition={{ duration: reduced ? 0 : 0.3, ease }}
     />
   );
@@ -114,22 +131,22 @@ const Header: React.FC = () => {
     <Bar>
       <NavLinks>
         <NavItem style={isHome ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}>
-          <NavLink to="/" $active={false}>Home</NavLink>
+          <NavLink to="/" $active={false}><Label>Home</Label></NavLink>
         </NavItem>
         <NavItem>
-          <NavLink to="/readme" $active={isReadme}>Readme<ActiveUnderline show={isReadme} /></NavLink>
+          <NavLink to="/readme" $active={isReadme}><ActivePill show={isReadme} /><Label>Readme</Label></NavLink>
         </NavItem>
         <NavItem>
-          <NavLink to="/lab" $active={isLab}>Lab<ActiveUnderline show={isLab} /></NavLink>
+          <NavLink to="/lab" $active={isLab}><ActivePill show={isLab} /><Label>Lab</Label></NavLink>
         </NavItem>
         <NavItem>
-          <NavLink to="/work" $active={isWork}>Work<ActiveUnderline show={isWork} /></NavLink>
+          <NavLink to="/work" $active={isWork}><ActivePill show={isWork} /><Label>Work</Label></NavLink>
         </NavItem>
         <NavItem>
-          <NavLink to="/writing" $active={isWriting}>Writing<ActiveUnderline show={isWriting} /></NavLink>
+          <NavLink to="/writing" $active={isWriting}><ActivePill show={isWriting} /><Label>Writing</Label></NavLink>
         </NavItem>
         <NavItem>
-          <NavLink to="/connect" $active={isConnect}>Connect<ActiveUnderline show={isConnect} /></NavLink>
+          <NavLink to="/connect" $active={isConnect}><ActivePill show={isConnect} /><Label>Connect</Label></NavLink>
         </NavItem>
       </NavLinks>
     </Bar>

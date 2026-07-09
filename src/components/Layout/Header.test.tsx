@@ -5,10 +5,10 @@ import { ThemeProvider } from 'styled-components';
 import { theme } from '../../styles/theme';
 import Header from './Header';
 
-const renderHeader = () =>
+const renderHeader = (path = '/lab') =>
   render(
     <ThemeProvider theme={theme}>
-      <MemoryRouter initialEntries={['/lab']}>
+      <MemoryRouter initialEntries={[path]}>
         <Header />
       </MemoryRouter>
     </ThemeProvider>,
@@ -37,5 +37,46 @@ describe('Header nav', () => {
     renderHeader();
 
     expect(navOrder()).not.toContain('Changelog');
+  });
+});
+
+/**
+ * The active route is marked with the same glass pill the links wear on hover, sliding
+ * between them via framer's shared layout. There must be exactly one — a second pill would
+ * mean the active link is painting its own glass on top of the shared one.
+ */
+describe('Header active pill', () => {
+  const pills = (c: HTMLElement) => c.querySelectorAll('[data-nav-pill]');
+
+  it('marks the active route with a single pill', () => {
+    const { container } = renderHeader('/lab');
+
+    expect(pills(container)).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Lab' })).toContainElement(
+      pills(container)[0] as HTMLElement,
+    );
+  });
+
+  it('follows the route to a different link', () => {
+    const { container } = renderHeader('/connect');
+
+    expect(screen.getByRole('link', { name: 'Connect' })).toContainElement(
+      pills(container)[0] as HTMLElement,
+    );
+  });
+
+  it('marks a nested route from its section link', () => {
+    const { container } = renderHeader('/writing/some-post');
+
+    expect(pills(container)).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Writing' })).toContainElement(
+      pills(container)[0] as HTMLElement,
+    );
+  });
+
+  it('shows no pill on the landing, where no nav link is active', () => {
+    const { container } = renderHeader('/');
+
+    expect(pills(container)).toHaveLength(0);
   });
 });
