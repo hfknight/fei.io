@@ -146,3 +146,49 @@ describe('theme accessor', () => {
     expect(JSON.stringify(theme.breakpoints)).not.toContain('var(');
   });
 });
+
+describe('tokens: ui-scheme drives the UA colour-scheme', () => {
+  it('names the scheme per surface so native controls match', () => {
+    expect(lightVars['--ui-scheme']).toBe('light');
+    expect(invertedVars['--ui-scheme']).toBe('dark');
+  });
+});
+
+describe('tokens: glass has two tints', () => {
+  /**
+   * Regression guard. The dark theme is what the whole site renders today, so every glass
+   * value on the inverted surface must stay byte-for-byte identical to the single-tint recipe.
+   * If this fails, the live nav pill changed.
+   */
+  it('leaves the inverted glass byte-for-byte unchanged', () => {
+    expect(invertedVars['--glass-top']).toBe('oklch(1 0 0 / 0.148)');
+    expect(invertedVars['--glass-bot']).toBe('oklch(1 0 0 / 0.042)');
+    expect(invertedVars['--glass-rim']).toBe('oklch(1 0 0 / 0.096)');
+    expect(invertedVars['--glass-hi']).toBe('oklch(1 0 0 / 0.304)');
+    expect(invertedVars['--glass-sheen']).toBe('oklch(1 0 0 / 0.14)');
+    expect(staticVars['--glass-shadow']).toBe('oklch(0 0 0 / 0.1)');
+    expect(staticVars['--glass-blur']).toBe('5.6px');
+  });
+
+  it('tints the light fill and rim with ink', () => {
+    for (const name of ['--glass-top', '--glass-bot', '--glass-rim']) {
+      expect(lightVars[name], name).toMatch(/^oklch\(0\.30 0\.008 265 \/ /);
+    }
+  });
+
+  /**
+   * Highlights model reflected light, not pigment. Tinting them with ink turns the top
+   * highlight into a hard dark line — measured rgb(187,189,190) on a rgb(251,252,253)
+   * ground, which reads as a pressed inset rather than glass.
+   */
+  it('keeps the light highlight and sheen white, not ink', () => {
+    expect(lightVars['--glass-hi']).toBe('oklch(1 0 0 / 0.304)');
+    expect(lightVars['--glass-sheen']).toBe('oklch(1 0 0 / 0.14)');
+  });
+
+  it('keeps the drop shadow black on both surfaces — it is cast, not reflected', () => {
+    expect(staticVars['--glass-shadow']).toMatch(/^oklch\(0 0 0 \//);
+    expect(lightVars['--glass-shadow']).toBeUndefined();
+    expect(invertedVars['--glass-shadow']).toBeUndefined();
+  });
+});

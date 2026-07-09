@@ -17,6 +17,10 @@ export const TokenStyles = createGlobalStyle`
   :root {
     ${declare(staticVars)}
     ${declare(lightVars)}
+
+    /* Declared once; --ui-scheme is what varies per surface. Tells the UA how to theme
+       native controls (the admin's <select> popups) and scrollbars. */
+    color-scheme: var(--ui-scheme);
   }
 
   [data-surface='inverted'] {

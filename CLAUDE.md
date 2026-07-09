@@ -137,6 +137,18 @@ type/space/radius/motion primitives, and a glass recipe driven by one dial (`GLA
 `theme.breakpoints` returns literal px strings, because CSS custom properties are
 illegal inside `@media` queries.
 
+Glass has **two** tints, not one. The fill and rim (`--glass-top/bot/rim`) follow the
+surface; the highlight and sheen (`--glass-hi`, `--glass-sheen`) are always white, because
+they model reflected light rather than pigment. Tinting them with ink turns a highlight
+into a hard dark line. The drop shadow stays black on both surfaces — it is cast, not
+reflected. On the inverted surface both tints are white, so the recipe reduces to the
+original single-tint one and the dark theme is byte-for-byte unchanged.
+
+`--ui-scheme` (`light` / `dark`) drives the CSS `color-scheme` property, so the UA themes
+native controls — the admin's `<select>` popups — and scrollbars to match the surface.
+It is deliberately named outside the `--color-*` family so the "every colour is oklch"
+test guard skips it.
+
 `Layout` sets `data-surface` on `<html>` from the route. Every page is currently bridged
 to `inverted` because every page is still dark; the landing stays `inverted` permanently
 since its chrome sits over video. Migrating a page to light means adding its path to

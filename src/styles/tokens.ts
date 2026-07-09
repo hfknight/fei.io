@@ -57,12 +57,24 @@ const GLASS_SHEEN_ALPHA = 0.14;
 const white = (a: number) => `oklch(1 0 0 / ${a})`;
 const ink = (a: number) => `oklch(${INK_L} / ${a})`;
 
-const glassVars = (tint: (a: number) => string) => ({
-  '--glass-top': tint(GLASS.top),
-  '--glass-bot': tint(GLASS.bot),
-  '--glass-hi': tint(GLASS.hi),
-  '--glass-rim': tint(GLASS.rim),
-  '--glass-sheen': tint(GLASS_SHEEN_ALPHA),
+/**
+ * Glass has two tints, not one.
+ *
+ * `fill` (the gradient and the rim) follows the surface — white over video, ink over paper.
+ * `specular` (the top highlight and the bottom sheen) is *always* white, because those layers
+ * model reflected light, not pigment. Tinting them with ink turns a highlight into a hard dark
+ * line: on the light surface, `hi` at alpha .304 composites to rgb(187,189,190) over a
+ * rgb(251,252,253) ground, which reads as a pressed inset rather than glass.
+ *
+ * On the inverted surface both tints are white, so this reduces to the original single-tint
+ * recipe and the dark theme is byte-for-byte unchanged.
+ */
+const glassVars = (fill: (a: number) => string, specular: (a: number) => string) => ({
+  '--glass-top': fill(GLASS.top),
+  '--glass-bot': fill(GLASS.bot),
+  '--glass-rim': fill(GLASS.rim),
+  '--glass-hi': specular(GLASS.hi),
+  '--glass-sheen': specular(GLASS_SHEEN_ALPHA),
 });
 
 /** Surface-independent. Emitted once, in :root. */
@@ -86,6 +98,10 @@ export const staticVars: Record<string, string> = {
 
 /** :root — the light theme. Authored now, consumed once pages migrate. */
 export const lightVars: Record<string, string> = {
+  // Drives the `color-scheme` property, so the UA themes native controls (the admin's
+  // <select> popups) and scrollbars to match the surface. Not a colour: deliberately
+  // named outside the `--color-*` family so the "all colours are oklch" guard skips it.
+  '--ui-scheme': 'light',
   '--color-surface': 'var(--n-0)',
   '--color-ink': 'var(--n-11)',
   '--color-ink-muted': 'var(--n-9)',
@@ -93,11 +109,12 @@ export const lightVars: Record<string, string> = {
   '--chrome-ink': 'var(--n-11)',
   '--chrome-ink-muted': 'var(--n-8)',
   '--glass-tint': 'var(--n-11)',
-  ...glassVars(ink),
+  ...glassVars(ink, white),
 };
 
 /** [data-surface="inverted"] — the dark theme. These are the values the site renders today. */
 export const invertedVars: Record<string, string> = {
+  '--ui-scheme': 'dark',
   '--color-surface': SURFACE_DEEP,
   '--color-ink': WHITE,
   '--color-ink-muted': white(0.5),
@@ -106,5 +123,6 @@ export const invertedVars: Record<string, string> = {
   // Bumped from the footer's 0.45 (4.49:1, fails AA) to 0.5 (5.28:1).
   '--chrome-ink-muted': white(0.5),
   '--glass-tint': WHITE,
-  ...glassVars(white),
+  // fill === specular === white here, so this is the original single-tint recipe, unchanged.
+  ...glassVars(white, white),
 };
