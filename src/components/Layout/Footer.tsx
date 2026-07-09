@@ -9,15 +9,15 @@ const Bar = styled.footer`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 0 2rem;
+  padding: 0 ${p => p.theme.space[3]};
   height: 48px;
   background: transparent;
   pointer-events: none;
 `;
 
 const Copyright = styled.span`
-  color: rgba(255, 255, 255, 0.45);
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: ${p => p.theme.chrome.inkMuted};
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.65rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;

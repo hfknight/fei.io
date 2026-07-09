@@ -113,7 +113,7 @@ const StyledLogo: React.FC<Props> = ({
       viewport={{ once: true }}
     >
       {showFilled ? (
-        <LogoFilled className='logo logo-filled' $color="#fdd75e" />
+        <LogoFilled className='logo logo-filled' $color="var(--accent-logo)" />
       ) : (
         <LogoOutlined className='logo logo-outlined' />
       )}
