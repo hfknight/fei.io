@@ -113,7 +113,9 @@ The portfolio is structured as a **day-journey visualization** — five time-of-
   - `IntroPanel.tsx` — hero text over video
 - `src/components/DayJourney/TimeSection/` — one subdirectory per time period; each owns its own visuals and animations
 - `src/components/DayJourney/TimeSection/Midnight/Constellation/` — animated constellation component featuring pets (Chinchilla, TabbyCat, Samoyed)
-- `src/styles/theme.ts` — single source of truth for the warm amber/cream color palette, spacing scale, and responsive breakpoints (`sm` 640 / `md` 768 / `lg` 1024 / `xl` 1280)
+- `src/styles/tokens.ts` — the single source of truth: neutral oklch ramp at hue 265, type/space/radius/motion primitives, and the glass recipe driven by `GLASS_K`.
+- `src/styles/tokens.css.ts` — emits the tokens as `:root` (light) and `[data-surface="inverted"]` (dark).
+- `src/styles/theme.ts` — typed accessor over the tokens, returning `var(--x)` strings; `breakpoints` returns literal px strings (`sm` 640 / `md` 768 / `lg` 1024 / `xl` 1280)
 - `src/styles/styled.d.ts` — TypeScript augmentation so the theme is fully typed in all styled-components
 - `src/types/index.ts` — shared interfaces: `JsonSection`, `TimeSection`, `Constellation`
 
