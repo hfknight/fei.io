@@ -8,13 +8,32 @@ interface LayoutProps {
 }
 
 /**
- * Routes that have been migrated to the light theme. Empty for now: every page still
- * hardcodes a dark background, so everything is bridged to `inverted`. Each page's
- * migration spec adds its path here.
+ * Routes migrated to the light theme. The landing is never added — its chrome sits over
+ * video, not paper. `/changelog` is retired and keeps its own neon palette.
  *
- * The landing is never added — its chrome sits over video, not paper.
+ * Post slugs live in D1 and are fetched at runtime, so `/writing/:slug` cannot be
+ * enumerated here — hence the prefix. Lab entries are bespoke and stay dark.
  */
-const LIGHT_ROUTES = new Set<string>();
+const LIGHT_EXACT = new Set(['/readme', '/work', '/connect', '/lab', '/writing']);
+const LIGHT_PREFIXES = ['/writing/'];
+
+/**
+ * Consulted first, and the ordering is load-bearing: `/writing/admin` is itself matched by
+ * the `/writing/` prefix, so without this it would resolve to light.
+ */
+const DARK_PREFIXES = ['/writing/admin', '/lab/'];
+
+/**
+ * Falls through to `inverted`, never to `default`. An unmigrated page still hardcodes
+ * #12102a, so a route that matches nothing must land on dark or it paints dark ink on a
+ * dark ground.
+ */
+const surfaceFor = (pathname: string): 'default' | 'inverted' => {
+  if (DARK_PREFIXES.some(prefix => pathname.startsWith(prefix))) return 'inverted';
+  if (LIGHT_EXACT.has(pathname)) return 'default';
+  if (LIGHT_PREFIXES.some(prefix => pathname.startsWith(prefix))) return 'default';
+  return 'inverted';
+};
 
 /**
  * The surface attribute lives on <html>, not on the page. Header and Footer are
@@ -23,7 +42,7 @@ const LIGHT_ROUTES = new Set<string>();
  */
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { pathname } = useLocation();
-  const surface = LIGHT_ROUTES.has(pathname) ? 'default' : 'inverted';
+  const surface = surfaceFor(pathname);
 
   // useLayoutEffect, not useEffect: the attribute must exist before paint or a route
   // change would flash light chrome over a dark page.

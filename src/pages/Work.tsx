@@ -4,7 +4,7 @@ import PageTransition from '../components/PageTransition';
 
 const Page = styled.div`
   min-height: 100dvh;
-  background: #12102a;
+  background: ${p => p.theme.color.surface};
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -22,7 +22,7 @@ const Label = styled(motion.span)`
   font-size: 0.62rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: ${p => p.theme.color.inkMuted};
   margin-bottom: 3.5rem;
 `;
 
@@ -30,7 +30,7 @@ const Graf = styled(motion.p)`
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: clamp(1.25rem, 2.5vw, 1.5rem);
   line-height: 1.95;
-  color: rgba(255, 255, 255, 0.78);
+  color: ${p => p.theme.color.ink};
   margin: 0 0 2.5rem;
   font-weight: 200;
 

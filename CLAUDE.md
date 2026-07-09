@@ -149,28 +149,46 @@ native controls — the admin's `<select>` popups — and scrollbars to match th
 It is deliberately named outside the `--color-*` family so the "every colour is oklch"
 test guard skips it.
 
+The light surface is **grey paper, not white**: `--color-surface` is `--n-3` (`#e3e4e7`), chosen
+to sit inside the 0.937–0.875 band of the landing's left plate. Three tokens are tuned against
+that ground and move with it — see `docs/adr/0001-grey-light-surface.md`.
+
 `--accent` is the warm yellow, and it is **surface-aware** — it has to be. On the inverted
 surface it is the legacy `#fcd34d` (12.85:1); on the light surface that same yellow drops to
-1.40:1, and no lightness of it clears AA on both, so the light value is darkened to
-`oklch(0.54 0.111 92)` (4.93:1), which at that hue necessarily reads olive-bronze. `--accent-ink`
-is text placed *on* an accent fill: the deep surface on dark, white on light. Hue 92 sits 173°
-from the ramp's 265, i.e. near its complement — the warmth is deliberate.
+1.14:1, and no lightness of it clears AA on both, so the light value is darkened to
+`oklch(0.50 0.111 92)` (4.73:1), which at that hue necessarily reads olive-bronze. It is the
+link colour on every light page. `--accent-ink` is text placed *on* an accent fill: the deep
+surface on dark, white on light. Hue 92 sits 173° from the ramp's 265, i.e. near its
+complement — the warmth is deliberate.
+
+On light, `--chrome-ink-muted` equals `--color-ink-muted` (both `--n-9`), exactly as on the
+inverted surface. There is no separate chrome-muted weight on either surface any more.
 
 Never hardcode the accent. For a translucent accent use
 `color-mix(in srgb, var(--accent) 35%, transparent)`, which renders byte-identically to the
 old `rgba(252,211,77,0.35)` and follows the surface. `/changelog`'s neon is out of the system
 and keeps its own hex.
 
-`Layout` sets `data-surface` on `<html>` from the route. Every page is currently bridged
-to `inverted` because every page is still dark; the landing stays `inverted` permanently
-since its chrome sits over video. Migrating a page to light means adding its path to
-`LIGHT_ROUTES` in `Layout.tsx` and reworking that page's hardcoded colors.
+`Layout` sets `data-surface` on `<html>` from the route, resolving it deny-then-allow:
+`DARK_PREFIXES` (`/writing/admin`, `/lab/`) is consulted first, then `LIGHT_EXACT` and the
+`/writing/` prefix, falling through to `inverted`. **The ordering is load-bearing** —
+`/writing/admin` is itself matched by the `/writing/` prefix. Post slugs come from D1 at
+runtime, so they cannot be enumerated. The fall-through must stay `inverted`, because an
+unmigrated page still hardcodes `#12102a`.
+
+Light: `/readme`, `/work`, `/connect`, `/lab`, `/writing`, `/writing/:slug`.
+Inverted: `/` (chrome over video, permanently), `/loading`, `/changelog`, `/lab/:slug`
+(bespoke entries), `/writing/admin*`. Migrating one of those means adding its path and
+reworking that page's hardcoded colors.
+
+`data-surface` is a plain attribute selector, not bound to `<html>`. Any element can flip its
+own surface, and two do: `PostBody`'s `<pre>` (a dark code island, so `.hljs-title`'s accent
+stays yellow) and `PhotoEssay`'s `Overlay` (a scrim over a photograph, where the title and
+date shared with the no-cover header must read white). Both re-declare `color`, because CSS
+inherits the *computed* ink from the ancestor and the attribute alone would not override it.
 
 `/changelog` is retired: the route still resolves, but it has no nav link and its neon
 palette is deliberately outside the system.
-
-**Known limitation:** `LIGHT_ROUTES` uses exact-string pathname matching, so adding `/lab`
-would not match `/lab/foo` — a future migration needs prefix matching or per-slug enumeration.
 
 ## Agent skills
 

@@ -100,20 +100,28 @@ export const lightVars: Record<string, string> = {
   // <select> popups) and scrollbars to match the surface. Not a colour: deliberately
   // named outside the `--color-*` family so the "all colours are oklch" guard skips it.
   '--ui-scheme': 'light',
-  '--color-surface': 'var(--n-0)',
+  // Grey paper, not white. --n-3 (#e3e4e7) falls inside the 0.937–0.875 band of the landing's
+  // left plate, so the written pages read as a continuation of it. Every value below is tuned
+  // against this ground: moving the surface moves them all. See docs/adr/0001.
+  '--color-surface': 'var(--n-3)',
   '--color-ink': 'var(--n-11)',
   '--color-ink-muted': 'var(--n-9)',
-  '--color-border': 'var(--n-4)',
+  // n-4 measured 1.39:1 against the near-white surface this theme was first authored on. On
+  // --n-3 it falls to 1.13:1 — fainter than the inverted surface's own border — and hairlines
+  // vanish. n-5 restores the separation at 1.47:1. Decorative, so no test asserts it.
+  '--color-border': 'var(--n-5)',
   '--chrome-ink': 'var(--n-11)',
-  '--chrome-ink-muted': 'var(--n-8)',
+  // n-8 was picked for near-white paper and gives only 3.83:1 here. n-9 gives 5.87:1, which
+  // makes this identical to --color-ink-muted — exactly as the inverted surface already has it.
+  '--chrome-ink-muted': 'var(--n-9)',
   // The accent is warm on purpose: hue 92 sits 173° from the ramp's 265, i.e. near its
   // complement. It cannot be one value across surfaces — a yellow light enough to read on
-  // #12102a (12.85:1) drops to 1.40:1 on near-white, and no lightness of it clears AA on
-  // both. Here it is darkened to 4.93:1 on --n-0, which at this hue necessarily reads
-  // olive-bronze rather than butter: a yellow dark enough to be legible on white is not
-  // yellow any more. Unconsumed until a page migrates to light; revisit then.
-  '--accent': 'oklch(0.54 0.111 92)',
-  // white on that accent measures 5.07:1
+  // #12102a (12.85:1) drops to 1.14:1 on --n-3, and no lightness of it clears AA on both.
+  // Here it is darkened to 4.73:1 on --n-3, which at this hue necessarily reads olive-bronze
+  // rather than butter: a yellow dark enough to be legible on grey paper is not yellow any
+  // more. This is the link colour on every light page.
+  '--accent': 'oklch(0.50 0.111 92)',
+  // white on that accent measures 6.00:1
   '--accent-ink': 'oklch(1 0 0)',
   ...glassVars(ink, white),
 };

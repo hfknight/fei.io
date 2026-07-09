@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { render } from '../../test/renderWithTheme';
 import { PostBody } from './PostBody';
 
 describe('PostBody', () => {
@@ -34,5 +35,22 @@ describe('PostBody', () => {
   it('highlights code blocks with hljs classes surviving sanitize', () => {
     const { container } = render(<PostBody markdown={'```js\nconst x = 1;\n```'} />);
     expect(container.querySelector('.hljs')).toBeTruthy();
+  });
+
+  /**
+   * A code block is a dark island whatever the page sits on. Flipping the surface on <pre>
+   * re-resolves --accent inside it, so .hljs-title stays yellow instead of the light
+   * surface's dark olive on a near-black ground.
+   */
+  it('renders code blocks on the inverted surface', () => {
+    const { container } = render(<PostBody markdown={'```js\nconst x = 1;\n```'} />);
+    expect(container.querySelector('pre')).toHaveAttribute('data-surface', 'inverted');
+  });
+
+  it('leaves inline code on the page surface', () => {
+    const { container } = render(<PostBody markdown={'some `inline` code'} />);
+    expect(container.querySelector('pre')).toBeNull();
+    expect(container.querySelector('code')).toBeInTheDocument();
+    expect(container.querySelector('[data-surface]')).toBeNull();
   });
 });

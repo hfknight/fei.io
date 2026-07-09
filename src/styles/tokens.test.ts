@@ -96,7 +96,8 @@ describe('tokens: contrast', () => {
     expect(contrast(surface, luminance(lightVars['--color-ink'], bg))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(surface, luminance(lightVars['--color-ink-muted'], bg))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(surface, luminance(lightVars['--chrome-ink'], bg))).toBeGreaterThanOrEqual(4.5);
-    // 4.72:1 — passes, but the tightest pair in the system.
+    // 5.87:1 — identical to --color-ink-muted, as on the inverted surface. The accent is now
+    // the tightest pair in the system, at 4.73:1.
     expect(contrast(surface, luminance(lightVars['--chrome-ink-muted'], bg))).toBeGreaterThanOrEqual(4.5);
   });
 

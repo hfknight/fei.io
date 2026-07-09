@@ -26,12 +26,12 @@ const DateLabel = styled.span`
   font-size: 0.62rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: ${p => p.theme.color.inkMuted};
   margin-bottom: 1.2rem;
 `;
 
 const Title = styled.h1`
-  color: #fff;
+  color: ${p => p.theme.color.ink};
   font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: clamp(2.2rem, 5vw, 3.2rem);
   font-weight: 400;
@@ -42,7 +42,7 @@ const Title = styled.h1`
 
 const Rule = styled.hr`
   border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid ${p => p.theme.color.border};
   width: 3rem;
   margin: 0 0 2.4rem;
 `;

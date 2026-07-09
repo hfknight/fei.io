@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { render } from '../test/renderWithTheme';
 import { MemoryRouter } from 'react-router-dom';
 import Writing from './Writing';
 import * as blogApi from '../lib/blogApi';

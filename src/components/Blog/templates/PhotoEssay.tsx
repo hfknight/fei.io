@@ -15,7 +15,10 @@ export default function PhotoEssay({
       {coverImageUrl ? (
         <FullBleed $contained={contained}>
           <CoverImg src={coverImageUrl} alt="" />
-          <Overlay>
+          {/* DateLabel and Title are shared with the no-cover Header below, where they sit
+              on the page. Here they sit on a dark scrim over the photo, so the overlay
+              flips the surface and the same tokens resolve to white. */}
+          <Overlay data-surface="inverted">
             {publishedAt ? <DateLabel>{formatDate(publishedAt)}</DateLabel> : null}
             <Title>{title}</Title>
           </Overlay>
@@ -63,6 +66,7 @@ const Overlay = styled.div`
   right: 0;
   bottom: 0;
   padding: 3rem 2rem;
+  /* The scrim is cast over a photograph, so it stays the deep surface on any page. */
   background: linear-gradient(transparent, rgba(18, 16, 42, 0.92));
   text-align: center;
 `;
@@ -79,12 +83,12 @@ const DateLabel = styled.span`
   font-size: 0.62rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
+  color: ${p => p.theme.color.inkMuted};
   margin-bottom: 0.9rem;
 `;
 
 const Title = styled.h1`
-  color: #fff;
+  color: ${p => p.theme.color.ink};
   font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: clamp(2.8rem, 7vw, 4.4rem);
   font-weight: 400;

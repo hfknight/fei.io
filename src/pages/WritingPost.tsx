@@ -66,7 +66,7 @@ export default WritingPost;
 
 const Page = styled.div`
   min-height: 100dvh;
-  background: #12102a;
+  background: ${p => p.theme.color.surface};
   padding: 6.5rem 0 5rem;
 `;
 
@@ -83,17 +83,17 @@ const BackLink = styled(Link)`
   font-size: 0.62rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: ${p => p.theme.color.inkMuted};
   text-decoration: none;
   margin-bottom: 3rem;
 
   &:hover {
-    color: rgba(255, 255, 255, 0.85);
+    color: ${p => p.theme.color.ink};
   }
 `;
 
 const Status = styled.p`
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-weight: 200;
-  color: rgba(255, 255, 255, 0.55);
+  color: ${p => p.theme.color.inkMuted};
 `;

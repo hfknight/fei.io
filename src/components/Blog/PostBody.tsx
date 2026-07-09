@@ -20,6 +20,13 @@ const components: Components = {
     }
     return <img src={url} alt={alt ?? ''} loading="lazy" />;
   },
+  // A code block is a dark island, whatever the page sits on. `[data-surface]` is a plain
+  // attribute selector, so flipping it here re-resolves the tokens inside: --accent goes
+  // back to the yellow .hljs-title was tuned for, rather than the light surface's dark
+  // olive on a near-black ground.
+  pre({ children }) {
+    return <pre data-surface="inverted">{children}</pre>;
+  },
 };
 
 export function PostBody({ markdown }: { markdown: string }) {
@@ -37,13 +44,13 @@ export function PostBody({ markdown }: { markdown: string }) {
 }
 
 const Prose = styled.div`
-  color: rgba(255, 255, 255, 0.82);
+  color: ${p => p.theme.color.ink};
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 1.05rem;
   line-height: 1.75;
 
   h1, h2, h3, h4 {
-    color: #fff;
+    color: ${p => p.theme.color.ink};
     line-height: 1.25;
     margin: 2.4rem 0 1rem;
     font-weight: 500;
@@ -69,7 +76,7 @@ const Prose = styled.div`
     margin: 1.6rem 0;
     padding: 0.4rem 0 0.4rem 1.2rem;
     border-left: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
-    color: rgba(255, 255, 255, 0.66);
+    color: ${p => p.theme.color.inkMuted};
     font-style: italic;
   }
 
@@ -83,7 +90,7 @@ const Prose = styled.div`
 
   hr {
     border: 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid ${p => p.theme.color.border};
     margin: 2.4rem 0;
   }
 
@@ -94,24 +101,29 @@ const Prose = styled.div`
     font-size: 0.95rem;
   }
   th, td {
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid ${p => p.theme.color.border};
     padding: 0.5rem 0.75rem;
     text-align: left;
   }
-  th { background: rgba(255, 255, 255, 0.04); }
+  th { background: color-mix(in srgb, ${p => p.theme.color.ink} 4%, transparent); }
 
   code {
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
     font-size: 0.88em;
   }
   :not(pre) > code {
-    background: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, ${p => p.theme.color.ink} 8%, transparent);
     padding: 0.12em 0.38em;
     border-radius: 4px;
   }
+  /* The island. Its own background and rim stay literal — they are darker than any
+     surface in the ramp. It carries data-surface="inverted" (see components.pre), and
+     re-declares colour because CSS inherits Prose's *computed* ink, so the attribute
+     flip alone would leave dark text on a near-black block. */
   pre {
     background: #0c0a1f;
     border: 1px solid rgba(255, 255, 255, 0.08);
+    color: ${p => p.theme.color.ink};
     border-radius: 10px;
     padding: 1.1rem 1.25rem;
     overflow-x: auto;

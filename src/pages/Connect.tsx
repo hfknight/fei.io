@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Linkedin, Github, Mail, ExternalLink } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -21,41 +21,19 @@ const hintMap: Record<string, string> = {
   email: 'fei.hu@fei.io',
 };
 
-const ambientPulse = keyframes`
-  0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
-  50%       { opacity: 1;   transform: translate(-50%, -50%) scale(1.08); }
-`;
+// The ambient glow that used to sit behind the links is gone. It was a lit haze in a dark
+// room — a deep violet reading against #12102a. On grey paper there is no darkness for it
+// to relieve, and at 10% alpha it rendered as a smudge.
 
 const Page = styled.div`
   min-height: 100dvh;
-  background: #12102a;
+  background: ${p => p.theme.color.surface};
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: 7rem 2rem 5rem;
   position: relative;
   overflow: hidden;
-`;
-
-const AmbientGlow = styled.div`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 700px;
-  height: 320px;
-  background: radial-gradient(ellipse at center,
-    color-mix(in srgb, var(--accent) 5%, transparent) 0%,
-    rgba(58, 32, 96, 0.1) 50%,
-    transparent 75%
-  );
-  /* animation: ${ambientPulse} 7s ease-in-out infinite; */
-  pointer-events: none;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-    opacity: 0.6;
-  }
 `;
 
 const Column = styled.div`
@@ -71,7 +49,7 @@ const Label = styled(motion.span)`
   font-size: 0.62rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: ${p => p.theme.color.inkMuted};
   margin-bottom: 3.5rem;
 `;
 
@@ -80,19 +58,22 @@ const LinkRow = styled(motion.a)`
   align-items: center;
   justify-content: space-between;
   padding: 1.5rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid ${p => p.theme.color.border};
   text-decoration: none;
-  color: rgba(255, 255, 255, 0.75);
+  /* Resting is the muted weight and hover is the plain one, so the row still lifts on
+     hover. Both alphas this replaced (0.75, 1.0) fall in the plain bucket, and mapping
+     them literally would have collapsed the two states onto one colour. */
+  color: ${p => p.theme.color.inkMuted};
   transition: color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 
   &:first-of-type {
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid ${p => p.theme.color.border};
   }
 
   &:hover,
   &:focus-visible {
-    color: rgba(255, 255, 255, 1);
+    color: ${p => p.theme.color.ink};
     outline: none;
   }
 
@@ -160,7 +141,7 @@ const HintText = styled.span`
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.65rem;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.5);
+  color: ${p => p.theme.color.inkMuted};
   opacity: 0;
   transform: translateY(-4px);
   transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
@@ -191,7 +172,6 @@ const Contact: React.FC = () => {
   return (
     <PageTransition>
     <Page>
-      <AmbientGlow />
       <Column>
         <Label
           initial={{ opacity: 0 }}

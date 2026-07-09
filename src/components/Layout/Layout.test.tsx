@@ -26,8 +26,35 @@ describe('Layout surface bridge', () => {
     expect(document.documentElement.dataset.surface).toBe('inverted');
   });
 
-  it('bridges every unmigrated route to inverted, since all pages are still dark', () => {
+  it('puts the migrated content pages on the light surface', () => {
     for (const path of ['/readme', '/work', '/writing', '/lab', '/connect']) {
+      renderAt(path);
+      expect(document.documentElement.dataset.surface, path).toBe('default');
+    }
+  });
+
+  it('resolves a post slug to light via the /writing/ prefix', () => {
+    renderAt('/writing/some-post');
+    expect(document.documentElement.dataset.surface).toBe('default');
+  });
+
+  /** The ordering guard. Admin is matched by the /writing/ prefix and must lose to it. */
+  it('keeps the admin dark even though /writing/ would match it', () => {
+    for (const path of ['/writing/admin', '/writing/admin/new', '/writing/admin/42']) {
+      renderAt(path);
+      expect(document.documentElement.dataset.surface, path).toBe('inverted');
+    }
+  });
+
+  it('keeps bespoke lab entries dark while the lab index goes light', () => {
+    renderAt('/lab');
+    expect(document.documentElement.dataset.surface).toBe('default');
+    renderAt('/lab/interfaces-that-feel-better');
+    expect(document.documentElement.dataset.surface).toBe('inverted');
+  });
+
+  it('bridges unmigrated routes to inverted, since their pages are still dark', () => {
+    for (const path of ['/changelog', '/loading', '/nonexistent']) {
       renderAt(path);
       expect(document.documentElement.dataset.surface, path).toBe('inverted');
     }

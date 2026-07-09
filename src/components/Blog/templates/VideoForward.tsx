@@ -31,6 +31,7 @@ const Hero = styled.div`
   margin: 0 auto 2.4rem;
   border-radius: 12px;
   overflow: hidden;
+  /* A well behind the media, not a surface. Letterboxing stays dark on any page. */
   background: #0c0a1f;
 
   video,
@@ -52,12 +53,12 @@ const DateLabel = styled.span`
   font-size: 0.62rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: ${p => p.theme.color.inkMuted};
   margin-bottom: 1.2rem;
 `;
 
 const Title = styled.h1`
-  color: #fff;
+  color: ${p => p.theme.color.ink};
   font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: clamp(2.3rem, 5.5vw, 3.4rem);
   font-weight: 400;
