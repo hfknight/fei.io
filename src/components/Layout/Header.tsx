@@ -4,21 +4,6 @@ import { Link, useLocation } from 'react-router-dom';
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
-// Nav-pill glass intensity, 0–1. Port of the design source's `pillHover` prop: every
-// value in PILL is a linear function of this one dial, so they thicken in proportion.
-// 0 is the source's own default (a bare rim); 1 is a heavy frosted slab.
-const PILL_HOVER = 0.2;
-
-// Port of the source's applyPill(), including its rounding.
-const PILL = {
-  top: (0.08 + 0.34 * PILL_HOVER).toFixed(3),
-  bot: (0.02 + 0.11 * PILL_HOVER).toFixed(3),
-  blur: (3 + 13 * PILL_HOVER).toFixed(1),
-  hi: (0.22 + 0.42 * PILL_HOVER).toFixed(3),
-  rim: (0.06 + 0.18 * PILL_HOVER).toFixed(3),
-  shadow: (0.06 + 0.2 * PILL_HOVER).toFixed(3),
-};
-
 const Bar = styled.header`
   position: fixed;
   top: 0;
@@ -27,14 +12,14 @@ const Bar = styled.header`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 0 2rem;
-  height: 60px;
+  padding: 0 ${p => p.theme.space[3]};
+  height: ${p => p.theme.barHeight};
   background: transparent;
 
   @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
     left: 0;
     height: auto;
-    min-height: 60px;
+    min-height: ${p => p.theme.barHeight};
     align-items: flex-start;
     padding: 0.6rem 1.25rem;
   }
@@ -59,43 +44,35 @@ const NavItem = styled.li``;
 
 const NavLink = styled(Link)<{ $active?: boolean }>`
   position: relative;
-  color: #fff;
+  color: ${p => p.theme.chrome.ink};
   opacity: ${p => p.$active ? 1 : 0.72};
   text-decoration: none;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.72rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 8px 15px;
-  border-radius: 7px;
+  padding: ${p => p.theme.space[1]} ${p => p.theme.space[2]};
+  border-radius: ${p => p.theme.radius.pill};
   transition:
     opacity 0.35s ease,
-    background 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-    backdrop-filter 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    background 0.4s ${p => p.theme.ease.glass},
+    box-shadow 0.4s ${p => p.theme.ease.glass},
+    backdrop-filter 0.4s ${p => p.theme.ease.glass};
   outline: none;
 
-  /* Glass is driven by PILL_HOVER above, mirroring the source's applyPill(). Do not
-     substitute the var() fallbacks from the source's stylesheet — its script overwrites
-     them on mount, so those fallbacks are never rendered (they sit near pillHover 0.65).
-     The -1px inset below has no variable in the source and stays fixed. */
+  /* Glass is driven by GLASS_K in tokens.ts, mirroring the design source's applyPill().
+     The tint follows the surface, so this reads as white on video and as ink on paper. */
   &:hover,
   &:focus-visible {
-    /* outranks the global light-mode a:hover in index.css, which would tint the label amber */
-    color: #fff;
     opacity: 1;
-    background: linear-gradient(
-      140deg,
-      rgba(255, 255, 255, ${PILL.top}),
-      rgba(255, 255, 255, ${PILL.bot})
-    );
-    -webkit-backdrop-filter: blur(${PILL.blur}px) saturate(205%);
-    backdrop-filter: blur(${PILL.blur}px) saturate(205%);
+    background: linear-gradient(140deg, ${p => p.theme.glass.top}, ${p => p.theme.glass.bot});
+    -webkit-backdrop-filter: blur(${p => p.theme.glass.blur}) saturate(205%);
+    backdrop-filter: blur(${p => p.theme.glass.blur}) saturate(205%);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, ${PILL.hi}),
-      inset 0 -1px 2px rgba(255, 255, 255, 0.14),
-      inset 0 0 0 1px rgba(255, 255, 255, ${PILL.rim}),
-      0 6px 20px rgba(0, 0, 0, ${PILL.shadow});
+      inset 0 1px 0 ${p => p.theme.glass.hi},
+      inset 0 -1px 2px ${p => p.theme.glass.sheen},
+      inset 0 0 0 1px ${p => p.theme.glass.rim},
+      0 6px 20px ${p => p.theme.glass.shadow};
   }
 `;
 
@@ -108,7 +85,8 @@ const Underline = styled(motion.span)`
   right: 0;
   bottom: -3px;
   height: 1px;
-  background: rgba(255, 255, 255, 0.6);
+  background: ${p => p.theme.chrome.ink};
+  opacity: 0.6;
 `;
 
 const ActiveUnderline: React.FC<{ show: boolean }> = ({ show }) => {
@@ -127,7 +105,6 @@ const Header: React.FC = () => {
   const isHome = pathname === '/';
 
   const isReadme = pathname === '/readme';
-  const isChangelog = pathname === '/changelog';
   const isLab = pathname === '/lab' || pathname.startsWith('/lab/');
   const isWork = pathname === '/work';
   const isWriting = pathname === '/writing' || pathname.startsWith('/writing/');
@@ -141,9 +118,6 @@ const Header: React.FC = () => {
         </NavItem>
         <NavItem>
           <NavLink to="/readme" $active={isReadme}>Readme<ActiveUnderline show={isReadme} /></NavLink>
-        </NavItem>
-        <NavItem>
-          <NavLink to="/changelog" $active={isChangelog}>Changelog<ActiveUnderline show={isChangelog} /></NavLink>
         </NavItem>
         <NavItem>
           <NavLink to="/lab" $active={isLab}>Lab<ActiveUnderline show={isLab} /></NavLink>
