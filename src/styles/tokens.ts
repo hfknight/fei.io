@@ -108,7 +108,6 @@ export const lightVars: Record<string, string> = {
   '--color-border': 'var(--n-4)',
   '--chrome-ink': 'var(--n-11)',
   '--chrome-ink-muted': 'var(--n-8)',
-  '--glass-tint': 'var(--n-11)',
   ...glassVars(ink, white),
 };
 
@@ -122,7 +121,6 @@ export const invertedVars: Record<string, string> = {
   '--chrome-ink': WHITE,
   // Bumped from the footer's 0.45 (4.49:1, fails AA) to 0.5 (5.28:1).
   '--chrome-ink-muted': white(0.5),
-  '--glass-tint': WHITE,
   // fill === specular === white here, so this is the original single-tint recipe, unchanged.
   ...glassVars(white, white),
 };

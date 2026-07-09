@@ -56,7 +56,7 @@ describe('tokens: no hex or rgb anywhere', () => {
   it('every token colour is oklch', () => {
     for (const map of [staticVars, lightVars, invertedVars]) {
       for (const [name, value] of Object.entries(map)) {
-        if (!/^(--n-|--color|--chrome|--glass-(top|bot|hi|rim|sheen|shadow|tint)|--accent)/.test(name)) continue;
+        if (!/^(--n-|--color|--chrome|--glass-(top|bot|hi|rim|sheen|shadow)|--accent)/.test(name)) continue;
         expect(value, `${name} = ${value}`).not.toMatch(/#[0-9a-f]{3,8}|rgba?\(/i);
         expect(value, `${name} = ${value}`).toMatch(/^(oklch\(|var\(--n-)/);
       }
@@ -190,5 +190,16 @@ describe('tokens: glass has two tints', () => {
     expect(staticVars['--glass-shadow']).toMatch(/^oklch\(0 0 0 \//);
     expect(lightVars['--glass-shadow']).toBeUndefined();
     expect(invertedVars['--glass-shadow']).toBeUndefined();
+  });
+
+  /**
+   * Components read the composed values, never a bare tint. A `--glass-tint` token would
+   * imply glass has one tint, which is the bug this recipe fixes — so it must not come back.
+   */
+  it('exposes exactly the composed glass values, and no bare tint', () => {
+    const glassKeys = (m: Record<string, string>) => Object.keys(m).filter(k => k.startsWith('--glass-')).sort();
+    expect(glassKeys(lightVars)).toEqual(['--glass-bot', '--glass-hi', '--glass-rim', '--glass-sheen', '--glass-top']);
+    expect(glassKeys(invertedVars)).toEqual(['--glass-bot', '--glass-hi', '--glass-rim', '--glass-sheen', '--glass-top']);
+    expect(glassKeys(staticVars)).toEqual(['--glass-blur', '--glass-shadow']);
   });
 });

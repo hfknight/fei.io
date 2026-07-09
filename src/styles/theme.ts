@@ -19,7 +19,6 @@ export const theme = {
     inkMuted: 'var(--chrome-ink-muted)',
   },
   glass: {
-    tint: 'var(--glass-tint)',
     top: 'var(--glass-top)',
     bot: 'var(--glass-bot)',
     hi: 'var(--glass-hi)',
