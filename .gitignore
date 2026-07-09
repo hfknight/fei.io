@@ -29,7 +29,6 @@ dist-ssr
 
 # skills
 .superpowers
-docs/superpowers/*
 .claude
 .agents
 .impeccable
