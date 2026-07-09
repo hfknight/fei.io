@@ -1126,7 +1126,7 @@ const SideItem = styled.button<{ $active: boolean }>`
     outline: none;
   }
   &:focus-visible {
-    outline: 2px solid rgba(252, 211, 77, 0.5);
+    outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
     outline-offset: 3px;
     border-radius: 4px;
   }
@@ -1136,7 +1136,7 @@ const SideIdx = styled.span<{ $active: boolean }>`
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-variant-numeric: tabular-nums;
   font-size: 0.62rem;
-  color: ${(p) => (p.$active ? 'rgba(252,211,77,0.9)' : 'rgba(255,255,255,0.3)')};
+  color: ${(p) => (p.$active ? 'color-mix(in srgb, var(--accent) 90%, transparent)' : 'rgba(255,255,255,0.3)')};
   transition: color 0.25s ease;
 `;
 
@@ -1158,7 +1158,7 @@ const Crumb = styled(Link)`
     outline: none;
   }
   &:focus-visible {
-    outline: 2px solid rgba(252, 211, 77, 0.5);
+    outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
     outline-offset: 3px;
     border-radius: 3px;
   }
@@ -1210,8 +1210,8 @@ const A = styled.a`
   transition: color 0.25s ease, border-color 0.25s ease;
 
   &:hover {
-    color: #fcd34d;
-    border-color: rgba(252, 211, 77, 0.6);
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 60%, transparent);
   }
 `;
 
@@ -1355,7 +1355,7 @@ const Idx = styled.span`
   font-variant-numeric: tabular-nums;
   font-size: 0.7rem;
   letter-spacing: 0.1em;
-  color: rgba(252, 211, 77, 0.7);
+  color: color-mix(in srgb, var(--accent) 70%, transparent);
 `;
 
 const GroupTitle = styled.h2`
@@ -1416,9 +1416,9 @@ const KeyTag = styled.code`
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 0.7rem;
   line-height: 1.55;
-  color: rgba(252, 211, 77, 0.9);
-  background: rgba(252, 211, 77, 0.07);
-  border: 1px solid rgba(252, 211, 77, 0.2);
+  color: color-mix(in srgb, var(--accent) 90%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 5px;
   padding: 0.16rem 0.46rem;
 `;
@@ -1462,12 +1462,12 @@ const PressButton = styled(motion.button)<{ $on: boolean }>`
   border-radius: 8px;
   /* Specific transitions only — never "all". */
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-  color: ${(p) => (p.$on ? '#1a1733' : 'rgba(255,255,255,0.8)')};
-  background: ${(p) => (p.$on ? '#fcd34d' : 'rgba(255,255,255,0.05)')};
-  border: 1px solid ${(p) => (p.$on ? 'rgba(252,211,77,0.7)' : 'rgba(255,255,255,0.14)')};
+  color: ${(p) => (p.$on ? 'var(--accent-ink)' : 'rgba(255,255,255,0.8)')};
+  background: ${(p) => (p.$on ? 'var(--accent)' : 'rgba(255,255,255,0.05)')};
+  border: 1px solid ${(p) => (p.$on ? 'color-mix(in srgb, var(--accent) 70%, transparent)' : 'rgba(255,255,255,0.14)')};
 
   &:hover {
-    border-color: ${(p) => (p.$on ? 'rgba(252,211,77,0.9)' : 'rgba(255,255,255,0.3)')};
+    border-color: ${(p) => (p.$on ? 'color-mix(in srgb, var(--accent) 90%, transparent)' : 'rgba(255,255,255,0.3)')};
   }
 `;
 
@@ -1540,7 +1540,7 @@ const OuterBox = styled.div`
 
 const InnerBox = styled.div`
   flex: 1;
-  background: linear-gradient(150deg, #fcd34d, #f0a73c);
+  background: linear-gradient(150deg, var(--accent), #f0a73c);
   opacity: 0.92;
 `;
 
@@ -1562,7 +1562,7 @@ const SliderLabel = styled.span`
 
 const Range = styled.input`
   flex: 1;
-  accent-color: #fcd34d;
+  accent-color: var(--accent);
   cursor: pointer;
 `;
 
@@ -1602,8 +1602,8 @@ const FakeButton = styled.span`
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 0.72rem;
   letter-spacing: 0.04em;
-  color: #1a1733;
-  background: #fcd34d;
+  color: var(--accent-ink);
+  background: var(--accent);
   border-radius: 8px;
   padding: 0.45rem 0.85rem;
 `;
@@ -1704,12 +1704,12 @@ const HitButton = styled.button<{ $reveal: boolean }>`
     transform: translate(-50%, -50%);
     border-radius: 8px;
     transition: background-color 0.2s ease, outline-color 0.2s ease;
-    outline: 1px dashed ${(p) => (p.$reveal ? 'rgba(252,211,77,0.7)' : 'transparent')};
-    background: ${(p) => (p.$reveal ? 'rgba(252,211,77,0.12)' : 'transparent')};
+    outline: 1px dashed ${(p) => (p.$reveal ? 'color-mix(in srgb, var(--accent) 70%, transparent)' : 'transparent')};
+    background: ${(p) => (p.$reveal ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent')};
   }
 
   &:hover::before {
-    background: ${(p) => (p.$reveal ? 'rgba(252,211,77,0.2)' : 'rgba(255,255,255,0.06)')};
+    background: ${(p) => (p.$reveal ? 'color-mix(in srgb, var(--accent) 20%, transparent)' : 'rgba(255,255,255,0.06)')};
   }
 `;
 
@@ -1734,8 +1734,8 @@ const AllBtn = styled.button`
 
   &:hover {
     padding: 0.5rem 1.8rem;
-    background: rgba(252, 211, 77, 0.18);
-    color: #fcd34d;
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    color: var(--accent);
   }
 `;
 
@@ -1930,8 +1930,8 @@ const Badge = styled(motion.span)`
   height: 16px;
   padding: 0 4px;
   border-radius: 999px;
-  background: #fcd34d;
-  color: #1a1733;
+  background: var(--accent);
+  color: var(--accent-ink);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 0.6rem;
   font-weight: 600;
@@ -1975,7 +1975,7 @@ const DiscBtn = styled.button`
     outline: none;
   }
   &:focus-visible {
-    outline: 2px solid rgba(252, 211, 77, 0.5);
+    outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -2027,7 +2027,7 @@ const Code = styled.pre`
   }
   .hljs-title,
   .hljs-section {
-    color: #fcd34d;
+    color: var(--accent);
   }
   .hljs-tag,
   .hljs-name {

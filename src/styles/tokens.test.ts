@@ -147,6 +147,37 @@ describe('theme accessor', () => {
   });
 });
 
+describe('tokens: the accent is surface-aware', () => {
+  /** The legacy #fcd34d that every dark page already renders. 3dp of chroma yields #fcd34e. */
+  it('keeps the inverted accent an exact conversion of #fcd34d', () => {
+    const { rgb } = parse(invertedVars['--accent']);
+    expect(rgb.map(Math.round)).toEqual([252, 211, 77]);
+  });
+
+  it('clears AA on the surface it sits on, both ways', () => {
+    const lightBg = parse(lightVars['--color-surface']).rgb;
+    const darkBg = parse(SURFACE_DEEP).rgb;
+    expect(contrast(rgbY(lightBg), luminance(lightVars['--accent'], lightBg))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(rgbY(darkBg), luminance(invertedVars['--accent'], darkBg))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('clears AA for text placed ON an accent fill, both ways', () => {
+    for (const map of [lightVars, invertedVars]) {
+      const fill = parse(map['--accent']).rgb;
+      expect(contrast(rgbY(fill), luminance(map['--accent-ink'], fill))).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  /**
+   * The reason the accent cannot be one value: the dark accent is unreadable on the light
+   * surface. If this ever passes, someone has flattened the accent and broken light pages.
+   */
+  it('proves a single accent value could not serve both surfaces', () => {
+    const lightBg = parse(lightVars['--color-surface']).rgb;
+    expect(contrast(rgbY(lightBg), luminance(invertedVars['--accent'], lightBg))).toBeLessThan(2);
+  });
+});
+
 describe('tokens: ui-scheme drives the UA colour-scheme', () => {
   it('names the scheme per surface so native controls match', () => {
     expect(lightVars['--ui-scheme']).toBe('light');

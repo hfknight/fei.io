@@ -149,6 +149,18 @@ native controls — the admin's `<select>` popups — and scrollbars to match th
 It is deliberately named outside the `--color-*` family so the "every colour is oklch"
 test guard skips it.
 
+`--accent` is the warm yellow, and it is **surface-aware** — it has to be. On the inverted
+surface it is the legacy `#fcd34d` (12.85:1); on the light surface that same yellow drops to
+1.40:1, and no lightness of it clears AA on both, so the light value is darkened to
+`oklch(0.54 0.111 92)` (4.93:1), which at that hue necessarily reads olive-bronze. `--accent-ink`
+is text placed *on* an accent fill: the deep surface on dark, white on light. Hue 92 sits 173°
+from the ramp's 265, i.e. near its complement — the warmth is deliberate.
+
+Never hardcode the accent. For a translucent accent use
+`color-mix(in srgb, var(--accent) 35%, transparent)`, which renders byte-identically to the
+old `rgba(252,211,77,0.35)` and follows the surface. `/changelog`'s neon is out of the system
+and keeps its own hex.
+
 `Layout` sets `data-surface` on `<html>` from the route. Every page is currently bridged
 to `inverted` because every page is still dark; the landing stays `inverted` permanently
 since its chrome sits over video. Migrating a page to light means adding its path to

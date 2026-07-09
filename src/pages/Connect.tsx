@@ -45,7 +45,7 @@ const AmbientGlow = styled.div`
   width: 700px;
   height: 320px;
   background: radial-gradient(ellipse at center,
-    rgba(251, 191, 36, 0.05) 0%,
+    color-mix(in srgb, var(--accent) 5%, transparent) 0%,
     rgba(58, 32, 96, 0.1) 50%,
     transparent 75%
   );
@@ -97,13 +97,13 @@ const LinkRow = styled(motion.a)`
   }
 
   &:focus-visible {
-    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.6);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 60%, transparent);
     border-radius: 2px;
   }
 
   &:hover .icon-wrap svg,
   &:focus-visible .icon-wrap svg {
-    color: #fbbf24;
+    color: var(--accent);
   }
 
   &:hover .link-name,

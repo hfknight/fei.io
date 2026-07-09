@@ -102,7 +102,7 @@ const EntryLink = styled(Link)`
   padding: 1.6rem 0;
 
   &:hover h2 {
-    color: #fcd34d;
+    color: var(--accent);
   }
 `;
 

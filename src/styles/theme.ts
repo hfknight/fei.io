@@ -36,7 +36,8 @@ export const theme = {
   space: { 1: 'var(--space-1)', 2: 'var(--space-2)', 3: 'var(--space-3)' },
   barHeight: 'var(--bar-height)',
   ease: { expo: 'var(--ease-expo)', glass: 'var(--ease-glass)' },
-  accent: { logo: 'var(--accent-logo)' },
+  /** `base` is the accent itself; `ink` is text placed ON an accent fill. Both per-surface. */
+  accent: { base: 'var(--accent)', ink: 'var(--accent-ink)' },
   breakpoints: { sm: '640px', md: '768px', lg: '1024px', xl: '1280px' },
 } as const;
 

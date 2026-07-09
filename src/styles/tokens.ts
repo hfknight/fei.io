@@ -90,8 +90,6 @@ export const staticVars: Record<string, string> = {
   '--bar-height': '60px',
   '--ease-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
   '--ease-glass': 'cubic-bezier(0.22, 1, 0.36, 1)',
-  // exact conversion of the legacy #fdd75e
-  '--accent-logo': 'oklch(0.889 0.144 91.7)',
   '--glass-blur': `${GLASS.blur}px`,
   '--glass-shadow': `oklch(0 0 0 / ${GLASS.shadow})`,
 };
@@ -108,6 +106,15 @@ export const lightVars: Record<string, string> = {
   '--color-border': 'var(--n-4)',
   '--chrome-ink': 'var(--n-11)',
   '--chrome-ink-muted': 'var(--n-8)',
+  // The accent is warm on purpose: hue 92 sits 173° from the ramp's 265, i.e. near its
+  // complement. It cannot be one value across surfaces — a yellow light enough to read on
+  // #12102a (12.85:1) drops to 1.40:1 on near-white, and no lightness of it clears AA on
+  // both. Here it is darkened to 4.93:1 on --n-0, which at this hue necessarily reads
+  // olive-bronze rather than butter: a yellow dark enough to be legible on white is not
+  // yellow any more. Unconsumed until a page migrates to light; revisit then.
+  '--accent': 'oklch(0.54 0.111 92)',
+  // white on that accent measures 5.07:1
+  '--accent-ink': 'oklch(1 0 0)',
   ...glassVars(ink, white),
 };
 
@@ -121,6 +128,12 @@ export const invertedVars: Record<string, string> = {
   '--chrome-ink': WHITE,
   // Bumped from the footer's 0.45 (4.49:1, fails AA) to 0.5 (5.28:1).
   '--chrome-ink-muted': white(0.5),
+  // Exact conversion of the legacy #fcd34d — the yellow every dark page already renders for
+  // links, code highlights and button fills. 12.85:1 on the deep surface. Needs 4 decimals
+  // of chroma to round-trip to [252,211,77]; 3 gives #fcd34e.
+  '--accent': 'oklch(0.879 0.1534 91.61)',
+  // dark ink on the yellow fill, as the admin buttons already do — 12.85:1
+  '--accent-ink': SURFACE_DEEP,
   // fill === specular === white here, so this is the original single-tint recipe, unchanged.
   ...glassVars(white, white),
 };

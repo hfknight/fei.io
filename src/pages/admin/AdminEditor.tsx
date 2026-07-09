@@ -265,7 +265,7 @@ const inputStyles = `
   outline: none;
 
   &:focus {
-    border-color: rgba(252, 211, 77, 0.5);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   }
 `;
 
@@ -312,7 +312,7 @@ const UploadLabel = styled.label`
   cursor: pointer;
 
   &:hover {
-    border-color: rgba(252, 211, 77, 0.5);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
     color: #fff;
   }
 `;
@@ -322,8 +322,8 @@ const Save = styled.button`
   font-size: 0.7rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #12102a;
-  background: #fcd34d;
+  color: var(--accent-ink);
+  background: var(--accent);
   border: none;
   padding: 0.55rem 1.1rem;
   border-radius: 6px;
