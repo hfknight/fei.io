@@ -4,6 +4,21 @@ import { Link, useLocation } from 'react-router-dom';
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
+// Nav-pill glass intensity, 0–1. Port of the design source's `pillHover` prop: every
+// value in PILL is a linear function of this one dial, so they thicken in proportion.
+// 0 is the source's own default (a bare rim); 1 is a heavy frosted slab.
+const PILL_HOVER = 0.2;
+
+// Port of the source's applyPill(), including its rounding.
+const PILL = {
+  top: (0.08 + 0.34 * PILL_HOVER).toFixed(3),
+  bot: (0.02 + 0.11 * PILL_HOVER).toFixed(3),
+  blur: (3 + 13 * PILL_HOVER).toFixed(1),
+  hi: (0.22 + 0.42 * PILL_HOVER).toFixed(3),
+  rim: (0.06 + 0.18 * PILL_HOVER).toFixed(3),
+  shadow: (0.06 + 0.2 * PILL_HOVER).toFixed(3),
+};
+
 const Bar = styled.header`
   position: fixed;
   top: 0;
@@ -30,7 +45,7 @@ const NavLinks = styled.ul`
   margin: 0;
   padding: 0;
   display: flex;
-  gap: 2rem;
+  gap: 0.5rem;
 
   @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
     flex-wrap: wrap;
@@ -45,11 +60,11 @@ const NavItem = styled.li``;
 const NavLink = styled(Link)<{ $active?: boolean }>`
   position: relative;
   color: #fff;
-  opacity: ${p => p.$active ? 1 : 0.75};
+  opacity: ${p => p.$active ? 1 : 0.72};
   text-decoration: none;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 0.72rem;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 8px 15px;
   border-radius: 7px;
@@ -60,17 +75,27 @@ const NavLink = styled(Link)<{ $active?: boolean }>`
     backdrop-filter 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   outline: none;
 
+  /* Glass is driven by PILL_HOVER above, mirroring the source's applyPill(). Do not
+     substitute the var() fallbacks from the source's stylesheet — its script overwrites
+     them on mount, so those fallbacks are never rendered (they sit near pillHover 0.65).
+     The -1px inset below has no variable in the source and stays fixed. */
   &:hover,
   &:focus-visible {
+    /* outranks the global light-mode a:hover in index.css, which would tint the label amber */
+    color: #fff;
     opacity: 1;
-    background: linear-gradient(140deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.08));
-    -webkit-backdrop-filter: blur(11px) saturate(205%);
-    backdrop-filter: blur(11px) saturate(205%);
+    background: linear-gradient(
+      140deg,
+      rgba(255, 255, 255, ${PILL.top}),
+      rgba(255, 255, 255, ${PILL.bot})
+    );
+    -webkit-backdrop-filter: blur(${PILL.blur}px) saturate(205%);
+    backdrop-filter: blur(${PILL.blur}px) saturate(205%);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, ${PILL.hi}),
       inset 0 -1px 2px rgba(255, 255, 255, 0.14),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.18),
-      0 6px 20px rgba(0, 0, 0, 0.22);
+      inset 0 0 0 1px rgba(255, 255, 255, ${PILL.rim}),
+      0 6px 20px rgba(0, 0, 0, ${PILL.shadow});
   }
 `;
 
