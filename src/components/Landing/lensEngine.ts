@@ -357,7 +357,10 @@ function captionRect(ctx: LensCtx, name: string): DOMRect | null {
 function lensDefaultPos(ctx: LensCtx, idx: number): { x: number; y: number } {
   if (idx === 0) {
     const j = captionRect(ctx, 'Jojo');
-    if (j) return { x: Math.round(j.left - 90), y: Math.round(j.top - 21) };
+    // -46 centers the lens on the "Jojo" name plate. NB: this runs during setup, while the
+    // caption still holds its translateX(-26px) entry offset, so j.left is 26px left of
+    // where the caption settles — the offset is calibrated against that pre-animation rect.
+    if (j) return { x: Math.round(j.left - 46), y: Math.round(j.top - 21) };
     return { x: 56, y: 210 };
   }
   const o = captionRect(ctx, 'Ollie');

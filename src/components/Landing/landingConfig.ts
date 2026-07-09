@@ -20,9 +20,9 @@ export const LENS = {
   refractiveIndex: 1.5,
   glassThickness: 10,
   bezelWidth: 45,
-  magnify: 0.05,
+  magnify: 0.08,
   lensSize: 128,        // base; lens 1 is rendered 1.45× larger (see setupLens)
-  magnifyScale: 1,
+  magnifyScale: 1.15,
   liquidEnabled: true,
   liquidStretch: 0.16,
   chromaticAberration: true,
