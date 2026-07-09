@@ -37,16 +37,11 @@ npm run test:run   # tests
 ## Fonts
 
 Loaded via Google Fonts in `index.html`:
-- **Inter** (200–500) — body text, used in `/readme` and `/contact`
-- **JetBrains Mono** (400–500) — nav, footer, labels, monospace accents
-- **Cormorant Garamond** (400) — loaded, available
-- **Big Shoulders Display** (800) — loaded, available
-- **Playfair Display** (400, 500, italic) — loaded, available
-
-Additional fonts loaded via `src/index.css` (used in `/changelog` day sections):
-- **Outfit** — primary day section font (`--day-font-primary`)
-- **Exo 2** — day section secondary (`--day-font-secondary`)
-- **Audiowide**, **Neonderthaw**, **Press Start 2P** — special section effects
+- **Archivo** (400–700) — display face, headings
+- **Inter** (200–500) — body text, inherited copy
+- **JetBrains Mono** (400–500) — chrome and labels
+- **Big Shoulders Display** (800) — loaded, unused
+- **Playfair Display** (400, 500, italic) — loaded, unused
 
 ## Routes
 
@@ -54,13 +49,16 @@ Additional fonts loaded via `src/index.css` (used in `/changelog` day sections):
 |---|---|---|
 | `/` | `Landing` | Video background, loading screen, intro panel |
 | `/readme` | `About` | Personal statement, dark editorial layout |
-| `/changelog` | `Day` | Day-journey scroll visualization |
-| `/contact` | `Contact` | Contact links from portfolio.json |
+| `/changelog` | `Day` | **Retired.** Route kept, no nav link. |
 | `/work` | `Work` | (placeholder) |
+| `/connect` | `Connect` | Contact links from portfolio.json |
+| `/lab` | `Lab` | Lab index |
+| `/lab/:slug` | `LabEntryRoute` | A lab entry |
 | `/writing` | `Writing` | Blog index (published posts) |
 | `/writing/:slug` | `WritingPost` | A post, rendered in its template |
 | `/writing/admin` | `AdminPosts` | Admin post list (Cloudflare Access–gated) |
 | `/writing/admin/new`, `/writing/admin/:id` | `AdminEditor` | Create/edit a post |
+| `/loading` | `LoadingScreen` | Loading screen (dev-only route) |
 
 All routes are wrapped by `Layout` (renders `Header` + `Footer` globally).
 Blog routes are lazy-loaded so the markdown/highlighter bundle stays off the landing page.
@@ -121,11 +119,29 @@ The portfolio is structured as a **day-journey visualization** — five time-of-
 
 ### Styling conventions
 
-The `theme` object (amber/cream palette) applies to the day-journey sections. The standalone pages (`/readme`, `/contact`) use a **dark indigo palette** (`#12102a` background) that intentionally does not use theme tokens — this is by design to match the cinematic landing video aesthetic. Do not "fix" hardcoded colors on these pages.
-
-All responsive work is done with styled-components media queries referencing `theme.breakpoints`.
-
 Animation conventions:
 - Use `cubic-bezier(0.16, 1, 0.3, 1)` (ease-out-expo) as the standard easing — never bounce or elastic
 - Always handle `useReducedMotion()` for entrance animations
 - Pause CSS keyframe animations when sections are off-screen using `animationPlayState`
+
+### Design system
+
+`src/styles/tokens.ts` is the single source of truth: a neutral oklch ramp at hue 265,
+type/space/radius/motion primitives, and a glass recipe driven by one dial (`GLASS_K`).
+`tokens.css.ts` emits it as `:root` (light) and `[data-surface="inverted"]` (dark).
+`theme.ts` is a typed accessor returning `var(--x)` strings — author
+`${p => p.theme.color.ink}` as before.
+
+`theme.breakpoints` returns literal px strings, because CSS custom properties are
+illegal inside `@media` queries.
+
+`Layout` sets `data-surface` on `<html>` from the route. Every page is currently bridged
+to `inverted` because every page is still dark; the landing stays `inverted` permanently
+since its chrome sits over video. Migrating a page to light means adding its path to
+`LIGHT_ROUTES` in `Layout.tsx` and reworking that page's hardcoded colors.
+
+`/changelog` is retired: the route still resolves, but it has no nav link and its neon
+palette is deliberately outside the system.
+
+**Known limitation:** `LIGHT_ROUTES` uses exact-string pathname matching, so adding `/lab`
+would not match `/lab/foo` — a future migration needs prefix matching or per-slug enumeration.
