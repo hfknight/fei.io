@@ -126,6 +126,20 @@ The portfolio is structured as a **day-journey visualization** — five time-of-
 - `src/styles/styled.d.ts` — TypeScript augmentation so the theme is fully typed in all styled-components
 - `src/types/index.ts` — shared interfaces: `JsonSection`, `TimeSection`, `Constellation`
 
+### Landing lens reveals
+
+The landing hides elements that surface **only under a draggable lens**. Give a node
+`data-lens-reveal` and base `opacity: 0` (invisible on the page); `lensEngine.ts`'s
+`buildLensWorld` flips it visible inside every refracted lens clone — one hook covers both
+lenses and the metaball bridge. `DallasPin` (map, lower-left light half) and `MoodClock`
+(Dallas time + mood-of-the-day, upper-right dark half) ride this.
+
+Two gotchas. The clone is a **static snapshot**, so live/dynamic content freezes at
+clone-build time unless synced into every `[data-lens-world]` copy each tick — see `MoodClock`
+driving `[data-time-reveal]` nodes from a `setInterval`. And a revealed node may set its own
+opacity via `data-reveal-opacity` (default `1`; the map rides `0.8`). Reveals are gated with
+the lenses: desktop only (hover + fine pointer), never shipped to touch / reduced-motion.
+
 ### Styling conventions
 
 Animation conventions:
