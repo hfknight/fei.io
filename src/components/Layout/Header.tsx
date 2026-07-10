@@ -133,20 +133,22 @@ const Header: React.FC = () => {
         <NavItem style={isHome ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}>
           <NavLink to="/" $active={false}><Label>Home</Label></NavLink>
         </NavItem>
+        {/* aria-current is the accessible half of the pill: the pill draws where you are,
+            this announces it. Without it the active route is conveyed by colour alone. */}
         <NavItem>
-          <NavLink to="/readme" $active={isReadme}><ActivePill show={isReadme} /><Label>Readme</Label></NavLink>
+          <NavLink to="/readme" $active={isReadme} aria-current={isReadme ? 'page' : undefined}><ActivePill show={isReadme} /><Label>Readme</Label></NavLink>
         </NavItem>
         <NavItem>
-          <NavLink to="/lab" $active={isLab}><ActivePill show={isLab} /><Label>Lab</Label></NavLink>
+          <NavLink to="/lab" $active={isLab} aria-current={isLab ? 'page' : undefined}><ActivePill show={isLab} /><Label>Lab</Label></NavLink>
         </NavItem>
         <NavItem>
-          <NavLink to="/work" $active={isWork}><ActivePill show={isWork} /><Label>Work</Label></NavLink>
+          <NavLink to="/work" $active={isWork} aria-current={isWork ? 'page' : undefined}><ActivePill show={isWork} /><Label>Work</Label></NavLink>
         </NavItem>
         <NavItem>
-          <NavLink to="/writing" $active={isWriting}><ActivePill show={isWriting} /><Label>Writing</Label></NavLink>
+          <NavLink to="/writing" $active={isWriting} aria-current={isWriting ? 'page' : undefined}><ActivePill show={isWriting} /><Label>Writing</Label></NavLink>
         </NavItem>
         <NavItem>
-          <NavLink to="/connect" $active={isConnect}><ActivePill show={isConnect} /><Label>Connect</Label></NavLink>
+          <NavLink to="/connect" $active={isConnect} aria-current={isConnect ? 'page' : undefined}><ActivePill show={isConnect} /><Label>Connect</Label></NavLink>
         </NavItem>
       </NavLinks>
     </Bar>

@@ -80,3 +80,41 @@ describe('Header active pill', () => {
     expect(pills(container)).toHaveLength(0);
   });
 });
+
+/**
+ * The pill draws where you are; aria-current announces it. Without this the active route is
+ * conveyed by colour alone, which no screen reader can see.
+ */
+describe('Header active route is announced', () => {
+  const current = () =>
+    screen.getAllByRole('link').filter((a) => a.getAttribute('aria-current') === 'page');
+
+  it('marks exactly the active link with aria-current="page"', () => {
+    renderHeader('/lab');
+
+    expect(current().map((a) => a.textContent)).toEqual(['Lab']);
+  });
+
+  it('marks the section link for a nested route', () => {
+    renderHeader('/writing/some-post');
+
+    expect(current().map((a) => a.textContent)).toEqual(['Writing']);
+  });
+
+  it('marks nothing on the landing', () => {
+    renderHeader('/');
+
+    expect(current()).toHaveLength(0);
+  });
+
+  it('never sets aria-current on an inactive link', () => {
+    renderHeader('/connect');
+
+    const inactive = screen
+      .getAllByRole('link')
+      .filter((a) => a.textContent !== 'Connect');
+    for (const link of inactive) {
+      expect(link, link.textContent ?? '').not.toHaveAttribute('aria-current');
+    }
+  });
+});
