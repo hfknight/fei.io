@@ -6,6 +6,7 @@ import PetCaption from './PetCaption';
 import Loader from './Loader';
 import Lenses from './Lenses';
 import DallasPin from './DallasPin';
+import MoodClock from './MoodClock';
 import { createLandingEngine } from './landingEngine';
 
 // The loader intro plays once per fresh page load. This module-scope flag persists
@@ -54,9 +55,10 @@ const Landing: React.FC = () => {
       <Lockup />
       <PetCaption pet="j" />
       <PetCaption pet="o" />
-      {/* Invisible on the page; lensEngine reveals it only inside the refracted lens clones.
-          Gated with the lenses — no lens, nothing to reveal, so don't ship the image. */}
+      {/* Invisible on the page; lensEngine reveals these only inside the refracted lens clones.
+          Gated with the lenses — no lens, nothing to reveal, so don't ship them. */}
       {interactive && <DallasPin />}
+      {interactive && <MoodClock />}
       {interactive && <Lenses />}
     </div>
   );
