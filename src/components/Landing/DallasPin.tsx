@@ -23,6 +23,7 @@ const MASK =
 const DallasPin: React.FC = () => (
   <div
     data-lens-reveal
+    data-reveal-opacity="0.8"
     aria-hidden="true"
     style={{
       position: 'absolute',

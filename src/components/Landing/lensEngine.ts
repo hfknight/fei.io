@@ -422,8 +422,12 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     world.querySelectorAll('[data-lens-filter-host]').forEach((n) => n.remove());
     // [data-lens-reveal] elements sit on the page at opacity:0 (invisible); un-hide them
     // inside every clone so they surface only under the glass. One flip covers both lenses
-    // and the bridge, since all three worlds come through here.
-    world.querySelectorAll('[data-lens-reveal]').forEach((n) => { (n as HTMLElement).style.opacity = '1'; });
+    // and the bridge, since all three worlds come through here. An element may set its own
+    // revealed opacity via data-reveal-opacity (the map rides a bit translucent); default 1.
+    world.querySelectorAll('[data-lens-reveal]').forEach((n) => {
+      const el = n as HTMLElement;
+      el.style.opacity = el.dataset.revealOpacity ?? '1';
+    });
     world.setAttribute('data-lens-world', '');
     // A world is a decorative refraction snapshot, and there are three of them (two lenses
     // + the metaball bridge). `inert` keeps their clones out of the tab order and the
