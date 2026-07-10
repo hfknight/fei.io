@@ -31,4 +31,12 @@ Reverting to a lighter surface means re-deriving the accent, not just editing on
 The inverted surface is untouched. `tokens.test.ts` needed no new assertions: its contrast checks
 read `lightVars` dynamically, so they re-evaluate against these values and still pass — including
 the guard proving a single accent could not serve both surfaces (the dark accent measures 1.14:1
-on `--n-3`, well under the `< 2` the test demands).
+on the light surface, well under the `< 2` the test demands).
+
+## Later refined
+
+The grey moved off `--n-3` to a bespoke off-ramp value, `oklch(0.913 0.0013 106.4)` (`#e2e2e1`) —
+near-neutral and a hair darker — and the pages gained a faint paper grain (a fixed noise overlay
+in `GlobalStyles.ts`, scoped to the light surface). The accent tightened to 4.63:1 and the border
+to 1.44:1 on the slightly darker ground; both still clear their thresholds, so no retune. The
+decision this ADR records — a grey, off-ramp light surface with a darkened accent — is unchanged.

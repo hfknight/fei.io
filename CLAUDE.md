@@ -156,9 +156,16 @@ native controls — the admin's `<select>` popups — and scrollbars to match th
 It is deliberately named outside the `--color-*` family so the "every colour is oklch"
 test guard skips it.
 
-The light surface is **grey paper, not white**: `--color-surface` is `--n-3` (`#e3e4e7`), chosen
-to sit inside the 0.937–0.875 band of the landing's left plate. Three tokens are tuned against
-that ground and move with it — see `docs/adr/0001-grey-light-surface.md`.
+The light surface is **near-neutral grey paper, not white**: `--color-surface` is
+`oklch(0.913 0.0013 106.4)` (`#e2e2e1`) — a bespoke off-ramp value, a hair darker than the old
+`--n-3` and essentially hueless. Three tokens are tuned against its *lightness* and move only if
+that changes — see `docs/adr/0001-grey-light-surface.md`.
+
+Light pages also wear a faint **paper grain**: a single fixed noise layer (`body::after`, scoped
+to `data-surface="default"`) blended `overlay` at low opacity — a heavier cousin of the landing's
+`--frost-noise`, defined in `GlobalStyles.ts`. It sits over content but is imperceptible on text
+and shows only as texture on the flat paper. Contrast is unaffected; the deep pages and the
+landing keep their own treatments.
 
 `--accent` is the warm yellow, and it is **surface-aware** — it has to be. On the inverted
 surface it is the legacy `#fcd34d` (12.85:1); on the light surface that same yellow drops to

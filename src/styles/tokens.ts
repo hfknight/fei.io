@@ -121,15 +121,16 @@ export const lightVars: Record<string, string> = {
   // <select> popups) and scrollbars to match the surface. Not a colour: deliberately
   // named outside the `--color-*` family so the "all colours are oklch" guard skips it.
   '--ui-scheme': 'light',
-  // Grey paper, not white. --n-3 (#e3e4e7) falls inside the 0.937–0.875 band of the landing's
-  // left plate, so the written pages read as a continuation of it. Every value below is tuned
-  // against this ground: moving the surface moves them all. See docs/adr/0001.
-  '--color-surface': 'var(--n-3)',
+  // Near-neutral grey paper (#e2e2e1), a bespoke off-ramp value at hue 106 but chroma so low
+  // (0.0013) it reads neutral. A hair darker than the old --n-3, and given a faint grain overlay
+  // in GlobalStyles — the same --frost-noise the landing wears. Every value below is tuned
+  // against this ground's *lightness*: moving that moves them all. See docs/adr/0001.
+  '--color-surface': 'oklch(0.913 0.0013 106.4)',
   '--color-ink': 'var(--n-11)',
   '--color-ink-muted': 'var(--n-9)',
-  // n-4 measured 1.39:1 against the near-white surface this theme was first authored on. On
-  // --n-3 it falls to 1.13:1 — fainter than the inverted surface's own border — and hairlines
-  // vanish. n-5 restores the separation at 1.47:1. Decorative, so no test asserts it.
+  // n-4 measured 1.39:1 against the near-white surface this theme was first authored on. On the
+  // 0.92 surface it falls to 1.13:1 — fainter than the inverted surface's own border — and
+  // hairlines vanish. n-5 restores the separation at 1.44:1. Decorative, so no test asserts it.
   '--color-border': 'var(--n-5)',
   '--chrome-ink': 'var(--n-11)',
   // n-8 was picked for near-white paper and gives only 3.83:1 here. n-9 gives 5.87:1, which
@@ -137,8 +138,8 @@ export const lightVars: Record<string, string> = {
   '--chrome-ink-muted': 'var(--n-9)',
   // The accent is warm on purpose: hue 92 sits 173° from the ramp's 265, i.e. near its
   // complement. It cannot be one value across surfaces — a yellow light enough to read on
-  // #12102a (12.85:1) drops to 1.14:1 on --n-3, and no lightness of it clears AA on both.
-  // Here it is darkened to 4.73:1 on --n-3, which at this hue necessarily reads olive-bronze
+  // #12102a (12.85:1) drops to 1.14:1 on the light surface, and no lightness clears AA on both.
+  // Here it is darkened to 4.63:1 on the light surface, which at this hue necessarily reads olive-bronze
   // rather than butter: a yellow dark enough to be legible on grey paper is not yellow any
   // more. This is the link colour on every light page.
   '--accent': 'oklch(0.50 0.111 92)',
