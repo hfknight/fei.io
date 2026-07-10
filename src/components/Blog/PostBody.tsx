@@ -47,7 +47,7 @@ const Prose = styled.div`
   color: ${p => p.theme.color.ink};
   font-family: ${p => p.theme.font.body};
   font-size: 1.05rem;
-  line-height: 1.75;
+  line-height: 1.6;
 
   h1, h2, h3, h4 {
     color: ${p => p.theme.color.ink};

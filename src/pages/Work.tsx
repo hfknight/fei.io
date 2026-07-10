@@ -29,7 +29,7 @@ const Label = styled(motion.span)`
 const Graf = styled(motion.p)`
   font-family: ${p => p.theme.font.body};
   font-size: clamp(1.25rem, 2.5vw, 1.5rem);
-  line-height: 1.95;
+  line-height: 1.6;
   color: ${p => p.theme.color.ink};
   margin: 0 0 2.5rem;
   font-weight: 200;
