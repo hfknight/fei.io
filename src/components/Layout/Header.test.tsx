@@ -17,6 +17,10 @@ const renderHeader = (path = '/lab') =>
 const navOrder = () =>
   screen.getAllByRole('link').map((a) => a.textContent);
 
+/** Home is an icon, so its accessible name lives on the anchor rather than in its text. */
+const navNames = () =>
+  screen.getAllByRole('link').map((a) => a.getAttribute('aria-label') ?? a.textContent);
+
 describe('Header nav', () => {
   it('renders a Lab link sitting between Readme and Work', () => {
     renderHeader();
@@ -37,6 +41,28 @@ describe('Header nav', () => {
     renderHeader();
 
     expect(navOrder()).not.toContain('Changelog');
+  });
+
+  it('renders Home on every route, the landing included', () => {
+    for (const path of ['/', '/lab', '/readme', '/writing/some-post']) {
+      const { unmount } = renderHeader(path);
+      expect(navNames(), path).toContain('Home');
+      expect(navNames(), path).toHaveLength(6);
+      unmount();
+    }
+  });
+
+  /**
+   * Home is a glyph, so it has no text to name it. The name lives on the anchor and the icon
+   * is hidden from the accessibility tree — otherwise the link announces as unlabelled.
+   */
+  it('names the Home icon on the anchor, not in its text', () => {
+    renderHeader('/lab');
+
+    const home = screen.getByRole('link', { name: 'Home' });
+    expect(home).toHaveAttribute('href', '/');
+    expect(home).toHaveTextContent('');
+    expect(home.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
   });
 });
 
@@ -74,10 +100,19 @@ describe('Header active pill', () => {
     );
   });
 
-  it('shows no pill on the landing, where no nav link is active', () => {
+  /**
+   * Home is a way back, not a destination: it never wears the pill, so on the landing no link
+   * is active. That also keeps the pill out of the three header copies the lens clones.
+   */
+  it('never gives Home the pill, so the landing shows none', () => {
     const { container } = renderHeader('/');
-
     expect(pills(container)).toHaveLength(0);
+
+    const onLab = renderHeader('/lab');
+    expect(onLab.container.querySelectorAll('[data-nav-pill]')).toHaveLength(1);
+    expect(
+      onLab.container.querySelector('a[aria-label="Home"] [data-nav-pill]'),
+    ).toBeNull();
   });
 });
 
@@ -101,20 +136,24 @@ describe('Header active route is announced', () => {
     expect(current().map((a) => a.textContent)).toEqual(['Writing']);
   });
 
-  it('marks nothing on the landing', () => {
+  it('marks nothing on the landing, since Home is never current', () => {
     renderHeader('/');
 
     expect(current()).toHaveLength(0);
+    expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current');
   });
 
-  it('never sets aria-current on an inactive link', () => {
+  it('never sets aria-current on an inactive link, Home included', () => {
     renderHeader('/connect');
 
     const inactive = screen
       .getAllByRole('link')
       .filter((a) => a.textContent !== 'Connect');
+    expect(inactive).toHaveLength(5);
     for (const link of inactive) {
-      expect(link, link.textContent ?? '').not.toHaveAttribute('aria-current');
+      expect(link, link.getAttribute('aria-label') ?? link.textContent ?? '').not.toHaveAttribute(
+        'aria-current',
+      );
     }
   });
 });

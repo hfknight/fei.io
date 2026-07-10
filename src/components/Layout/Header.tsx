@@ -1,6 +1,7 @@
 import styled, { css } from 'styled-components';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
+import { House } from 'lucide-react';
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
@@ -15,11 +16,13 @@ const glassPill = css`
   background: linear-gradient(140deg, ${p => p.theme.glass.top}, ${p => p.theme.glass.bot});
   -webkit-backdrop-filter: blur(${p => p.theme.glass.blur}) saturate(205%);
   backdrop-filter: blur(${p => p.theme.glass.blur}) saturate(205%);
+  /* The cast shadow is short. The 6px/20px it used to throw belonged to a slab floating well
+     above the page, and on paper it pooled into a dark blob under the active link. */
   box-shadow:
     inset 0 1px 0 ${p => p.theme.glass.hi},
     inset 0 -1px 2px ${p => p.theme.glass.sheen},
     inset 0 0 0 1px ${p => p.theme.glass.rim},
-    0 6px 20px ${p => p.theme.glass.shadow};
+    0 2px 6px ${p => p.theme.glass.shadow};
 `;
 
 const Bar = styled.header`
@@ -34,34 +37,50 @@ const Bar = styled.header`
   height: ${p => p.theme.barHeight};
   background: transparent;
 
+  /* The bar kept height:auto and a flex-start alignment only to accommodate a wrapping
+     nav. One row means it can stay the same fixed bar it is on desktop. */
   @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
     left: 0;
-    height: auto;
-    min-height: ${p => p.theme.barHeight};
-    align-items: flex-start;
-    padding: 0.6rem 1.25rem;
+    padding: 0 0.75rem;
   }
 `;
+
+/** The track's inset: the gap between its rim and the pill that slides inside it. */
+const TRACK_PAD = '0.25rem';
+const TRACK_PAD_SM = '0.15rem';
 
 const NavLinks = styled.ul`
   list-style: none;
   margin: 0;
-  padding: 0;
-  display: flex;
-  gap: 0.5rem;
+  display: inline-flex;
+  /* A small gap sets the hover/active pills apart so adjacent ones never touch. */
+  gap: 0.35rem;
+  /* The nav paints nothing itself; this inset only keeps the end links' hover pills from
+     sitting flush against the bar's edge. */
+  padding: ${TRACK_PAD};
 
+  /* One row, always. A wrapping nav sends the shared-layout pill diagonally across
+     unrelated links on any route change that crosses a row, and the CSS technique this
+     pattern comes from — translateX plus width — cannot express a row change at all. The gap
+     tightens on mobile, where the six links are already close to the viewport width. */
   @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 0.55rem 1.1rem;
-    max-width: 100%;
+    flex-wrap: nowrap;
+    gap: 0.15rem;
+    padding: ${TRACK_PAD_SM};
   }
 `;
 
-const NavItem = styled.li``;
+const NavItem = styled.li`
+  display: flex;
+`;
 
 const NavLink = styled(Link)<{ $active?: boolean }>`
   position: relative;
+  /* An inline <a> paints its vertical padding but contributes none of it to layout height, so
+     the track collapsed onto a line box and the pill sat 2px from the rim instead of the 4.8px
+     the inset asks for. A flex box makes the padding structural. */
+  display: inline-flex;
+  align-items: center;
   color: ${p => p.theme.chrome.ink};
   opacity: ${p => p.$active ? 1 : 0.72};
   text-decoration: none;
@@ -69,7 +88,10 @@ const NavLink = styled(Link)<{ $active?: boolean }>`
   font-size: 0.72rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: ${p => p.theme.space[1]} ${p => p.theme.space[2]};
+  /* Tighter than the space scale's 8/15px. The links abut now, so each one's horizontal
+     padding is half the visual gutter between two labels — 11px of padding reads as the 22px
+     of air the old 15px + 3.2px gap gave, at two thirds the width. */
+  padding: 0.375rem 0.7rem;
   border-radius: ${p => p.theme.radius.pill};
   transition:
     opacity 0.35s ease,
@@ -83,6 +105,15 @@ const NavLink = styled(Link)<{ $active?: boolean }>`
   &:focus-visible {
     opacity: 1;
     ${p => !p.$active && glassPill}
+  }
+
+  /* Six labels are 31 characters; at the desktop metrics they need ~446px and the nav used
+     to wrap. Tightening the tracking and the horizontal padding fits them on one row down
+     to a 320px viewport, without shrinking the type below the footer's size. */
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    font-size: 0.66rem;
+    letter-spacing: 0;
+    padding: 0.375rem 0.3rem;
   }
 `;
 
@@ -105,6 +136,23 @@ const Label = styled.span`
   z-index: 1;
 `;
 
+/**
+ * Home carries a glyph rather than a word, so its box is squarer than a label's — the same
+ * vertical padding, less horizontal. The icon inherits `currentColor`, which means it follows
+ * `--chrome-ink` across surfaces exactly as the labels do.
+ *
+ * An icon-only link has no text to name it, so the name lives on the anchor as `aria-label`
+ * and the glyph is hidden from the accessibility tree.
+ */
+const IconLink = styled(NavLink)`
+  padding-left: 0.55rem;
+  padding-right: 0.55rem;
+
+  svg {
+    display: block;
+  }
+`;
+
 const ActivePill: React.FC<{ show: boolean }> = ({ show }) => {
   const reduced = useReducedMotion();
   if (!show) return null;
@@ -119,7 +167,6 @@ const ActivePill: React.FC<{ show: boolean }> = ({ show }) => {
 
 const Header: React.FC = () => {
   const { pathname } = useLocation();
-  const isHome = pathname === '/';
 
   const isReadme = pathname === '/readme';
   const isLab = pathname === '/lab' || pathname.startsWith('/lab/');
@@ -130,8 +177,14 @@ const Header: React.FC = () => {
   return (
     <Bar>
       <NavLinks>
-        <NavItem style={isHome ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}>
-          <NavLink to="/" $active={false}><Label>Home</Label></NavLink>
+        {/* Home renders on every route, the landing included, but never wears the pill and is
+            never marked current — it is a way back, not a destination. So on the landing no
+            link is active, which also keeps the pill out of the three header copies the lens
+            clones into its refraction worlds. */}
+        <NavItem>
+          <IconLink to="/" $active={false} aria-label="Home">
+            <Label><House size={15} strokeWidth={1.75} aria-hidden="true" /></Label>
+          </IconLink>
         </NavItem>
         {/* aria-current is the accessible half of the pill: the pill draws where you are,
             this announces it. Without it the active route is conveyed by colour alone. */}
