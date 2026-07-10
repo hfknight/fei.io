@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { staticVars, lightVars, invertedVars, GLASS, GLASS_K, SURFACE_DEEP } from './tokens';
+import { staticVars, lightVars, invertedVars, GLASS, GLASS_K, SURFACE_DEEP, FROST_BLUR } from './tokens';
+import { FROST_BLUR as LANDING_FROST_BLUR } from '../components/Landing/landingConfig';
 import { theme } from './theme';
 
 // --- oklch -> sRGB -> relative luminance. No colour library is installed. ---
@@ -84,6 +85,23 @@ describe('tokens: the system faces have exactly one definition', () => {
         return FACES.filter(face => text.includes(face)).map(face => `${file.slice(src.length)} → ${face}`);
       });
     expect(offenders, 'author ${p => p.theme.font.x}, never a raw stack').toEqual([]);
+  });
+});
+
+/**
+ * Frost is the landing's inactive-half skin, now also worn by the chrome's nav track. It is a
+ * thicker, textured material than the pill's glass, and it must stay one material: the two
+ * consumers reading different blurs, or different grain, is exactly the drift this prevents.
+ */
+describe('tokens: the frost material has one definition', () => {
+  it('shares its blur with the landing, which re-exports rather than redeclares', () => {
+    expect(staticVars['--frost-blur']).toBe(`${FROST_BLUR}px`);
+    expect(LANDING_FROST_BLUR).toBe(FROST_BLUR);
+  });
+
+  it('carries the grain as a texture token, not a colour', () => {
+    expect(staticVars['--frost-noise']).toMatch(/^url\("data:image\/svg\+xml,/);
+    expect(staticVars['--frost-noise']).toContain('feTurbulence');
   });
 });
 

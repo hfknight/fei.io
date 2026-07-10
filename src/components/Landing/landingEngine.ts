@@ -80,8 +80,9 @@ export function createLandingEngine(root: HTMLElement, opts: EngineOpts): Landin
   // Frost skin — ported from source 1066-1092. FROST_BLUR/FROST_STYLE are static config
   // (not live-tweakable props here), so this runs once at setup instead of every tick.
   const applyFrost = (blur: number, style: typeof FROST_STYLE) => {
-    // monochrome grain (real frosted glass has micro-texture)
-    const NOISE = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E\")";
+    // monochrome grain (real frosted glass has micro-texture), declared once in tokens.ts
+    // because the chrome's nav track wears the same skin.
+    const NOISE = 'var(--frost-noise)';
     // graduated blur: full frost at the outer edge, easing toward the seam
     const lMask = 'linear-gradient(90deg, rgba(0,0,0,1) 30%, rgba(0,0,0,.4) 100%)';
     const rMask = 'linear-gradient(90deg, rgba(0,0,0,.4) 0%, rgba(0,0,0,1) 70%)';

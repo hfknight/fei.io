@@ -9,7 +9,8 @@ export const OLLIE = mk('/ollie-clip-3.mp4', 0.2, 6.2, 0.01);
 
 export const TRACKING_SPEED = 0.14; // active-side ease-in rate
 export const SCOPE_INSET_Y = 0;     // % vertical dead-zone at top/bottom
-export const FROST_BLUR = 11;       // px
+// The frost blur is a design token now, since the chrome's nav track wears the same glass.
+export { FROST_BLUR } from '../../styles/tokens';
 export const FROST_STYLE: 'Liquid glass' | 'Frosted' | 'Dim only' = 'Liquid glass';
 export const SEAM_SHEEN = true;
 export const LOGO_GLOW = true;

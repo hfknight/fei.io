@@ -77,9 +77,30 @@ const glassVars = (fill: (a: number) => string, specular: (a: number) => string)
   '--glass-sheen': specular(GLASS_SHEEN_ALPHA),
 });
 
+/**
+ * The frost skin's blur. Distinct from `--glass-blur` (5.6px, derived from GLASS_K): frost is
+ * a thicker, textured material, not a thin pill. Consumed by the landing's inactive-half
+ * overlay and by the chrome's nav track, so the two read as the same glass.
+ */
+export const FROST_BLUR = 11;
+
+/**
+ * Monochrome micro-texture, blended `soft-light` under the frost gradient. Real frosted glass
+ * has grain; without it the blur reads as a plain translucent panel. Authored as an inline SVG
+ * so it costs no request.
+ *
+ * Named `--frost-*`, not `--glass-*`, on purpose. It is not part of the pill's glass recipe,
+ * and the glass family is asserted exhaustively so no bare tint can rejoin it. It is also a
+ * texture rather than a colour, so the "every colour is oklch" guard skips it.
+ */
+export const FROST_NOISE =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E\")";
+
 /** Surface-independent. Emitted once, in :root. */
 export const staticVars: Record<string, string> = {
   ...RAMP,
+  '--frost-noise': FROST_NOISE,
+  '--frost-blur': `${FROST_BLUR}px`,
   '--font-display': "'Archivo','Helvetica Neue',Helvetica,Arial,sans-serif",
   '--font-body': "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
   '--font-mono': "'JetBrains Mono','Fira Code',monospace",
