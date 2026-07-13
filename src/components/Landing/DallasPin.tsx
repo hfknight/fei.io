@@ -19,6 +19,9 @@ const FOCUS = '83% 0%';    // sit the pin (~57/33) + DALLAS (~50/52) cluster at 
 // radii stay short of the box edges, leaving a transparent margin all around.
 const MASK =
   'radial-gradient(40% 42% at 50% 44%, #000 0%, #000 52%, rgba(0,0,0,0) 100%)';
+// Overall size dial. Scales the disc + its content uniformly about the centre, so the framing and
+// the lower-left pocket position stay put while the whole reveal reads a touch smaller.
+const SCALE = 0.85;
 
 const DallasPin: React.FC = () => (
   <div
@@ -40,6 +43,7 @@ const DallasPin: React.FC = () => (
       backgroundPosition: FOCUS,
       WebkitMask: MASK,
       mask: MASK,
+      transform: `scale(${SCALE})`,
     }}
   />
 );
