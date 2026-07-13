@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import StackReveal from './StackReveal';
 
 // Center-top lockup — ported from design source lines 113-126. [data-brk-frame] /
 // [data-hair] start hidden (opacity:0); [data-logo] is the feather mark. Both are
@@ -92,7 +93,7 @@ const gradientText = (background: string): React.CSSProperties => ({
   color: 'transparent',
 });
 
-const Lockup: React.FC = () => (
+const Lockup: React.FC<{ interactive?: boolean }> = ({ interactive = false }) => (
   <Wrapper>
     <div data-brk-frame style={{ position: 'absolute', inset: 0, opacity: 0 }}>
       {/* DOM order is load-bearing: landingEngine.ts indexes these four [data-hair]
@@ -152,14 +153,17 @@ const Lockup: React.FC = () => (
 
     <Roles>
       <span
-        style={{ textAlign: 'right', whiteSpace: 'nowrap', ...gradientText('linear-gradient(90deg,oklch(0.26 0.010 265) 0%,oklch(0.54 0.008 265) 100%)') }}
+        style={{ position: 'relative', textAlign: 'right', whiteSpace: 'nowrap', ...gradientText('linear-gradient(90deg,oklch(0.26 0.010 265) 0%,oklch(0.54 0.008 265) 100%)') }}
       >
         Sr. Frontend Engineer
+        {/* Hidden stacks, revealed only under a lens centred on each role (see StackReveal) */}
+        {interactive && <StackReveal role="frontend" />}
       </span>
       <span
-        style={{ textAlign: 'left', whiteSpace: 'nowrap', ...gradientText('linear-gradient(90deg,oklch(0.90 0.004 265) 0%,oklch(0.985 0.002 265) 100%)') }}
+        style={{ position: 'relative', textAlign: 'left', whiteSpace: 'nowrap', ...gradientText('linear-gradient(90deg,oklch(0.90 0.004 265) 0%,oklch(0.985 0.002 265) 100%)') }}
       >
         AI Product Engineer
+        {interactive && <StackReveal role="ai" />}
       </span>
     </Roles>
   </Wrapper>

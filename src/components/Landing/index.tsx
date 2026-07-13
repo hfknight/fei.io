@@ -52,7 +52,7 @@ const Landing: React.FC = () => {
           Only mounted for the full intro; the static path reveals the hero directly. */}
       {playIntro && <Loader />}
       <SplitStage />
-      <Lockup />
+      <Lockup interactive={interactive} />
       <PetCaption pet="j" />
       <PetCaption pet="o" />
       {/* Invisible on the page; lensEngine reveals these only inside the refracted lens clones.

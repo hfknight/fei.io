@@ -131,8 +131,18 @@ The portfolio is structured as a **day-journey visualization** — five time-of-
 The landing hides elements that surface **only under a draggable lens**. Give a node
 `data-lens-reveal` and base `opacity: 0` (invisible on the page); `lensEngine.ts`'s
 `buildLensWorld` flips it visible inside every refracted lens clone — one hook covers both
-lenses and the metaball bridge. `DallasPin` (map, lower-left light half) and `MoodClock`
-(Dallas time + mood-of-the-day, upper-right dark half) ride this.
+lenses and the metaball bridge. `DallasPin` (map, lower-left light half), `MoodClock`
+(Dallas time + mood-of-the-day, upper-right dark half), and `StackReveal` (tech-stack chips) ride
+this. `StackReveal` renders once per role (`role="frontend"` under "Sr. Frontend Engineer",
+`role="ai"` under "AI Product Engineer") and is nested *inside* that role's `<span>` in `Lockup`
+rather than positioned at a page percentage — the role text is a fixed 14px, so its centre is a
+fixed pixel offset from centre that drifts as a percentage; nesting keeps the chip row centred
+under the text at every width. It is gated by `Lockup`'s `interactive` prop, so like the others it
+never ships to touch / reduced-motion. Two deliberate calls: the row is laid out **flat** and lets
+the convex refraction supply the arc (a baked-in arc only lines up at one lens position); and both
+roles wear the **same** light-glass / dark-ink chip on both halves — a dark-glass variant for the
+dark half washes out because the lens's chromatic-aberration filter screen-blends toward light, and
+each chip carries its own disc so the mark contrasts against the chip, not the half.
 
 Two gotchas. The clone is a **static snapshot**, so live/dynamic content freezes at
 clone-build time unless synced into every `[data-lens-world]` copy each tick — see `MoodClock`
