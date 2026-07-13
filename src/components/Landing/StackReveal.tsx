@@ -46,20 +46,30 @@ const AI_STACK = [
   },
 ] as const;
 
-// `role` selects only the icon set; both stacks wear the SAME chip skin. A dark-glass variant for
-// the dark half was tried (mirroring MoodClock's light-on-dark), but the lens's chromatic-aberration
-// filter screen-blends the split channels and washes any chip toward light — so light marks on a
-// dark chip lose contrast under the glass. Because each chip carries its own glass disc, the mark
-// contrasts against the chip, not the half, so light-glass + dark-ink reads crisply on both halves
-// (and keeps the AI row identical to the front-end one). The skin is the site's glass recipe in
-// hue-265 neutrals: translucent light fill (top brighter), faint ink rim, white specular highlight,
-// and a cast shadow that stays dark.
-const STACK = { frontend: FRONTEND_STACK, ai: AI_STACK } as const;
-const CHIP = {
-  mark: 'oklch(0.30 0.008 265)',
-  background: 'linear-gradient(180deg, oklch(0.99 0.002 265 / 0.82) 0%, oklch(0.92 0.004 265 / 0.62) 100%)',
-  border: '1px solid oklch(0.30 0.008 265 / 0.10)',
-  boxShadow: '0 5px 14px oklch(0.22 0.02 265 / 0.18), inset 0 1px 1px oklch(1 0 0 / 0.55)',
+// `role` selects the icon set AND a surface-aware chip skin, so each stack echoes its role text.
+// Frontend sits under dark role text on the light half: light glass + dark ink (like DallasPin).
+// AI sits under light role text on the dark half: dark glass + light ink (like MoodClock). The
+// dark chip must be dark AND fairly opaque — the lens's chromatic-aberration filter screen-blends
+// the split channels and washes a translucent chip toward light, which is what greyed out an
+// earlier, thinner dark variant. Both skins are the site's glass recipe in hue-265 neutrals; the
+// cast shadow stays dark (light blocked, not reflected) while the inset top highlight stays white.
+const ROLE = {
+  frontend: {
+    icons: FRONTEND_STACK,
+    mark: 'oklch(0.30 0.008 265)',
+    background: 'linear-gradient(180deg, oklch(0.99 0.002 265 / 0.82) 0%, oklch(0.92 0.004 265 / 0.62) 100%)',
+    border: '1px solid oklch(0.30 0.008 265 / 0.10)',
+    boxShadow: '0 5px 14px oklch(0.22 0.02 265 / 0.18), inset 0 1px 1px oklch(1 0 0 / 0.55)',
+  },
+  ai: {
+    icons: AI_STACK,
+    mark: 'oklch(0.97 0.004 265)',
+    // Muted mid-grey in the "I'm" range (oklch 0.28–0.55, hue 265), not near-black — but sat toward
+    // the darker end of it so the white marks survive the lens's lightening wash.
+    background: 'linear-gradient(180deg, oklch(0.41 0.010 265 / 0.90) 0%, oklch(0.31 0.011 265 / 0.82) 100%)',
+    border: '1px solid oklch(1 0 0 / 0.18)',
+    boxShadow: '0 5px 14px oklch(0.15 0.02 265 / 0.34), inset 0 1px 1px oklch(1 0 0 / 0.22)',
+  },
 } as const;
 
 // The row is laid out FLAT. The arc you see is supplied by the lens itself: the convex refraction
@@ -70,7 +80,9 @@ const CHIP = {
 // pushed below the role baseline (marginTop) so it lands in the lens's lower third, inside the
 // clear magnified zone rather than the heavily-distorted bezel at the rim.
 
-const StackReveal: React.FC<{ role: keyof typeof STACK }> = ({ role }) => (
+const StackReveal: React.FC<{ role: keyof typeof ROLE }> = ({ role }) => {
+  const skin = ROLE[role];
+  return (
     <div
       data-lens-reveal
       aria-hidden="true"
@@ -86,7 +98,7 @@ const StackReveal: React.FC<{ role: keyof typeof STACK }> = ({ role }) => (
         pointerEvents: 'none',
       }}
     >
-      {STACK[role].map((icon) => (
+      {skin.icons.map((icon) => (
         <span
           key={icon.name}
           title={icon.name}
@@ -96,17 +108,18 @@ const StackReveal: React.FC<{ role: keyof typeof STACK }> = ({ role }) => (
             width: 30,
             height: 30,
             borderRadius: '50%',
-            background: CHIP.background,
-            border: CHIP.border,
-            boxShadow: CHIP.boxShadow,
+            background: skin.background,
+            border: skin.border,
+            boxShadow: skin.boxShadow,
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill={CHIP.mark} aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill={skin.mark} aria-hidden="true">
             <path d={icon.d} />
           </svg>
         </span>
       ))}
     </div>
   );
+};
 
 export default StackReveal;

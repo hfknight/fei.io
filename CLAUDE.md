@@ -139,10 +139,12 @@ rather than positioned at a page percentage — the role text is a fixed 14px, s
 fixed pixel offset from centre that drifts as a percentage; nesting keeps the chip row centred
 under the text at every width. It is gated by `Lockup`'s `interactive` prop, so like the others it
 never ships to touch / reduced-motion. Two deliberate calls: the row is laid out **flat** and lets
-the convex refraction supply the arc (a baked-in arc only lines up at one lens position); and both
-roles wear the **same** light-glass / dark-ink chip on both halves — a dark-glass variant for the
-dark half washes out because the lens's chromatic-aberration filter screen-blends toward light, and
-each chip carries its own disc so the mark contrasts against the chip, not the half.
+the convex refraction supply the arc (a baked-in arc only lines up at one lens position); and the
+chip is **surface-aware** so each stack echoes its role text — light-glass / dark-ink on the light
+half (frontend, like `DallasPin`), dark-glass / light-ink on the dark half (AI, like `MoodClock`).
+The dark chip must be dark *and* fairly opaque: the lens's chromatic-aberration filter screen-blends
+the split channels and washes a thin, translucent chip toward light (which greyed out an earlier
+attempt), so its light marks only stay legible on a deep, near-opaque fill.
 
 Two gotchas. The clone is a **static snapshot**, so live/dynamic content freezes at
 clone-build time unless synced into every `[data-lens-world]` copy each tick — see `MoodClock`
