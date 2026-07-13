@@ -27,5 +27,5 @@ export const LENS = {
   liquidEnabled: true,
   liquidStretch: 0.16,
   chromaticAberration: true,
-  chromaticStrength: 0.2,
+  chromaticStrength: 0.4,
 };
