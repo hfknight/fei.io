@@ -8,14 +8,12 @@ import Lenses from './Lenses';
 import DallasPin from './DallasPin';
 import MoodClock from './MoodClock';
 import { createLandingEngine } from './landingEngine';
-
-// The loader intro plays once per fresh page load. This module-scope flag persists
-// across SPA route changes (the module stays loaded) and resets on a full reload, so
-// re-navigating to "/" skips the intro. It latches on `onRevealed` — the engine's
+// The loader intro plays once per fresh page load — the flag lives in introState so the
+// route-transition layer can read it too. It latches on `onRevealed` — the engine's
 // reveal-complete signal — NOT synchronously in the effect: React 19 StrictMode
 // double-mounts effects in dev, and the first mount is torn down (aborting the clip
 // download) before the reveal fires, so only the real, visible mount sets it.
-let hasShownLoading = false;
+import { landingHasRevealed, markLandingRevealed } from './introState';
 
 const Landing: React.FC = () => {
   const ref = useRef<HTMLDivElement>(null);
@@ -26,9 +24,9 @@ const Landing: React.FC = () => {
     () => window.matchMedia('(hover: hover) and (pointer: fine)').matches,
   );
   // Captured on the mount so it stays stable for this mount's lifetime; a later SPA
-  // re-navigation mounts fresh and re-reads hasShownLoading (now true) → skips.
+  // re-navigation mounts fresh and re-reads landingHasRevealed (now true) → skips.
   const [playIntro] = useState(
-    () => !hasShownLoading && !reducedMotion && canHover,
+    () => !landingHasRevealed() && !reducedMotion && canHover,
   );
   // Same gate the engine uses internally (`!reducedMotion && canHover`) — the draggable
   // lenses need a fine-hover pointer and motion allowed, so reduced-motion/touch
@@ -41,7 +39,7 @@ const Landing: React.FC = () => {
       reducedMotion,
       canHover,
       playIntro,
-      onRevealed: () => { hasShownLoading = true; },
+      onRevealed: markLandingRevealed,
     });
     return () => engine.destroy();
   }, [reducedMotion, canHover, playIntro]);

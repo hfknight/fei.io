@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import About from './pages/About';
+import HomeCurtains from './components/HomeCurtains';
 import Day from './pages/Day';
 import LandingPage from './components/Landing';
 import LoadingScreen from './components/Landing/LoadingScreen';
@@ -23,7 +24,15 @@ const AppRoutes: React.FC = () => {
   const location = useLocation();
 
   return (
-    <AnimatePresence mode="wait">
+    <>
+    {/* Outside AnimatePresence: the return-to-home curtains must outlive the exiting
+        page to slide back out over the freshly mounted landing. */}
+    <HomeCurtains />
+    {/* custom feeds the DESTINATION path to exiting pages' variant functions —
+        PageTransition picks its exit (sweep, hold, or bare) by where the user is
+        going. A plain useLocation() inside the exiting tree can't do this: its exit
+        variants are captured before the re-render lands. */}
+    <AnimatePresence mode="wait" custom={location.pathname}>
       <Suspense key={location.pathname} fallback={null}>
         <Routes location={location}>
           <Route path="/" element={<LandingPage />} />
@@ -42,6 +51,7 @@ const AppRoutes: React.FC = () => {
         </Routes>
       </Suspense>
     </AnimatePresence>
+    </>
   );
 };
 
