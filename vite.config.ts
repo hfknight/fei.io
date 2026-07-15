@@ -6,7 +6,8 @@ import svgr from 'vite-plugin-svgr';
 export default defineConfig({
   plugins: [react(), svgr()],
   server: {
-    port: 9921,
+    // PORT lets a launcher (e.g. the Claude preview) assign a free port when 9921 is taken.
+    port: Number(process.env.PORT) || 9921,
     host: true,
     hmr: {
       overlay: true
