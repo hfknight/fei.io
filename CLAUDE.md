@@ -42,6 +42,9 @@ Loaded via Google Fonts in `index.html`:
 - **JetBrains Mono** (400–500) — chrome and labels. `--font-mono`
 - **Big Shoulders Display** (800) — `LoadingScreen` only, in CSS and in a canvas `ctx.font`.
   Deliberately outside the token system: a canvas cannot read a CSS custom property.
+- **Anton** (400, its only weight) — the `/readme` cut-out wordmark only, referenced inside
+  an SVG `<clipPath>` stencil in `About.tsx`. Outside the token system like Big Shoulders:
+  SVG presentation attributes take a literal family name.
 - **Playfair Display** (400, 500, italic) — loaded, genuinely unused
 
 The three system faces have exactly one definition each, in `tokens.ts`. Author
