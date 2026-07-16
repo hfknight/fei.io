@@ -155,6 +155,31 @@ driving `[data-time-reveal]` nodes from a `setInterval`. And a revealed node may
 opacity via `data-reveal-opacity` (default `1`; the map rides `0.8`). Reveals are gated with
 the lenses: desktop only (hover + fine pointer), never shipped to touch / reduced-motion.
 
+### Route transitions
+
+`AppRoutes` wraps the routes in `AnimatePresence mode="wait"` and feeds the **destination
+path** to exiting pages via the `custom` prop; every page wraps itself in `PageTransition`
+(the landing is wrapped in `AppRoutes` instead — it needs the wrapper only for its exit),
+whose exit variants are functions of that destination. (Reading `useLocation()` inside the
+exiting tree does NOT work — exit variants are captured before that re-render lands;
+`custom` is the supported channel.)
+
+Three exit paths:
+
+- **To any non-home route** — the `Curtain` sweep: a 170vw box painted in the *destination*
+  surface slides over the old page. It depends on `Layout` flipping `data-surface` eagerly,
+  so the new page's background is pixel-identical to the curtain at hand-off.
+- **To home, first visit this page load** — exit immediately, no sweep: the landing's own
+  `Loader` overlay is the transition. "First visit" is `introState.ts`'s module flag, latched
+  by the landing engine's `onRevealed`.
+- **To home, landing already revealed** — `HomeCurtains` (mounted in `AppRoutes` *outside*
+  `AnimatePresence`, because it must outlive the exiting page): two half-screen curtains
+  mirroring SplitStage's gradients slide in from the sides, meet in the middle, and part over
+  the freshly mounted landing. The old page holds until covered (an exit to `opacity: 0.999`
+  for `HOME_CURTAIN_IN` — the change must be real for framer to spend the duration; same-value
+  keyframes complete instantly), and `Layout` defers the `data-surface` flip by the same
+  interval so the surface swaps under full cover.
+
 ### Styling conventions
 
 Animation conventions:
@@ -218,6 +243,11 @@ and keeps its own hex.
 `/writing/admin` is itself matched by the `/writing/` prefix. Post slugs come from D1 at
 runtime, so they cannot be enumerated. The fall-through must stay `inverted`, because an
 unmigrated page still hardcodes `#12102a`.
+
+The flip is immediate on location change — PageTransition's sweep depends on that (see
+"Route transitions" below) — with one exception: a *return* to home defers the flip by
+`HOME_CURTAIN_IN` so the surface swaps while HomeCurtains has the viewport covered;
+flipped eagerly, the old page inverts on screen before the curtains arrive.
 
 Light: `/readme`, `/work`, `/connect`, `/lab`, `/writing`, `/writing/:slug`.
 Inverted: `/` (chrome over video, permanently), `/loading`, `/changelog`, `/lab/:slug`
