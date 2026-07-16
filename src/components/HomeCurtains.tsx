@@ -28,22 +28,50 @@ const Half = styled(motion.div)`
 const LeftHalf = styled(Half)`
   left: 0;
   background: linear-gradient(120deg, #e9eaeb 0%, #d4d6d8 100%);
-
-  /* Leading edge: reads as the landing's centre seam while the halves are met. */
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    right: 0;
-    width: 1px;
-    background: rgba(255, 255, 255, 0.28);
-  }
 `;
 
 const RightHalf = styled(Half)`
   left: 50vw;
   background: linear-gradient(120deg, #54565b 0%, #33343a 100%);
+
+  /* Leading edge: SplitStage's centre seam — the same shape (a white hairline fading
+     out at both ends), so while the halves are met it reads as the landing's seam.
+     Two deliberate departures from the verbatim recipe, both about legibility: it
+     lives on the DARK half (a white line over the light half's near-white simply
+     vanishes — tried, invisible), and it is brighter with a soft bloom behind it,
+     because the landing's 28% line disappears into the hard light/dark contrast edge
+     during the ~1s the curtains are on screen. */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -2px;
+    width: 5px;
+    filter: blur(3px);
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.3) 30%,
+      rgba(255, 255, 255, 0.3) 70%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.55) 30%,
+      rgba(255, 255, 255, 0.55) 70%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  }
 `;
 
 /* The return-to-home transition: two curtains slide in from the sides, meet in the

@@ -13,11 +13,13 @@ const CURTAIN_DURATION = 0.75;
    into the hand-off. */
 const CURTAIN_EASE = [0.65, 0, 0.35, 1] as [number, number, number, number];
 
-/* The page-change wipe: sweeps in from the right over the exiting page until it covers
-   the viewport. Its colour is the DESTINATION surface — Layout flips data-surface on
-   <html> the moment the location changes, while the old page is still exiting — so when
-   the new page mounts (content not yet entered, just its background), it is
-   pixel-identical to the curtain and the hand-off is invisible. No slide-out needed.
+/* The page-change wipe for every destination EXCEPT home (see the exit variants below
+   for the two home cases): sweeps in from the right over the exiting page until it
+   covers the viewport. Its colour is the DESTINATION surface — Layout flips
+   data-surface on <html> the moment the location changes, while the old page is still
+   exiting — so when the new page mounts (content not yet entered, just its background),
+   it is pixel-identical to the curtain and the hand-off is invisible. No slide-out
+   needed.
 
    The sweep must be readable over a background of its own colour, so the box is 70vw
    wider than the viewport and carries its edge treatment with it: a hairline seam on the
@@ -45,14 +47,39 @@ const Curtain = styled(motion.div)`
     ${p => p.theme.color.surface} 70vw
   );
 
+  /* The leading edge wears the landing seam's treatment — a 1px white hairline fading
+     out at both ends over a soft blurred bloom, same recipe as HomeCurtains' seam. */
   &::before {
     content: '';
     position: absolute;
     top: 0;
     bottom: 0;
+    left: -2px;
+    width: 5px;
+    filter: blur(3px);
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.3) 30%,
+      rgba(255, 255, 255, 0.3) 70%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
     left: 0;
-    width: 2px;
-    background: color-mix(in srgb, ${p => p.theme.color.ink} 40%, transparent);
+    width: 1px;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.55) 30%,
+      rgba(255, 255, 255, 0.55) 70%,
+      rgba(255, 255, 255, 0) 100%
+    );
   }
 `;
 
@@ -64,8 +91,13 @@ interface Props {
    background-attachment: fixed, and a live ancestor transform re-anchors those
    backgrounds to their elements (the imagery samples the wrong region, then snaps when
    the transform clears). Enter is an opacity fade; the choreography — e.g. /readme's
-   column rising from the bottom — belongs to each page, sequenced naturally after the
-   curtain by AnimatePresence's mode="wait". */
+   column sliding in from the left — belongs to each page, sequenced naturally after the
+   curtain by AnimatePresence's mode="wait".
+
+   Exits are destination-aware: AnimatePresence's `custom` (wired in AppRoutes) feeds
+   the destination path to the exit variant functions. Non-home destinations get the
+   Curtain sweep; home gets no sweep, because home brings its own cover — the Loader on
+   a first visit, HomeCurtains (plus Layout's deferred surface flip) on a return. */
 const PageTransition: React.FC<Props> = ({ children }) => {
   const reduced = useReducedMotion();
 
