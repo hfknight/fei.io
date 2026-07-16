@@ -43,8 +43,14 @@ export const GlobalStyles = createGlobalStyle`
    *
    * Scoped to the light surface: the deep pages and the landing keep their own treatments, and
    * data-surface="default" is exactly the set of routes that show this paper.
+   *
+   * The layer exists on BOTH surfaces and only its opacity is scoped, crossfaded over the
+   * curtain sweep's 0.75s: Layout flips data-surface eagerly on navigation (the sweep's
+   * paint depends on it), so a grain gated by the attribute alone pops in over the still-
+   * visible exiting page — most visibly over the landing, which wears no grain of its own.
+   * Ramped across the sweep, it reaches full strength as the curtain reaches full cover.
    */
-  :root[data-surface='default'] body::after {
+  body::after {
     content: '';
     position: fixed;
     inset: 0;
@@ -52,6 +58,11 @@ export const GlobalStyles = createGlobalStyle`
     pointer-events: none;
     background-image: ${PAPER_GRAIN};
     mix-blend-mode: overlay;
+    opacity: 0;
+    transition: opacity 0.75s ease;
+  }
+
+  :root[data-surface='default'] body::after {
     opacity: 0.65;
   }
 

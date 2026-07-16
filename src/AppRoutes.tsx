@@ -3,6 +3,7 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import About from './pages/About';
 import HomeCurtains from './components/HomeCurtains';
+import PageTransition from './components/PageTransition';
 import Day from './pages/Day';
 import LandingPage from './components/Landing';
 import LoadingScreen from './components/Landing/LoadingScreen';
@@ -35,7 +36,11 @@ const AppRoutes: React.FC = () => {
     <AnimatePresence mode="wait" custom={location.pathname}>
       <Suspense key={location.pathname} fallback={null}>
         <Routes location={location}>
-          <Route path="/" element={<LandingPage />} />
+          {/* Wrapped here (other pages wrap themselves): the landing needs PageTransition
+              only for its EXIT — leaving home sweeps the destination's curtain like any
+              interior navigation. Its entrances bring their own cover (Loader on first
+              visit, HomeCurtains on a return), which the enter fade sits under. */}
+          <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
           <Route path="/readme" element={<About />} />
           <Route path="/changelog" element={<Day />} />
           <Route path="/work" element={<Work />} />

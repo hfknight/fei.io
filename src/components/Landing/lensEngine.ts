@@ -653,7 +653,9 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     blob.setAttribute('data-lens-bridge', '');
     blob.style.cssText =
       `position:absolute;left:0;top:0;width:${root.offsetWidth}px;height:${root.offsetHeight}px;` +
-      `z-index:11;pointer-events:none;display:none;filter:drop-shadow(0 15px 30px rgba(0,0,0,.10))`;
+      // z 8, appended after the lens divs so it still paints above them — but below
+      // PageTransition's curtain (9), which must cover the whole apparatus on exit.
+      `z-index:8;pointer-events:none;display:none;filter:drop-shadow(0 15px 30px rgba(0,0,0,.10))`;
     const blobFx = document.createElement('div');
     blobFx.setAttribute('data-lens-bridge', '');
     blobFx.style.cssText = 'position:absolute;inset:0;filter:url(#lensRefractBridge)';
@@ -668,7 +670,8 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     osvg.setAttribute('data-lens-bridge', '');
     osvg.style.cssText =
       `position:absolute;left:0;top:0;width:${root.offsetWidth}px;height:${root.offsetHeight}px;` +
-      `z-index:12;pointer-events:none;overflow:visible;display:none`;
+      // z 8 like the blob; appended after it, so DOM order keeps the rim on top.
+      `z-index:8;pointer-events:none;overflow:visible;display:none`;
     const rimSoft = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     rimSoft.setAttribute('fill', 'none');
     rimSoft.setAttribute('stroke', 'rgba(255,255,255,.10)');

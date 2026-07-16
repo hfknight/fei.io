@@ -5,7 +5,7 @@ import styled from 'styled-components';
 // half. It lives invisibly (opacity:0) and surfaces only where a lens crosses it — the lensEngine
 // buildLensWorld hook flips [data-lens-reveal] to opacity:1 inside each refracted clone. Light
 // text (dark surface). pointer-events:none so the invisible base can't intercept a lens drag;
-// z-index below the lenses (11), above the split videos.
+// z-index below the lenses (8), above the split videos.
 //
 // Both lines sit on one line each and may be wider than a lens disc — that's intended: you sweep
 // the lens to read across them (fragment reveal), so nothing is shrunk to force a fit.

@@ -1,7 +1,7 @@
 // Dallas map, revealed only under a lens (see lensEngine buildLensWorld's [data-lens-reveal]
 // flip). Lives invisibly (opacity:0) in the lower-left light-half pocket, below the lockup and
 // clear of Jojo in the bottom-left corner. pointer-events:none so the invisible base can't
-// intercept a lens drag; z-index below the lenses (11), above the split-stage videos so it reads
+// intercept a lens drag; z-index below the lenses (8), above the split-stage videos so it reads
 // inside the clone.
 //
 // The source art (800×534) is mostly empty map: the pin sits at ~57%/33% and "DALLAS" just

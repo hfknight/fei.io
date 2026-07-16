@@ -19,7 +19,10 @@ const Lens: React.FC<LensProps> = ({ value }) => (
       width: 128,
       height: 128,
       borderRadius: '50%',
-      zIndex: 11,
+      /* Top of the landing's own ladder (later in DOM than Lockup/PetCaption's 8, so it
+         still paints above them) but BELOW PageTransition's curtain (9) and the chrome
+         (10): the sweep must cover the lenses when leaving home. */
+      zIndex: 8,
       cursor: 'grab',
       boxShadow: '0 15px 30px rgba(0,0,0,.10)',
       touchAction: 'none',
