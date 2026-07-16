@@ -62,3 +62,13 @@ _Avoid_: panel, side, half
 
 **Seam**:
 The single-pixel sheen dividing the landing's two plates.
+
+**Reveal**:
+An element that lives invisibly on the landing and surfaces only inside a lens's
+refracted clone. Reveals never ship to touch or reduced-motion visitors.
+_Avoid_: easter egg, hidden layer
+
+**Travel path**:
+The reveal telling the route here: city-map stops joined by a dashed line, running
+chronologically to its terminus, the Dallas pin.
+_Avoid_: journey map, city maps

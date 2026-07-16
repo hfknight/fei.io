@@ -134,7 +134,10 @@ The portfolio is structured as a **day-journey visualization** — five time-of-
 The landing hides elements that surface **only under a draggable lens**. Give a node
 `data-lens-reveal` and base `opacity: 0` (invisible on the page); `lensEngine.ts`'s
 `buildLensWorld` flips it visible inside every refracted lens clone — one hook covers both
-lenses and the metaball bridge. `DallasPin` (map, lower-left light half), `MoodClock`
+lenses and the metaball bridge. `TravelPath` (the travel-path reveal: Huangshan → Beijing →
+Shanghai maps joined by a dashed two-tone route, terminating at the Dallas pin in the
+lower-left light half — everything but Dallas hides below the `xl` breakpoint, all-or-nothing,
+via CSS media query so the gate also works inside the clones), `MoodClock`
 (Dallas time + mood-of-the-day, upper-right dark half), and `StackReveal` (tech-stack chips) ride
 this. `StackReveal` renders once per role (`role="frontend"` under "Sr. Frontend Engineer",
 `role="ai"` under "AI Product Engineer") and is nested *inside* that role's `<span>` in `Lockup`

@@ -22,7 +22,7 @@ export const LENS = {
   glassThickness: 10,
   bezelWidth: 45,
   magnify: 0.08,
-  lensSize: 128,        // base; lens 1 is rendered 1.45× larger (see setupLens)
+  lensSize: 128,        // base; lens 1 renders 1.45×, lens 2 1.18× (see setupLens)
   magnifyScale: 1.15,
   liquidEnabled: true,
   liquidStretch: 0.16,

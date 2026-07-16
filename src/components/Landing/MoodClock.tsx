@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
-// A live "Dallas day/time + mood" stamp, mirroring DallasPin in the upper-right dark (Ollie)
+// A live "Dallas day/time + mood" stamp, mirroring TravelPath's maps in the upper-right dark (Ollie)
 // half. It lives invisibly (opacity:0) and surfaces only where a lens crosses it — the lensEngine
 // buildLensWorld hook flips [data-lens-reveal] to opacity:1 inside each refracted clone. Light
 // text (dark surface). pointer-events:none so the invisible base can't intercept a lens drag;
@@ -55,8 +55,12 @@ const MASK = 'radial-gradient(72% 78% at 50% 50%, #000 0%, #000 62%, rgba(0,0,0,
 
 const Stamp = styled.div`
   position: absolute;
-  left: 60%;
-  top: 17%;
+  /* Tucked between TravelPath's Beijing map (upper-centre) and the fixed nav; centred on
+     its point (translateX) so the nowrap lines can't run off the right edge of a narrow
+     window. */
+  left: 85%;
+  top: 12%;
+  transform: translateX(-50%);
   z-index: 7;
   opacity: 0;
   pointer-events: none;

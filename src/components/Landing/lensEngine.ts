@@ -492,7 +492,7 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     const size = LENS.lensSize;
     const M = LENS.magnifyScale;
     ctx.qa('[data-lens]').forEach((lens, i) => {
-      const s = i === 0 ? Math.round(size * 1.45) : size;
+      const s = Math.round(size * (i === 0 ? 1.45 : 1.18));
       lens.style.width = `${s}px`;
       lens.style.height = `${s}px`;
       const world = lens.querySelector<HTMLElement>('[data-lens-world]');
@@ -541,7 +541,7 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
       world.style.transform = `translate(${-lens.offsetLeft}px,${-lens.offsetTop}px) scale(${M})`;
     };
 
-    const size = idx === 0 ? Math.round(LENS.lensSize * 1.45) : LENS.lensSize;
+    const size = Math.round(LENS.lensSize * (idx === 0 ? 1.45 : 1.18));
     lens.style.width = `${size}px`;
     lens.style.height = `${size}px`;
     const pos = lensDefaultPos(ctx, idx);

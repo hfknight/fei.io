@@ -1,4 +1,4 @@
-// A stack of tech chips, hidden under the lens beneath a role line. Like DallasPin / MoodClock it
+// A stack of tech chips, hidden under the lens beneath a role line. Like TravelPath / MoodClock it
 // lives invisibly (opacity:0) and surfaces only inside a refracted lens clone — the lensEngine
 // buildLensWorld hook flips [data-lens-reveal] visible, so each chip picks up the convex bezel
 // displacement for free. It is anchored INSIDE the role <span> (which is made position:relative),
@@ -8,7 +8,7 @@
 //
 // Two instances mirror the two roles: FRONTEND_STACK under "Sr. Frontend Engineer" on the light
 // half, AI_STACK under "AI Product Engineer" on the dark half. The `surface` prop flips the chip
-// between light glass / dark ink (light half, like DallasPin) and dark glass / light ink (dark
+// between light glass / dark ink (light half, like the Dallas map) and dark glass / light ink (dark
 // half, like MoodClock).
 
 // Brand marks are single-path simple-icons (viewBox 0 0 24 24), rendered MONOCHROME in the site's
@@ -47,7 +47,7 @@ const AI_STACK = [
 ] as const;
 
 // `role` selects the icon set AND a surface-aware chip skin, so each stack echoes its role text.
-// Frontend sits under dark role text on the light half: light glass + dark ink (like DallasPin).
+// Frontend sits under dark role text on the light half: light glass + dark ink (like the Dallas map).
 // AI sits under light role text on the dark half: dark glass + light ink (like MoodClock). The
 // dark chip must be dark AND fairly opaque — the lens's chromatic-aberration filter screen-blends
 // the split channels and washes a translucent chip toward light, which is what greyed out an

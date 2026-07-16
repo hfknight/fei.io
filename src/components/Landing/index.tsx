@@ -5,7 +5,7 @@ import Lockup from './Lockup';
 import PetCaption from './PetCaption';
 import Loader from './Loader';
 import Lenses from './Lenses';
-import DallasPin from './DallasPin';
+import TravelPath from './TravelPath';
 import MoodClock from './MoodClock';
 import { createLandingEngine } from './landingEngine';
 // The loader intro plays once per fresh page load — the flag lives in introState so the
@@ -55,7 +55,7 @@ const Landing: React.FC = () => {
       <PetCaption pet="o" />
       {/* Invisible on the page; lensEngine reveals these only inside the refracted lens clones.
           Gated with the lenses — no lens, nothing to reveal, so don't ship them. */}
-      {interactive && <DallasPin />}
+      {interactive && <TravelPath />}
       {interactive && <MoodClock />}
       {interactive && <Lenses />}
     </div>
