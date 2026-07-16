@@ -1,7 +1,10 @@
 import React, { useLayoutEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useReducedMotion } from 'framer-motion';
 import Header from './Header';
 import Footer from './Footer';
+import { HOME_CURTAIN_IN } from '../HomeCurtains';
+import { landingHasRevealed } from '../Landing/introState';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -42,13 +45,29 @@ const surfaceFor = (pathname: string): 'default' | 'inverted' => {
  */
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { pathname } = useLocation();
+  const reduced = useReducedMotion();
   const surface = surfaceFor(pathname);
 
   // useLayoutEffect, not useEffect: the attribute must exist before paint or a route
   // change would flash light chrome over a dark page.
+  //
+  // The immediate flip is load-bearing for PageTransition's sweep — the curtain is
+  // painted in the destination surface, so the exiting page must flip under it for the
+  // hand-off to be invisible. The one exception is a RETURN to home (landing already
+  // revealed — the same gate HomeCurtains plays on): the old page is deliberately held
+  // on screen, uncovered, while the curtains travel, and an instant flip would show as
+  // a full-page dark flash. Deferred until the curtains meet, the surface swaps under
+  // full cover. First visits keep the immediate flip — the Loader covers them.
   useLayoutEffect(() => {
-    document.documentElement.dataset.surface = surface;
-  }, [surface]);
+    const flip = () => {
+      document.documentElement.dataset.surface = surface;
+    };
+    if (pathname === '/' && landingHasRevealed() && !reduced) {
+      const id = window.setTimeout(flip, HOME_CURTAIN_IN * 1000);
+      return () => clearTimeout(id);
+    }
+    flip();
+  }, [surface, pathname, reduced]);
 
   return (
     <>
