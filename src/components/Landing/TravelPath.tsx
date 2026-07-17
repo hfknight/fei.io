@@ -26,29 +26,36 @@ interface Stop {
   h: number;
 }
 
+// Animated WebP loops (from the map videos, cropped to the landmark cluster at encode
+// time — the same pre-crop the old stills baked in, so 1:1 rendering still holds).
+// Boxes run ~15% larger than the still era: the lockup recedes during a drag, so the
+// route has more room. Animated WebP (not <video>) is load-bearing: browsers animate an
+// image resource in every element painting it, so the lens-world clones stay in frame
+// sync with zero engine involvement.
 const STOPS: Stop[] = [
-  { img: '/huangshan-map@2x.webp', cx: 30, cy: 31, w: 224, h: 182 },
-  { img: '/beijing-map@2x.webp', cx: 60, cy: 15, w: 216, h: 168 },
-  { img: '/shanghai-map@2x.webp', cx: 72, cy: 37, w: 228, h: 192 },
+  { img: '/huangshan-map-loop@2x.webp', cx: 30, cy: 31, w: 258, h: 210 },
+  { img: '/beijing-map-loop@2x.webp', cx: 60, cy: 15, w: 248, h: 193 },
+  { img: '/shanghai-map-loop@2x.webp', cx: 72, cy: 37, w: 262, h: 221 },
 ];
 
 // Fade must reach full transparency INSIDE the box so the rectangle's own edge never shows.
 const STOP_MASK =
   'radial-gradient(46% 46% at 50% 50%, #000 0%, #000 55%, rgba(0,0,0,0) 100%)';
 
-// --- Dallas (unchanged from the retired DallasPin.tsx — the route's terminus) ---
+// --- Dallas (the route's terminus) ---
 //
-// The source art (800×534) is mostly empty map: the pin sits at ~57%/33% and "DALLAS" just
-// below it. We zoom into that cluster with background-size (so the pin + text read at lens
-// scale rather than as a few faint pixels) and centre the window between them. The radial
-// mask keeps that core opaque and dissolves the surrounding map lines into the cloned video
-// at the disc edge. ZOOM / FOCUS / MASK are the three dials — nudge them live if needed.
-// The lens itself only magnifies ~1.15×, so ZOOM is close to 1:1 — it exists mainly to crop
-// the art's own paper edges out of the box and recentre the pin + DALLAS, not to enlarge.
-const DALLAS_ZOOM = '330px';   // art width inside the 300px box → ~1:1
-const DALLAS_FOCUS = '83% 0%'; // sit the pin (~57/33) + DALLAS (~50/52) cluster at centre
+// The art is an animated loop (840×630 @2x): the skyline landmarks morph into the map
+// pin and back, so the terminus keeps its pin half the time. Unlike the three upstream
+// stops it is NOT pre-cropped — the cluster + "DALLAS" sit centred in a wide map field —
+// so we window into it with background-size/position. The radial mask keeps that core
+// opaque and dissolves the surrounding map lines into the cloned video at the disc edge.
+// ZOOM / FOCUS / MASK are the three dials — nudge them live if needed. The lens itself
+// only magnifies ~1.15×, so ZOOM is close to 1:1 — it crops the art's margins out of the
+// box and centres the cluster, not enlarges it.
+const DALLAS_ZOOM = '420px';   // art width inside the 300px box (cluster ≈ 40% of art)
+const DALLAS_FOCUS = '53% 44%'; // centre the skyline (~51/45) + DALLAS (~51/55) cluster
 const DALLAS_MASK =
-  'radial-gradient(40% 42% at 50% 44%, #000 0%, #000 52%, rgba(0,0,0,0) 100%)';
+  'radial-gradient(42% 44% at 50% 48%, #000 0%, #000 52%, rgba(0,0,0,0) 100%)';
 const DALLAS_SCALE = 0.85;     // scales disc + content uniformly about the centre
 
 // The dashed route in a 1000×562 box stretched over the viewport (preserveAspectRatio
@@ -76,9 +83,9 @@ const ROUTE =
 // viewBox units calibrated at the 1280px gate (units grow with the viewport, so wider
 // windows only get more clearance, never a touch).
 const HOLES: Array<{ cx: number; cy: number; rx: number; ry: number }> = [
-  { cx: 300, cy: 174, rx: 88, ry: 67 },   // huangshan
-  { cx: 600, cy: 84, rx: 84, ry: 62 },    // beijing
-  { cx: 720, cy: 208, rx: 89, ry: 71 },   // shanghai
+  { cx: 300, cy: 174, rx: 101, ry: 77 },  // huangshan
+  { cx: 600, cy: 84, rx: 97, ry: 71 },    // beijing
+  { cx: 720, cy: 208, rx: 102, ry: 82 },  // shanghai
   { cx: 715, cy: 305, rx: 18, ry: 15 },   // the plane (22px glyph + clearance)
 ];
 
@@ -207,7 +214,7 @@ const TravelPath: React.FC = () => (
         opacity: 0,
         pointerEvents: 'none',
         zIndex: 7,
-        backgroundImage: 'url(/dallas-map-pin@2x.webp)',
+        backgroundImage: 'url(/dallas-map-pin-loop@2x.webp)',
         backgroundRepeat: 'no-repeat',
         backgroundSize: `${DALLAS_ZOOM} auto`,
         backgroundPosition: DALLAS_FOCUS,
