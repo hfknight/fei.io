@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 
 // The travel path — a chronological route of city maps (Huangshan → Beijing → Shanghai →
 // Dallas) joined by a loose dashed line, all revealed only under a lens (see lensEngine
@@ -82,12 +82,22 @@ const ROUTE =
 // map's dissolve extent (~half the box) plus a breath of clearance. Ellipse radii are
 // viewBox units calibrated at the 1280px gate (units grow with the viewport, so wider
 // windows only get more clearance, never a touch).
+// Beijing + Shanghai hug the visible-art edge with no breath: their connecting leg is
+// the route's shortest, and half-box + clearance radii left it only a dash or two.
 const HOLES: Array<{ cx: number; cy: number; rx: number; ry: number }> = [
   { cx: 300, cy: 174, rx: 101, ry: 77 },  // huangshan
-  { cx: 600, cy: 84, rx: 97, ry: 71 },    // beijing
-  { cx: 720, cy: 208, rx: 102, ry: 82 },  // shanghai
-  { cx: 715, cy: 305, rx: 18, ry: 15 },   // the plane (22px glyph + clearance)
+  { cx: 600, cy: 84, rx: 86, ry: 60 },    // beijing
+  { cx: 720, cy: 208, rx: 90, ry: 68 },   // shanghai
+  { cx: 698, cy: 334, rx: 18, ry: 15 },   // the plane (22px glyph + clearance)
 ];
+
+// The dashes march toward Dallas — one dash cycle (7 dash + 9 gap) per loop, so the
+// drift is seamless. LINEAR is load-bearing: any easing makes the march pulse. Declared
+// in CSS (not JS) so the lens-world clones animate too; direction follows the path's
+// authored order, which is the journey's chronology.
+const march = keyframes`
+  to { stroke-dashoffset: -16; }
+`;
 
 // All-or-nothing gate for the three upstream stops + the route. display:contents so the
 // absolutely-positioned children keep resolving against the hero root, not this wrapper.
@@ -97,12 +107,17 @@ const RouteGate = styled.div`
   @media (min-width: ${({ theme }) => theme.breakpoints.xl}) {
     display: contents;
   }
+
+  [data-route] path {
+    animation: ${march} 1.6s linear infinite;
+  }
 `;
 
 const TravelPath: React.FC = () => (
   <>
     <RouteGate aria-hidden="true">
       <svg
+        data-route
         data-lens-reveal
         data-reveal-opacity="0.9"
         viewBox="0 0 1000 562"
@@ -150,9 +165,10 @@ const TravelPath: React.FC = () => (
       </svg>
       {/* A plane in flight on the Shanghai→Dallas leg. Its own fixed-px svg (the route's
           stretched viewBox would distort a glyph; a ✈ text glyph would be font/emoji-
-          dependent), anchored to the leg's cubic at t=0.5 — (715,305) in route units, i.e.
-          exactly 71.5%/54.3% — and rotated to the curve's local heading there (down-left,
-          ~204° from the glyph's nose-up rest). Dark half → light ink, like the dashes. */}
+          dependent), anchored to the leg's cubic at t=0.7 — (698,334) in route units, i.e.
+          69.8%/59.4% — far enough from Shanghai's dissolve that dashes show on both sides
+          of it, and rotated to the curve's local heading there (down-left, ~218° from the
+          glyph's nose-up rest). Dark half → light ink, like the dashes. */}
       <svg
         data-lens-reveal
         data-reveal-opacity="0.9"
@@ -161,9 +177,9 @@ const TravelPath: React.FC = () => (
         height={22}
         style={{
           position: 'absolute',
-          left: '71.5%',
-          top: '54.3%',
-          transform: 'translate(-50%, -50%) rotate(204deg)',
+          left: '69.8%',
+          top: '59.4%',
+          transform: 'translate(-50%, -50%) rotate(218deg)',
           opacity: 0,
           pointerEvents: 'none',
           zIndex: 7,
