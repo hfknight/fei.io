@@ -28,7 +28,7 @@ interface Stop {
 
 const STOPS: Stop[] = [
   { img: '/huangshan-map@2x.webp', cx: 30, cy: 31, w: 224, h: 182 },
-  { img: '/beijing-map@2x.webp', cx: 60, cy: 15, w: 192, h: 149 },
+  { img: '/beijing-map@2x.webp', cx: 60, cy: 15, w: 216, h: 168 },
   { img: '/shanghai-map@2x.webp', cx: 72, cy: 37, w: 228, h: 192 },
 ];
 
@@ -77,7 +77,7 @@ const ROUTE =
 // windows only get more clearance, never a touch).
 const HOLES: Array<{ cx: number; cy: number; rx: number; ry: number }> = [
   { cx: 300, cy: 174, rx: 88, ry: 67 },   // huangshan
-  { cx: 600, cy: 84, rx: 75, ry: 55 },    // beijing
+  { cx: 600, cy: 84, rx: 84, ry: 62 },    // beijing
   { cx: 720, cy: 208, rx: 89, ry: 71 },   // shanghai
   { cx: 715, cy: 305, rx: 18, ry: 15 },   // the plane (22px glyph + clearance)
 ];
@@ -167,37 +167,32 @@ const TravelPath: React.FC = () => (
           fill="oklch(0.95 0.003 265 / 0.75)"
         />
       </svg>
-      {STOPS.map((s) => {
-        // Stops on the dark half get sunk toward the plate: the art's light paper reads as
-        // a bright ellipse against the dark video even under the dissolve, so darken it and
-        // let more of the ground through (the same surface-awareness rule the route's ink
-        // follows). The seam at 50% decides, like the route's clip.
-        const onDark = s.cx >= 50;
-        return (
-          <div
-            key={s.img}
-            data-lens-reveal
-            data-reveal-opacity={onDark ? '0.65' : '0.8'}
-            style={{
-              position: 'absolute',
-              left: `${s.cx}%`,
-              top: `${s.cy}%`,
-              width: s.w,
-              height: s.h,
-              transform: 'translate(-50%, -50%)',
-              opacity: 0,
-              pointerEvents: 'none',
-              zIndex: 7,
-              backgroundImage: `url(${s.img})`,
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: '100% 100%',
-              filter: onDark ? 'brightness(0.72) contrast(1.06)' : undefined,
-              WebkitMask: STOP_MASK,
-              mask: STOP_MASK,
-            }}
-          />
-        );
-      })}
+      {/* The two dark-half stops (Beijing, Shanghai) use night-version art — dark ground,
+          lit landmarks — so each map natively echoes its plate, the same surface rule the
+          route's ink follows. No dimming filter needed. */}
+      {STOPS.map((s) => (
+        <div
+          key={s.img}
+          data-lens-reveal
+          data-reveal-opacity="0.8"
+          style={{
+            position: 'absolute',
+            left: `${s.cx}%`,
+            top: `${s.cy}%`,
+            width: s.w,
+            height: s.h,
+            transform: 'translate(-50%, -50%)',
+            opacity: 0,
+            pointerEvents: 'none',
+            zIndex: 7,
+            backgroundImage: `url(${s.img})`,
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: '100% 100%',
+            WebkitMask: STOP_MASK,
+            mask: STOP_MASK,
+          }}
+        />
+      ))}
     </RouteGate>
     <div
       data-lens-reveal
