@@ -354,8 +354,8 @@ const About: React.FC = () => {
             {content.map((para, i) => (
               <Graf
                 key={i}
-                initial={{ opacity: 0, y: 22, filter: 'blur(6px)' }}
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                initial={reduced ? false : { clipPath: 'inset(0 100% 0 0)' }}
+                animate={{ clipPath: 'inset(0 0% 0 0)' }}
                 transition={{ duration: 1.1, delay: 0.2 + i * 0.18, ease }}
               >
                 {para}
