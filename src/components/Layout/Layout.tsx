@@ -17,7 +17,7 @@ interface LayoutProps {
  * Post slugs live in D1 and are fetched at runtime, so `/writing/:slug` cannot be
  * enumerated here — hence the prefix. Lab entries are bespoke and stay dark.
  */
-const LIGHT_EXACT = new Set(['/readme', '/work', '/lab', '/writing']);
+const LIGHT_EXACT = new Set(['/readme', '/lab', '/writing']);
 const LIGHT_PREFIXES = ['/writing/'];
 
 /**

@@ -7,7 +7,6 @@ import PageTransition from './components/PageTransition';
 import Day from './pages/Day';
 import LandingPage from './components/Landing';
 import LoadingScreen from './components/Landing/LoadingScreen';
-import Work from './pages/Work';
 
 // Lazy-loaded so the markdown/highlighter bundle stays off the landing page and
 // other routes — it only loads when a /writing route is visited.
@@ -42,7 +41,6 @@ const AppRoutes: React.FC = () => {
           <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
           <Route path="/readme" element={<About />} />
           <Route path="/changelog" element={<Day />} />
-          <Route path="/work" element={<Work />} />
           <Route path="/writing" element={<Writing />} />
           <Route path="/writing/admin" element={<AdminPosts />} />
           <Route path="/writing/admin/new" element={<AdminEditor />} />

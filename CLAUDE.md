@@ -60,7 +60,6 @@ its own palette.
 | `/` | `Landing` | Video background, loading screen, intro panel |
 | `/readme` | `About` | Personal statement, dark editorial layout |
 | `/changelog` | `Day` | **Retired.** Route kept, no nav link. |
-| `/work` | `Work` | (placeholder) |
 | `/lab` | `Lab` | Lab index |
 | `/lab/:slug` | `LabEntryRoute` | A lab entry |
 | `/writing` | `Writing` | Blog index (published posts) |
@@ -251,7 +250,7 @@ The flip is immediate on location change — PageTransition's sweep depends on t
 `HOME_CURTAIN_IN` so the surface swaps while HomeCurtains has the viewport covered;
 flipped eagerly, the old page inverts on screen before the curtains arrive.
 
-Light: `/readme`, `/work`, `/lab`, `/writing`, `/writing/:slug`.
+Light: `/readme`, `/lab`, `/writing`, `/writing/:slug`.
 Inverted: `/` (chrome over video, permanently), `/loading`, `/changelog`, `/lab/:slug`
 (bespoke entries), `/writing/admin*`. Migrating one of those means adding its path and
 reworking that page's hardcoded colors.

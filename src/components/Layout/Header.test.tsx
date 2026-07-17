@@ -22,13 +22,13 @@ const navNames = () =>
   screen.getAllByRole('link').map((a) => a.getAttribute('aria-label') ?? a.textContent);
 
 describe('Header nav', () => {
-  it('renders a Lab link sitting between Readme and Work', () => {
+  it('renders a Lab link sitting between Readme and Writing', () => {
     renderHeader();
 
     const order = navOrder();
     expect(order).toContain('Lab');
     expect(order.indexOf('Lab')).toBeGreaterThan(order.indexOf('Readme'));
-    expect(order.indexOf('Lab')).toBeLessThan(order.indexOf('Work'));
+    expect(order.indexOf('Lab')).toBeLessThan(order.indexOf('Writing'));
   });
 
   it('links Lab to /lab', () => {
@@ -47,7 +47,7 @@ describe('Header nav', () => {
     for (const path of ['/', '/lab', '/readme', '/writing/some-post']) {
       const { unmount } = renderHeader(path);
       expect(navNames(), path).toContain('Home');
-      expect(navNames(), path).toHaveLength(5);
+      expect(navNames(), path).toHaveLength(4);
       unmount();
     }
   });
@@ -84,9 +84,9 @@ describe('Header active pill', () => {
   });
 
   it('follows the route to a different link', () => {
-    const { container } = renderHeader('/work');
+    const { container } = renderHeader('/readme');
 
-    expect(screen.getByRole('link', { name: 'Work' })).toContainElement(
+    expect(screen.getByRole('link', { name: 'Readme' })).toContainElement(
       pills(container)[0] as HTMLElement,
     );
   });
@@ -144,12 +144,12 @@ describe('Header active route is announced', () => {
   });
 
   it('never sets aria-current on an inactive link, Home included', () => {
-    renderHeader('/work');
+    renderHeader('/readme');
 
     const inactive = screen
       .getAllByRole('link')
-      .filter((a) => a.textContent !== 'Work');
-    expect(inactive).toHaveLength(4);
+      .filter((a) => a.textContent !== 'Readme');
+    expect(inactive).toHaveLength(3);
     for (const link of inactive) {
       expect(link, link.getAttribute('aria-label') ?? link.textContent ?? '').not.toHaveAttribute(
         'aria-current',

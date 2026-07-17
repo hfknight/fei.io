@@ -27,7 +27,7 @@ describe('Layout surface bridge', () => {
   });
 
   it('puts the migrated content pages on the light surface', () => {
-    for (const path of ['/readme', '/work', '/writing', '/lab']) {
+    for (const path of ['/readme', '/writing', '/lab']) {
       renderAt(path);
       expect(document.documentElement.dataset.surface, path).toBe('default');
     }
