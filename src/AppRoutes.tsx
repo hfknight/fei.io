@@ -7,7 +7,6 @@ import PageTransition from './components/PageTransition';
 import Day from './pages/Day';
 import LandingPage from './components/Landing';
 import LoadingScreen from './components/Landing/LoadingScreen';
-import Connect from './pages/Connect';
 import Work from './pages/Work';
 
 // Lazy-loaded so the markdown/highlighter bundle stays off the landing page and
@@ -51,7 +50,6 @@ const AppRoutes: React.FC = () => {
           <Route path="/writing/:slug" element={<WritingPost />} />
           <Route path="/lab" element={<Lab />} />
           <Route path="/lab/:slug" element={<LabEntryRoute />} />
-          <Route path="/connect" element={<Connect />} />
           <Route path="/loading" element={<LoadingScreen isVisible={true} />} />
         </Routes>
       </Suspense>

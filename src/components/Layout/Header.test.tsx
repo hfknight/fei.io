@@ -47,7 +47,7 @@ describe('Header nav', () => {
     for (const path of ['/', '/lab', '/readme', '/writing/some-post']) {
       const { unmount } = renderHeader(path);
       expect(navNames(), path).toContain('Home');
-      expect(navNames(), path).toHaveLength(6);
+      expect(navNames(), path).toHaveLength(5);
       unmount();
     }
   });
@@ -84,9 +84,9 @@ describe('Header active pill', () => {
   });
 
   it('follows the route to a different link', () => {
-    const { container } = renderHeader('/connect');
+    const { container } = renderHeader('/work');
 
-    expect(screen.getByRole('link', { name: 'Connect' })).toContainElement(
+    expect(screen.getByRole('link', { name: 'Work' })).toContainElement(
       pills(container)[0] as HTMLElement,
     );
   });
@@ -144,12 +144,12 @@ describe('Header active route is announced', () => {
   });
 
   it('never sets aria-current on an inactive link, Home included', () => {
-    renderHeader('/connect');
+    renderHeader('/work');
 
     const inactive = screen
       .getAllByRole('link')
-      .filter((a) => a.textContent !== 'Connect');
-    expect(inactive).toHaveLength(5);
+      .filter((a) => a.textContent !== 'Work');
+    expect(inactive).toHaveLength(4);
     for (const link of inactive) {
       expect(link, link.getAttribute('aria-label') ?? link.textContent ?? '').not.toHaveAttribute(
         'aria-current',

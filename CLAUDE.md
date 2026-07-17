@@ -61,7 +61,6 @@ its own palette.
 | `/readme` | `About` | Personal statement, dark editorial layout |
 | `/changelog` | `Day` | **Retired.** Route kept, no nav link. |
 | `/work` | `Work` | (placeholder) |
-| `/connect` | `Connect` | Contact links from portfolio.json |
 | `/lab` | `Lab` | Lab index |
 | `/lab/:slug` | `LabEntryRoute` | A lab entry |
 | `/writing` | `Writing` | Blog index (published posts) |
@@ -98,7 +97,7 @@ The portfolio is structured as a **day-journey visualization** — five time-of-
 1. `Day.tsx` fetches `/data/portfolio.json` and transforms it into `TimeSection` objects via `transformJsonToTimeSections()` in `src/utils/`
 2. Scroll position on `Day.tsx` drives `activeSection` + `scrollProgress` state, which gates animations and conditional rendering throughout the tree
 3. Components consume `scrollProgress` as a 0–1 progress value passed as props
-4. `About.tsx` and `Connect.tsx` also fetch `/data/portfolio.json` — `about.content` (string[]) and `contact.links` respectively
+4. `About.tsx` also fetches `/data/portfolio.json` — `about.content` (string[])
 
 ### `public/data/portfolio.json` shape
 
@@ -252,7 +251,7 @@ The flip is immediate on location change — PageTransition's sweep depends on t
 `HOME_CURTAIN_IN` so the surface swaps while HomeCurtains has the viewport covered;
 flipped eagerly, the old page inverts on screen before the curtains arrive.
 
-Light: `/readme`, `/work`, `/connect`, `/lab`, `/writing`, `/writing/:slug`.
+Light: `/readme`, `/work`, `/lab`, `/writing`, `/writing/:slug`.
 Inverted: `/` (chrome over video, permanently), `/loading`, `/changelog`, `/lab/:slug`
 (bespoke entries), `/writing/admin*`. Migrating one of those means adding its path and
 reworking that page's hardcoded colors.

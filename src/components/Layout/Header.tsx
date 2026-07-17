@@ -172,7 +172,6 @@ const Header: React.FC = () => {
   const isLab = pathname === '/lab' || pathname.startsWith('/lab/');
   const isWork = pathname === '/work';
   const isWriting = pathname === '/writing' || pathname.startsWith('/writing/');
-  const isConnect = pathname === '/connect';
 
   return (
     <Bar>
@@ -199,9 +198,6 @@ const Header: React.FC = () => {
         </NavItem>
         <NavItem>
           <NavLink to="/writing" $active={isWriting} aria-current={isWriting ? 'page' : undefined}><ActivePill show={isWriting} /><Label>Writing</Label></NavLink>
-        </NavItem>
-        <NavItem>
-          <NavLink to="/connect" $active={isConnect} aria-current={isConnect ? 'page' : undefined}><ActivePill show={isConnect} /><Label>Connect</Label></NavLink>
         </NavItem>
       </NavLinks>
     </Bar>
