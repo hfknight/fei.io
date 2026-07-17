@@ -1,5 +1,12 @@
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import StackReveal from './StackReveal';
+
+// the recede's anticipation beat: the bracket frame puffs outward before the box dives.
+const brkPop = keyframes`
+  0% { transform: scale(1); }
+  45% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+`;
 
 // Center-top lockup — ported from design source lines 113-126. [data-brk-frame] /
 // [data-hair] start hidden (opacity:0); [data-logo] is the feather mark. Both are
@@ -9,7 +16,7 @@ const Wrapper = styled.div`
   position: absolute;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--lockup-scale, 1));
   z-index: 8;
   pointer-events: none;
   display: flex;
@@ -19,6 +26,25 @@ const Wrapper = styled.div`
   padding: 22px 38px;
   /* never let the lockup push past the viewport (no horizontal page scroll) */
   max-width: 100vw;
+
+  /* The recede (see CONTEXT.md): while a lens is dragged, lensEngine sets
+     data-lockup-recede on <html> and the lockup steps back to make room for the travel
+     path. Expressed as a CSS var + attribute rule ABOVE the clone boundary so the live
+     lockup and every [data-lens-world] copy animate in lockstep — no per-frame JS sync.
+     Release path (this base rule): plain ease-out, no anticipation. */
+  transition: transform 0.4s ${p => p.theme.ease.expo};
+
+  html[data-lockup-recede] & {
+    --lockup-scale: 0.7;
+    /* delayed past the bracket pop; y > 1 = one damped overshoot (lens dialect, not
+       the page language — the entrance-easing "never bounce" rule doesn't govern the
+       lens apparatus, which is springy throughout) */
+    transition: transform 0.5s 0.12s cubic-bezier(0.34, 1.3, 0.64, 1);
+  }
+
+  html[data-lockup-recede] & [data-brk-frame] {
+    animation: ${brkPop} 0.26s ${p => p.theme.ease.expo};
+  }
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     padding: 16px 20px;

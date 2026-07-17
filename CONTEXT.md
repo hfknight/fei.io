@@ -72,3 +72,9 @@ _Avoid_: easter egg, hidden layer
 The reveal telling the route here: city-map stops joined by a dashed line, running
 chronologically to its terminus, the Dallas pin.
 _Avoid_: journey map, city maps
+
+**Recede**:
+The lockup stepping back — shrinking toward its own centre — while a lens is being
+dragged, making room for the travel path around it. Held, not latched: it relaxes the
+moment the drag ends. A drag, not a click: a press that never travels doesn't trigger it.
+_Avoid_: shrink mode, minimized lockup

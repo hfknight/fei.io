@@ -1,5 +1,7 @@
 import type { EngineOpts } from './landingEngine';
 import { LENS } from './landingConfig';
+import { SURF, snellDisp1d } from './lensMath';
+import type { BlobMapRequest, BlobMapResponse } from './blobMapWorker';
 
 // Root-scoped handle the engine hands to the lens layer — mirrors the query/listener/
 // teardown primitives landingEngine.ts already owns (q/qa/on/loop/later/addCleanup) so
@@ -18,45 +20,8 @@ export interface LensCtx {
   getVideos: () => HTMLVideoElement[];
 }
 
-type SurfaceProfile = typeof LENS.surfaceProfile;
-
-// bezel surface profiles — port of source 285-296.
-const SURF: Record<SurfaceProfile, (x: number) => number> = {
-  'Convex circle': (x) => Math.sqrt(1 - Math.pow(1 - x, 2)),
-  'Convex squircle': (x) => Math.pow(1 - Math.pow(1 - x, 4), 0.25),
-  Concave: (x) => 1 - Math.sqrt(1 - Math.pow(1 - x, 2)),
-  Lip: (x) => {
-    const convex = Math.pow(Math.max(0, 1 - Math.pow(1 - x * 2, 4)), 0.25);
-    const concave = 1 - Math.sqrt(1 - Math.pow(1 - x, 2)) + 0.1;
-    const s = 6 * Math.pow(x, 5) - 15 * Math.pow(x, 4) + 10 * Math.pow(x, 3);
-    return convex * (1 - s) + concave * s;
-  },
-};
-
-// Snell-law 1D displacement profile (bezel ring only) — port of source 183-201.
-function snellDisp1d(surf: (x: number) => number, refr: number, thick: number, bezW: number) {
-  const samples = 128;
-  const eta = 1 / refr;
-  const disp1d: number[] = new Array(samples);
-  for (let s = 0; s < samples; s++) {
-    const xx = s / samples;
-    const yy = surf(xx);
-    const dx = xx < 1 ? 0.0001 : -0.0001;
-    const deriv = (surf(xx + dx) - yy) / dx;
-    const mg = Math.sqrt(deriv * deriv + 1);
-    const nX = -deriv / mg;
-    const nY = -1 / mg;
-    const dot = nY;
-    const k = 1 - eta * eta * (1 - dot * dot);
-    if (k < 0) { disp1d[s] = 0; continue; }
-    const ks = Math.sqrt(k);
-    const rx = -(eta * dot + ks) * nX;
-    const ry = eta - (eta * dot + ks) * nY;
-    const remaining = yy * bezW + thick;
-    disp1d[s] = Math.abs(ry) < 0.001 ? 0 : rx * (remaining / ry);
-  }
-  return { disp1d, samples };
-}
+// bezel surface profiles + Snell displacement now live in lensMath.ts, shared with the
+// blob-map worker.
 
 // generateLensMap is a pure function of the (static, module-level) LENS constants, so
 // the 256x256 canvas only needs to be rasterized once per page load — port of source
@@ -144,8 +109,12 @@ function buildLensFilter(): string {
   const url = generateLensMap();
   const S = 64;
   const chrom = LENS.chromaticAberration;
-  const d = S * LENS.chromaticStrength * 0.4;
-  const makeFilter = (id: string, mapId?: string, mapUrl?: string): string => {
+  const baseD = S * LENS.chromaticStrength * 0.4;
+  const makeFilter = (id: string, mapId?: string, mapUrl?: string, chromScale = 1): string => {
+    // channel separation is proportional to total displacement, and the blob's neck
+    // refracts far harder than any disc rim (the whole waist is edge-close), so the
+    // bridge takes a scaled-down separation — same glass, calmer rainbow.
+    const d = baseD * chromScale;
     let html =
       `<filter id="${id}" color-interpolation-filters="sRGB" x="0%" y="0%" width="100%" height="100%">` +
       `<feGaussianBlur in="SourceGraphic" stdDeviation="0.3" result="soft"></feGaussianBlur>` +
@@ -172,110 +141,12 @@ function buildLensFilter(): string {
       'lensRefractBridge',
       'bridgeMap',
       'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg==',
+      0.4,
     )
   );
 }
 
-// R/G displacement for one point given its inward edge-distance + outward normal, in the
-// same normalized convention the disc map uses (so magnitudes match everywhere) — port of
-// source 203-221 (`_encodeDisp`). generateLensMap (above) inlines this same math for the
-// single-disc case (matching the source's own duplication between the two); this copy is
-// what generateBlobMap (below) shares across the whole merged blob.
-function encodeDisp(
-  edgeDist: number,
-  rn: number,
-  nx: number,
-  ny: number,
-  R: number,
-  bezelPx: number,
-  disp1d: number[],
-  samples: number,
-  magnify: number,
-): [number, number] {
-  let dispPx = Math.max(0, Math.min(1, rn)) * magnify * 60;
-  if (edgeDist >= 0 && edgeDist <= bezelPx) {
-    const t = edgeDist / bezelPx;
-    const idx = Math.min(samples - 1, Math.floor(t * samples));
-    let raw = disp1d[idx] * 0.5 * (R / 110);
-    const env = bezelPx * 0.85 * (1 - t);
-    if (raw > env) raw = env;
-    if (raw < -env) raw = -env;
-    dispPx += raw;
-  }
-  let m = dispPx / 64;
-  if (m > 1) m = 1;
-  if (m < -1) m = -1;
-  return [
-    Math.max(0, Math.min(255, Math.round(128 - nx * m * 127))),
-    Math.max(0, Math.min(255, Math.round(128 - ny * m * 127))),
-  ];
-}
-
-// per-frame smooth-union (metaball) displacement map spanning both discs + the neck, so
-// the refraction field is one continuous surface across the bridge. Supersampled 2x to
-// match the disc map's density (keeps displacement magnitude identical) — port of source
-// 226-274, including its canvas.toDataURL() at the end: the perf gate (measured after
-// this port, not baked in ahead of time) decides whether that becomes createImageBitmap.
-function generateBlobMap(
-  x1: number, y1: number, r1: number,
-  x2: number, y2: number, r2: number,
-  bx0: number, by0: number, bw: number, bh: number,
-): string {
-  const magnify = LENS.magnify;
-  const bezW = LENS.bezelWidth;
-  const surf = SURF[LENS.surfaceProfile] || SURF['Convex circle'];
-  const { disp1d, samples } = snellDisp1d(surf, LENS.refractiveIndex, LENS.glassThickness, bezW);
-
-  let ss = 2;
-  const maxDim = 1100;
-  if (Math.max(bw, bh) * ss > maxDim) ss = maxDim / Math.max(bw, bh);
-  const cw = Math.max(4, Math.round(bw * ss));
-  const ch = Math.max(4, Math.round(bh * ss));
-  // everything below is in canvas px (screen px * ss)
-  const X1 = (x1 - bx0) * ss, Y1 = (y1 - by0) * ss, R1 = r1 * ss;
-  const X2 = (x2 - bx0) * ss, Y2 = (y2 - by0) * ss, R2 = r2 * ss;
-  const Ravg = (R1 + R2) / 2;
-  const bezelPx = Math.max(2, Math.min((bezW / 110) * Ravg, Ravg));
-  const kBlend = Math.min(R1, R2) * 0.9;
-
-  const sdf = (px: number, py: number): number => {
-    const d1 = Math.sqrt((px - X1) * (px - X1) + (py - Y1) * (py - Y1)) - R1;
-    const d2 = Math.sqrt((px - X2) * (px - X2) + (py - Y2) * (py - Y2)) - R2;
-    const hh = Math.max(0, Math.min(1, 0.5 + 0.5 * (d2 - d1) / kBlend));
-    return d2 + (d1 - d2) * hh - kBlend * hh * (1 - hh);
-  };
-
-  const c = document.createElement('canvas');
-  c.width = cw;
-  c.height = ch;
-  const c2d = c.getContext('2d')!;
-  const img = c2d.createImageData(cw, ch);
-  const data = img.data;
-  for (let y = 0; y < ch; y++) {
-    for (let x = 0; x < cw; x++) {
-      const px = x + 0.5, py = y + 0.5;
-      const d0 = sdf(px, py);
-      let rC = 128, gC = 128, a = 0;
-      if (d0 <= 0) {
-        a = 255;
-        const gx = sdf(px + 1, py) - sdf(px - 1, py);
-        const gy = sdf(px, py + 1) - sdf(px, py - 1);
-        const gl = Math.sqrt(gx * gx + gy * gy) || 0.0001;
-        const nx = gx / gl, ny = gy / gl;   // outward normal
-        const edgeDist = -d0;               // inward from blob edge
-        const rn = 1 - edgeDist / Ravg;     // center-like deep inside, rim-like at edge
-        const enc = encodeDisp(edgeDist, rn, nx, ny, Ravg, bezelPx, disp1d, samples, magnify);
-        rC = enc[0]; gC = enc[1];
-      }
-      const i = (y * cw + x) * 4;
-      data[i] = rC; data[i + 1] = gC; data[i + 2] = 0; data[i + 3] = a;
-    }
-  }
-  c2d.putImageData(img, 0, 0);
-  return c.toDataURL();
-}
-
-// smooth-union connector between two discs (the same merge shape generateBlobMap bends the
+// smooth-union connector between two discs (the same merge shape the blob map bends the
 // refraction field to) — its outline reads as one liquid blob while the discs overlap
 // enough to bridge. Returns null (source: '') when they're too far apart, too close
 // (concentric), or one fully swallows the other — port of source 641-687.
@@ -404,6 +275,9 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     .map((sel) => document.querySelector<HTMLElement>(sel))
     .filter((el): el is HTMLElement => el !== null);
 
+  // a teardown mid-drag (route change) must not strand the recede attribute on <html>
+  ctx.addCleanup(() => document.documentElement.removeAttribute('data-lockup-recede'));
+
   // clone the hero and mirror its live videos as canvases — port of source 509-545.
   // Canvases (not cloned <video> elements) because a cloned video can't keep pace with
   // the scrub-driven original (seek storm); paintWorlds() blits the real frame instead.
@@ -427,6 +301,20 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     world.querySelectorAll('[data-lens-reveal]').forEach((n) => {
       const el = n as HTMLElement;
       el.style.opacity = el.dataset.revealOpacity ?? '1';
+    });
+    // the lockup's corner brackets reveal AFTER worlds are built (bounceBrackets flips
+    // their inline opacity post-setup on both intro paths), so a clone bakes in the
+    // pre-reveal 0 and the lockup renders unframed under the glass — un-hide them here
+    world.querySelectorAll('[data-brk-frame]').forEach((n) => {
+      (n as HTMLElement).style.opacity = '1';
+    });
+    // same staleness for the hairs' tint: the main tick paints the LIVE brackets by index
+    // (left pair dark ink for the light plate) but never reaches into clones, which baked
+    // the authored white — stamp the tick's rest-state values here (not a live snapshot:
+    // at build time the live hairs are still untinted, and mid-hover they'd bake the glow)
+    world.querySelectorAll('[data-hair]').forEach((n, i) => {
+      const el = n as HTMLElement;
+      el.style.borderColor = i === 0 || i === 2 ? 'rgba(70,72,78,.52)' : 'rgba(255,255,255,.55)';
     });
     world.setAttribute('data-lens-world', '');
     // A world is a decorative refraction snapshot, and there are three of them (two lenses
@@ -605,12 +493,18 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
       if (Math.hypot(vx, vy) > 1.5) ang = Math.atan2(vy, vx);
     };
 
-    // pointer drag — port of source 612-637.
+    // pointer drag — port of source 612-637. A press that travels past RECEDE_SLOP is a
+    // drag, not a click (click-slop): only then does the lockup recede (see Lockup.tsx —
+    // the attribute lives on <html>, above the clone boundary, so every lens world's
+    // lockup animates in lockstep with the live one). Released on pointerup.
+    const RECEDE_SLOP = 6;
+    let downX = 0, downY = 0, receded = false;
     const onDown = (e: Event): void => {
       const pe = e as PointerEvent;
       drag = { dx: pe.clientX - lens.offsetLeft, dy: pe.clientY - lens.offsetTop };
       el._clickBounce?.();   // pop on click/press
       lastX = pe.clientX; lastY = pe.clientY;
+      downX = pe.clientX; downY = pe.clientY;
       lens.style.cursor = 'grabbing';
       lens.setPointerCapture?.(pe.pointerId);
       pe.preventDefault();
@@ -622,6 +516,10 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
       velX = pe.clientX - lastX; velY = pe.clientY - lastY;
       lastX = pe.clientX; lastY = pe.clientY;
       if (Math.hypot(velX, velY) > 1.5) ang = Math.atan2(velY, velX);
+      if (!receded && Math.hypot(pe.clientX - downX, pe.clientY - downY) > RECEDE_SLOP) {
+        receded = true;
+        document.documentElement.setAttribute('data-lockup-recede', '');
+      }
       lens.style.left = `${pe.clientX - drag.dx}px`;
       lens.style.top = `${pe.clientY - drag.dy}px`;
       sync();
@@ -630,6 +528,10 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
       if (!drag) return;
       drag = null;
       lens.style.cursor = 'grab';
+      if (receded) {
+        receded = false;
+        document.documentElement.removeAttribute('data-lockup-recede');
+      }
     };
     ctx.on(lens, 'pointerdown', onDown);
     ctx.on(window, 'pointermove', onMove);
@@ -692,6 +594,53 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     // every frame. null forces a regen on the next merged frame; reset on separation so
     // the next merge always starts fresh.
     let lastBlobGeom: [number, number, number, number, number, number] | null = null;
+    // The map rasters in a Web Worker (blobMapWorker.ts) at full quality — measured on
+    // the main thread the SDF loop alone dropped merged drags to 50fps, and a cheaper
+    // in-motion raster aliased the rim into rainbow spray under the chromatic-aberration
+    // filter. Off-thread costs only the href landing a beat late (a frame or two of
+    // stale displacement while moving, masked by the neck wobble). One request in
+    // flight at a time, the newest geometry parked in pendingGeom, so a slow raster can
+    // never queue up. The token drops out-of-order responses; object-URL revocation
+    // trails by one swap because feImage may still be fetching the URL it was just
+    // handed.
+    let blobToken = 0;
+    let liveBlobUrl: string | null = null;
+    let prevBlobUrl: string | null = null;
+    let mapWorker: Worker | null = null;
+    let workerBusy = false;
+    let pendingGeom: Omit<BlobMapRequest, 'id'> | null = null;
+    const postGeom = (g: Omit<BlobMapRequest, 'id'>): void => {
+      workerBusy = true;
+      mapWorker?.postMessage({ id: ++blobToken, ...g });
+    };
+    const requestMap = (g: Omit<BlobMapRequest, 'id'>): void => {
+      if (!mapWorker) {
+        mapWorker = new Worker(new URL('./blobMapWorker.ts', import.meta.url), { type: 'module' });
+        mapWorker.onmessage = (e: MessageEvent<BlobMapResponse>) => {
+          workerBusy = false;
+          const { id, blob } = e.data;
+          if (id === blobToken && bmap) {
+            const url = URL.createObjectURL(blob);
+            bmap.setAttribute('href', url);
+            if (prevBlobUrl) URL.revokeObjectURL(prevBlobUrl);
+            prevBlobUrl = liveBlobUrl;
+            liveBlobUrl = url;
+          }
+          if (pendingGeom) {
+            const next = pendingGeom;
+            pendingGeom = null;
+            postGeom(next);
+          }
+        };
+        ctx.addCleanup(() => { mapWorker?.terminate(); mapWorker = null; });
+      }
+      if (workerBusy) pendingGeom = g;
+      else postGeom(g);
+    };
+    ctx.addCleanup(() => {
+      if (liveBlobUrl) URL.revokeObjectURL(liveBlobUrl);
+      if (prevBlobUrl) URL.revokeObjectURL(prevBlobUrl);
+    });
     const setDiscFx = (vis: boolean): void => {
       ctx.qa('[data-lens]').forEach((lens) => {
         const fx = lens.querySelector<HTMLElement>('[data-lens-fx]');
@@ -741,8 +690,8 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
             Math.abs(cy2 - lastBlobGeom[4]) > 0.5 ||
             Math.abs(r2 - lastBlobGeom[5]) > 0.5;
           if (geomChanged) {
-            bmap.setAttribute('href', generateBlobMap(cx1, cy1, r1, cx2, cy2, r2, bx0, by0, bw, bh));
             lastBlobGeom = [cx1, cy1, r1, cx2, cy2, r2];
+            requestMap({ x1: cx1, y1: cy1, r1, x2: cx2, y2: cy2, r2, bx0, by0, bw, bh });
           }
         }
 
