@@ -35,6 +35,19 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   /*
+   * Lens reveals hide by visibility, not only opacity. opacity:0 still PAINTS, and the
+   * travel path's city maps are animated WebPs — the browser animates an image resource in
+   * every element painting it, so the invisible base copies kept four loops decoding and a
+   * viewport-sized route SVG repainting over the landing's videos, hitching their scrub
+   * (measurably: pulling TravelPath calmed the video flash). visibility:hidden depaints
+   * them; buildLensWorld's reveal flip restores visibility inline inside the clones, and
+   * inline wins over this rule.
+   */
+  [data-lens-reveal] {
+    visibility: hidden;
+  }
+
+  /*
    * Paper grain. The light pages paint an opaque surface, so rather than thread a texture
    * through six page components, a single fixed layer sits over the viewport — the same
    * --frost-noise the landing's frost wears, blended soft-light so it only nudges the

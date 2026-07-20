@@ -95,6 +95,13 @@ const HOLES: Array<{ cx: number; cy: number; rx: number; ry: number }> = [
 // drift is seamless. LINEAR is load-bearing: any easing makes the march pulse. Declared
 // in CSS (not JS) so the lens-world clones animate too; direction follows the path's
 // authored order, which is the journey's chronology.
+//
+// The march runs ONLY while a lens is held (html[data-lens-drag], set by lensEngine's
+// drag handlers — above the clone boundary, so all worlds gate in lockstep, the same
+// channel data-lockup-recede rides). stroke-dashoffset is a paint-invalidating animation
+// on a viewport-wide svg, repainted every frame in all three lens worlds at device DPR —
+// measured as a video-scrub hitch (the flash) whenever it ran. The march is only ever
+// VISIBLE under a held lens, so pausing it at rest costs nothing but a frozen dash.
 const march = keyframes`
   to { stroke-dashoffset: -16; }
 `;
@@ -110,6 +117,11 @@ const RouteGate = styled.div`
 
   [data-route] path {
     animation: ${march} 1.6s linear infinite;
+    animation-play-state: paused;
+  }
+
+  html[data-lens-drag] & [data-route] path {
+    animation-play-state: running;
   }
 `;
 
@@ -132,7 +144,13 @@ const TravelPath: React.FC = () => (
           zIndex: 7,
         }}
       >
-        <defs>
+        {/* visibility:visible is load-bearing. url(#route-gaps) resolves to the FIRST id in
+            document order — this base copy's — from every lens-world clone. The base svg is
+            visibility:hidden (the [data-lens-reveal] depaint), and mask CONTENT inherits
+            that: a hidden white rect admits no paint, the mask goes empty, and the route
+            vanishes in every world. Re-declaring visible on the defs subtree keeps the
+            resources functional; defs never render directly, so nothing shows on the page. */}
+        <defs style={{ visibility: 'visible' }}>
           <clipPath id="route-light-half"><rect x="0" y="0" width="500" height="562" /></clipPath>
           <clipPath id="route-dark-half"><rect x="500" y="0" width="500" height="562" /></clipPath>
           <mask id="route-gaps">

@@ -301,6 +301,9 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
     world.querySelectorAll('[data-lens-reveal]').forEach((n) => {
       const el = n as HTMLElement;
       el.style.opacity = el.dataset.revealOpacity ?? '1';
+      // pairs with GlobalStyles' `[data-lens-reveal] { visibility: hidden }` — the base
+      // page depaints reveals so their animated WebPs stop decoding; inline wins here
+      el.style.visibility = 'visible';
     });
     // the lockup's corner brackets reveal AFTER worlds are built (bounceBrackets flips
     // their inline opacity post-setup on both intro paths), so a clone bakes in the
@@ -506,6 +509,9 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
       lastX = pe.clientX; lastY = pe.clientY;
       downX = pe.clientX; downY = pe.clientY;
       lens.style.cursor = 'grabbing';
+      // gates TravelPath's dash march (see RouteGate): the route repaints every animation
+      // frame in all three worlds, so it runs only while a lens is actually held
+      document.documentElement.setAttribute('data-lens-drag', '');
       lens.setPointerCapture?.(pe.pointerId);
       pe.preventDefault();
       pe.stopPropagation();
@@ -528,6 +534,7 @@ export function createLenses(ctx: LensCtx): { playIntro(): void; paintWorlds(): 
       if (!drag) return;
       drag = null;
       lens.style.cursor = 'grab';
+      document.documentElement.removeAttribute('data-lens-drag');
       if (receded) {
         receded = false;
         document.documentElement.removeAttribute('data-lockup-recede');
