@@ -95,13 +95,13 @@ The portfolio is structured as a **day-journey visualization** — five time-of-
 1. `Day.tsx` fetches `/data/portfolio.json` and transforms it into `TimeSection` objects via `transformJsonToTimeSections()` in `src/utils/`
 2. Scroll position on `Day.tsx` drives `activeSection` + `scrollProgress` state, which gates animations and conditional rendering throughout the tree
 3. Components consume `scrollProgress` as a 0–1 progress value passed as props
-4. `About.tsx` also fetches `/data/portfolio.json` — `about.content` (string[])
+4. `About.tsx` (`/readme`) owns its copy inline — the principles carry inline markup
+   (hover treatments), which JSON strings cannot express
 
 ### `public/data/portfolio.json` shape
 
 ```
 {
-  about:   { content: string[] }
   contact: { links: [{ name, link, icon }] }
   sections: [{ id, title, subtitle, gradient }]  // drives Day journey
 }

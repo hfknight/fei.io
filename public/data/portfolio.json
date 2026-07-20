@@ -1,7 +1,4 @@
 {
-  "about": {
-    "content": ["Howdy! I'm Fei Hu. Full-stack engineer with a designer's touch. My bar is clear. Intuitive — software should explain itself on first touch. Aesthetic — it should feel considered, not just functional. Well-architected — the foundation should outlast every feature built on top of it.", "I've spent over a decade building brand-defining websites and complex SaaS platforms, including work for Am Law 100 top 10 firms. Clean code, solid architecture, delivered on time.", "AI made the mechanical parts of coding faster than ever. I lean into that. More time for architecture, system design, and the decisions that actually move a product forward. Today I'm building products on top of AI: RAG with reranking, multi-model orchestration with routing and fallback, structured generation in production. What sets the direction? Taste, product instinct, and domain expertise. AI amplifies those. It doesn't replace them."]
-  },
   "sections": [
     {
       "id": "dawn",
@@ -47,9 +44,21 @@
   "contact": {
     "text": "",
     "links": [
-      { "name": "GitHub", "link": "https://github.com/hfknight/", "icon": "github" },
-      { "name": "LinkedIn", "link": "https://www.linkedin.com/in/feihu/", "icon": "linkedin" },
-      { "name": "Email", "link": "mailto:fei.hu@fei.io", "icon": "email" }
+      {
+        "name": "GitHub",
+        "link": "https://github.com/hfknight/",
+        "icon": "github"
+      },
+      {
+        "name": "LinkedIn",
+        "link": "https://www.linkedin.com/in/feihu/",
+        "icon": "linkedin"
+      },
+      {
+        "name": "Email",
+        "link": "mailto:fei.hu@fei.io",
+        "icon": "email"
+      }
     ]
   }
 }

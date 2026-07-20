@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import styled from 'styled-components';
+import { useEffect, useRef, useState } from 'react';
+import styled, { keyframes } from 'styled-components';
 import { motion, useReducedMotion } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
 
@@ -283,25 +283,181 @@ const Graf = styled(motion.p)`
   &:last-child {
     margin-bottom: 0;
   }
+
+  /* The Intuitive hover: everything that isn't the Intuitive clause recedes, and the
+     clause explains itself by being the one thing left. Requires every text run to be
+     an element (see PARAGRAPHS) — text nodes can't be dimmed. */
+  > span {
+    transition: opacity 0.4s ease;
+  }
+
+  &:has([data-clause='intuitive'] strong:hover) > span:not([data-clause='intuitive']) {
+    opacity: 0.3;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    > span {
+      transition: none;
+    }
+  }
 `;
+
+/*
+ * The three principles. Each hover DEMONSTRATES the principle it names: the trigger is
+ * the principle word (the visibly marked element), the effect covers its whole clause.
+ * All three are decorative emphasis — spans, not links — so nothing joins the tab order.
+ * Reduced motion collapses each to a static colour state, per the house rule.
+ */
+
+/* The marked word: only weight marks it at rest (500 against the body's 300) — an
+   underline read as decoration spent too early; the accent and the portrait's colours
+   are saved for the hover moments. */
+const Term = styled.strong`
+  font-weight: 500;
+`;
+
+/* Intuitive — "explain itself on first touch": no ornament at all. Hovering the word
+   dims everything else in the paragraph (see Graf), and the clause is simply the one
+   thing left standing — instant comprehension, zero decoration. */
+const IntuitiveClause = styled.span``;
+
+/* Aesthetic — the sentence about beauty becomes the page's one beautiful moment: the
+   text turns gradient and a hot band travels through it while hovered. The band is the
+   portrait's own glow — #f04d22/#f15b24 sampled from the image's vivid strip (the same
+   band Peek frames) — so the colour reads as the page's, not an import. */
+const shimmer = keyframes`
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+`;
+
+const AestheticClause = styled.span`
+  &:has(${Term}:hover) {
+    background-image: linear-gradient(
+      90deg,
+      ${p => p.theme.color.ink} 0%,
+      ${p => p.theme.color.ink} 28%,
+      #f04d22 44%,
+      #f15b24 56%,
+      ${p => p.theme.color.ink} 72%,
+      ${p => p.theme.color.ink} 100%
+    );
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: ${shimmer} 1.4s linear infinite;
+  }
+
+  /* No shimmer, no clipped gradient: the hover reduces to a static tint in the same
+     sampled orange. */
+  @media (prefers-reduced-motion: reduce) {
+    &:has(${Term}:hover) {
+      background-image: none;
+      -webkit-background-clip: initial;
+      background-clip: initial;
+      -webkit-text-fill-color: currentColor;
+      animation: none;
+      color: #f04d22;
+    }
+  }
+`;
+
+/* Well-architected — hovering the word throws the clause into scrambled glyphs that
+   resolve left to right: assembly, chaos settling into structure. JS-driven (below);
+   this span only reserves the visual. */
+const ArchitectedClause = styled.span``;
+
+/* Scramble machinery. Letters randomise from a mixed pool — letters, digits and
+   structural glyphs — and lock in left to right over DUR; spaces and punctuation never
+   scramble, so the clause keeps its shape and the em-dash anchors the eye. Each hover
+   cancels and restarts rather than guarding on "already running": a busy-flag deadlocks
+   permanently if the tab is hidden mid-run (rAF freezes with the flag up and no frame
+   ever clears it). */
+const SCRAMBLE_POOL = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#/\\{}[]<>=+*';
+const SCRAMBLE_DUR = 900;
+
+const useScramble = (text: string): { display: string; start: () => void } => {
+  const reduced = useReducedMotion();
+  const [display, setDisplay] = useState(text);
+  const raf = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(raf.current), []);
+  const start = () => {
+    if (reduced) return;
+    cancelAnimationFrame(raf.current);
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const p = (now - t0) / SCRAMBLE_DUR;
+      if (p >= 1) {
+        setDisplay(text);
+        raf.current = 0;
+        return;
+      }
+      const resolved = Math.floor(p * text.length);
+      setDisplay(
+        text
+          .split('')
+          .map((ch, i) =>
+            i < resolved || !/[a-zA-Z]/.test(ch)
+              ? ch
+              : SCRAMBLE_POOL[Math.floor(Math.random() * SCRAMBLE_POOL.length)],
+          )
+          .join(''),
+      );
+      raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
+  };
+  return { display, start };
+};
+
+const ARCHITECTED_REST =
+  ' — the foundation should outlast every feature built on top of it.';
+
+const Architected: React.FC = () => {
+  const { display, start } = useScramble(ARCHITECTED_REST);
+  return (
+    <ArchitectedClause data-clause>
+      <Term onMouseEnter={start}>Well-architected</Term>
+      {display}
+    </ArchitectedClause>
+  );
+};
+
+/*
+ * The copy lives here, not in portfolio.json: the principles need inline markup, and a
+ * marker syntax in JSON plus a parser is more machinery than three paragraphs of prose
+ * justify. The entrance animates clip-path on each <p>, which is safe over these spans
+ * because every treatment is hover-driven — static at rest, nothing fires mid-wipe.
+ */
+const PARAGRAPHS: React.ReactNode[] = [
+  /* Every run of text is wrapped in a span so the Intuitive focus-dim (on Graf) has an
+     element to fade — a bare text node can't be selected, let alone transitioned. */
+  <>
+    <span data-plain>
+      Howdy! I'm Fei Hu. Full-stack engineer with a designer's touch. My bar is clear.
+    </span>{' '}
+    <IntuitiveClause data-clause="intuitive">
+      <Term>Intuitive</Term> — software should explain itself on first touch.
+    </IntuitiveClause>{' '}
+    <AestheticClause data-clause>
+      <Term>Aesthetic</Term> — it should feel considered, not just functional.
+    </AestheticClause>{' '}
+    <Architected />
+  </>,
+  "I've spent over a decade building brand-defining websites and complex SaaS platforms, including work for Am Law 100 top 10 firms. Clean code, solid architecture, delivered on time.",
+  "AI made the mechanical parts of coding faster than ever. I lean into that. More time for architecture, system design, and the decisions that actually move a product forward. Today I'm building products on top of AI: RAG with reranking, multi-model orchestration with routing and fallback, structured generation in production. What sets the direction? Taste, product instinct, and domain expertise. AI amplifies those. It doesn't replace them.",
+];
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 const About: React.FC = () => {
   const reduced = useReducedMotion();
-  const [content, setContent] = useState<string[]>([]);
   /* Stencil geometry for the wordmark, derived from Anton's measured ink bounds (canvas
      measureText actualBoundingBox*). textLength normalises the ADVANCE width, which keeps
      the glyphs' side bearings — visible as edge gaps. Solving against ink instead makes
      the painted pixels span exactly the 300px image width, and sizes the tallest ink (the
      d ascender) to fill the 48px pre-scale box. Defaults approximate Anton until it loads. */
   const [stencil, setStencil] = useState({ x: 0, fontSize: 76, textLength: 300 });
-
-  useEffect(() => {
-    fetch('/data/portfolio.json')
-      .then(r => r.json())
-      .then(data => setContent(data.about?.content ?? []));
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -375,15 +531,7 @@ const About: React.FC = () => {
         </ColumnGroup>
         <Content>
           <Column>
-            {/* Planned: paragraphs may carry inline markers for per-word treatments —
-                [[word]] for the default emphasis, [[style:word]] if more than one
-                treatment is needed. A renderRich(text) helper would split on the
-                markers and wrap matches in a styled (motion.)span; the JSON only marks
-                intent, the component owns the appearance. NOTE: the entrance below
-                animates clip-path on the whole <p>, so per-word animations must fire
-                after the wipe (delay past 0.2 + i * 0.18 + 1.1s) or be static styles,
-                or the word animates while still clipped. */}
-            {content.map((para, i) => (
+            {PARAGRAPHS.map((para, i) => (
               <Graf
                 key={i}
                 initial={reduced ? false : { clipPath: 'inset(0 100% 0 0)' }}
