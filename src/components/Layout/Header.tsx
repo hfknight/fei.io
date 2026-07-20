@@ -13,16 +13,27 @@ const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
  * wears it at rest. Keeping them in one block is what stops the two from drifting.
  */
 const glassPill = css`
-  background: linear-gradient(140deg, ${p => p.theme.glass.top}, ${p => p.theme.glass.bot});
-  -webkit-backdrop-filter: blur(${p => p.theme.glass.blur}) saturate(205%);
-  backdrop-filter: blur(${p => p.theme.glass.blur}) saturate(205%);
-  /* The cast shadow is short. The 6px/20px it used to throw belonged to a slab floating well
-     above the page, and on paper it pooled into a dark blob under the active link. */
+  /* The gradient is stacked twice: the reference frost is denser than GLASS_K's thin pill,
+     and doubling the layer compounds the alpha (top 0.148 → 0.274) without minting a new
+     tint outside the token family. Both copies follow the surface as before. */
+  background:
+    linear-gradient(140deg, ${p => p.theme.glass.top}, ${p => p.theme.glass.bot}),
+    linear-gradient(140deg, ${p => p.theme.glass.top}, ${p => p.theme.glass.bot});
+  /* Frost-grade blur, not the pill's 5.6px — this is the thicker material the nav track
+     already shares with the landing's inactive half. */
+  -webkit-backdrop-filter: blur(var(--frost-blur)) saturate(205%);
+  backdrop-filter: blur(var(--frost-blur)) saturate(205%);
+  /* Bottom-up: crisp rim; top catch-light; a deeper inner sheen along the lower edge; a soft
+     cast shadow displaced down (negative spread keeps it from pooling into a blob on paper);
+     and the bloom — light escaping under the glass. hi/sheen are always white (reflected
+     light), so the bloom pools brightly over the dark video and fades out on light paper. */
   box-shadow:
     inset 0 1px 0 ${p => p.theme.glass.hi},
-    inset 0 -1px 2px ${p => p.theme.glass.sheen},
+    inset 0 -2px 6px ${p => p.theme.glass.sheen},
     inset 0 0 0 1px ${p => p.theme.glass.rim},
-    0 2px 6px ${p => p.theme.glass.shadow};
+    0 2px 3px -1px ${p => p.theme.glass.shadow},
+    0 8px 18px -6px ${p => p.theme.glass.shadow},
+    0 10px 18px -8px ${p => p.theme.glass.hi};
 `;
 
 const Bar = styled.header`
