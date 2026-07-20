@@ -20,7 +20,7 @@ const SplitStage: React.FC = () => (
       <div data-frost-l style={{ position: 'absolute', inset: 0, opacity: 0, transition: 'opacity .55s ease', pointerEvents: 'none', zIndex: 4 }} />
     </Left>
     <Right>
-      <Vid data-ollie data-src="/ollie-clip-3.mp4" muted playsInline preload="auto"
+      <Vid data-ollie data-src="/ollie-clip-4.mp4" muted playsInline preload="auto"
            style={{ objectPosition: '36% 70%', transform: 'scaleX(-1)' }} />
       {/* dark-side gradient (source 92) + inner shadow (93) + light bleed across seam (95) + frost overlay (97) */}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(120deg,rgba(40,41,45,0) 60%,rgba(36,37,41,.34) 100%)', pointerEvents: 'none' }} />

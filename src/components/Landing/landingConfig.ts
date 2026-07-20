@@ -5,7 +5,11 @@ export interface ClipCfg { src: string; T0: number; T1: number; rest: number; du
 const mk = (src: string, T0: number, T1: number, rest: number): ClipCfg => ({ src, T0, T1, rest, dur: T1 - T0 });
 
 export const JOJO = mk('/jojo-clip-2.mp4', 0.15, 6.0, 0.015);
-export const OLLIE = mk('/ollie-clip-3.mp4', 0.2, 6.2, 0.01);
+export const OLLIE = mk('/ollie-clip-4.mp4', 0.2, 9.8, 0.01);
+
+// Both clips are 24fps, all-intra. The scrub engine quantizes seeks to these frame
+// boundaries; a new clip at a different rate must update this alongside its ClipCfg.
+export const CLIP_FPS = 24;
 
 export const TRACKING_SPEED = 0.14; // active-side ease-in rate
 export const SCOPE_INSET_Y = 0;     // % vertical dead-zone at top/bottom

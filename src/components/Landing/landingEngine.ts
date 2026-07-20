@@ -1,5 +1,5 @@
 import {
-  JOJO, OLLIE, TRACKING_SPEED, SCOPE_INSET_Y,
+  JOJO, OLLIE, TRACKING_SPEED, SCOPE_INSET_Y, CLIP_FPS,
   FROST_BLUR, FROST_STYLE, SEAM_SHEEN, LOGO_GLOW,
   type ClipCfg,
 } from './landingConfig';
@@ -350,9 +350,14 @@ export function createLandingEngine(root: HTMLElement, opts: EngineOpts): Landin
 
   // Guarded seek (source 988-993). Returns the updated seek-flag for this video;
   // the flag is cleared by the 'seeked' listener when the browser finishes the seek.
+  // Two departures from the source's raw `t > 0.012` guard, both because scrubbing 24fps
+  // footage through arbitrary timestamps strobes: the target is quantized to a source frame
+  // boundary, and a seek fires only when that changes the *displayed* frame (half-frame
+  // threshold). Sub-frame seeks repaint the video without changing its content — cost, no
+  // pixels — and mid-frame timestamps made the guard fire on moves too small to see.
   const seekTo = (vid: HTMLVideoElement | null, c: ClipCfg, cur: number, marked: boolean): boolean => {
-    const t = c.T0 + c.dur * cur;
-    if (vid && vid.readyState >= 2 && !marked && Math.abs(vid.currentTime - t) > 0.012) {
+    const t = Math.round((c.T0 + c.dur * cur) * CLIP_FPS) / CLIP_FPS;
+    if (vid && vid.readyState >= 2 && !marked && Math.abs(vid.currentTime - t) > 0.5 / CLIP_FPS) {
       vid.currentTime = t;
       return true;
     }
@@ -409,8 +414,18 @@ export function createLandingEngine(root: HTMLElement, opts: EngineOpts): Landin
     // active pet catches up quickly; the resting pet eases back gently
     const jEase = (active && side === 'L') ? spd : slow;
     const oEase = (active && side === 'R') ? spd : slow;
-    curJ += (tgtJ - curJ) * jEase;
-    curO += (tgtO - curO) * oEase;
+    // The ease HOLDS inside a ~50ms-of-footage dead zone rather than chasing or snapping:
+    // the exponential never lands on tgt, and both trailing it and snapping to it forward
+    // cursor micro-jitter into the clip time — when the rest pose sits near a 24fps frame
+    // boundary, ±3px of hand jitter toggles the displayed frame, a constant flicker on the
+    // half being tracked. Holding freezes the video between real moves; the zone is under
+    // ~4px of cursor travel, so a deliberate move always escapes it. (A per-tick frame cap
+    // was tried against the in-motion shimmer and reverted: stepping this motion-blurred
+    // 24fps footage strobes at any speed, so the cap only added tracking lag.)
+    const advance = (cur: number, tgt: number, ease: number): number =>
+      Math.abs(tgt - cur) < 0.008 ? cur : cur + (tgt - cur) * ease;
+    curJ = advance(curJ, tgtJ, jEase);
+    curO = advance(curO, tgtO, oEase);
     seekJ = seekTo(vj, cfg.j, curJ, seekJ);
     seekO = seekTo(vo, cfg.o, curO, seekO);
   });
