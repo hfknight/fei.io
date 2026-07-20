@@ -33,3 +33,4 @@ dist-ssr
 .agents
 .impeccable
 skills-lock.json
+*.code-workspace
