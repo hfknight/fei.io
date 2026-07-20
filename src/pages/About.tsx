@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, useReducedMotion } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
@@ -537,6 +537,62 @@ const RankClimb: React.FC = () => {
   );
 };
 
+/* "Taste, product instinct, and domain expertise" — the three human faculties AI amplifies.
+   A single dark highlight box lives among them: hovering a term spotlights it (dark fill,
+   light text), and sliding to the next term slides the box across — one box, three homes,
+   via a shared framer layoutId (the tab-indicator "magic move"). They're the closing triad,
+   so at rest they carry the page's concept-word mark (weight 500), like the principles, which
+   also teaches the hover. Reduced motion drops the slide: without the layoutId each box just
+   appears on its own term, no travel — the static state the house rule asks for. */
+const AMPLIFY = ['Taste', 'product instinct', 'domain expertise'];
+
+const AmplifyTerm = styled.span<{ $active: boolean }>`
+  position: relative;
+  /* inline-block so the highlight can wrap the whole term and the term never splits across
+     a line mid-box; isolate so the box's negative z-index stays behind the text, not the page. */
+  display: inline-block;
+  isolation: isolate;
+  font-weight: 500;
+  color: ${p => (p.$active ? p.theme.color.surface : p.theme.color.ink)};
+  transition: color 0.25s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+const AmplifyBox = styled(motion.span)`
+  position: absolute;
+  inset: -0.05em -0.24em;
+  z-index: -1;
+  background: ${p => p.theme.color.ink};
+  border-radius: ${p => p.theme.radius.pill};
+`;
+
+const Amplify: React.FC = () => {
+  const reduced = useReducedMotion();
+  const [active, setActive] = useState<number | null>(null);
+  return (
+    <span onMouseLeave={() => setActive(null)}>
+      {AMPLIFY.map((word, i) => (
+        <Fragment key={word}>
+          {i > 0 && (i === AMPLIFY.length - 1 ? ', and ' : ', ')}
+          <AmplifyTerm $active={active === i} onMouseEnter={() => setActive(i)}>
+            {active === i && (
+              <AmplifyBox
+                aria-hidden
+                layoutId={reduced ? undefined : 'amplify-box'}
+                transition={{ duration: 0.32, ease: ease }}
+              />
+            )}
+            {word}
+          </AmplifyTerm>
+        </Fragment>
+      ))}
+    </span>
+  );
+};
+
 /*
  * The copy lives here, not in portfolio.json: the principles need inline markup, and a
  * marker syntax in JSON plus a parser is more machinery than three paragraphs of prose
@@ -563,7 +619,13 @@ const PARAGRAPHS: React.ReactNode[] = [
     platforms, including work for Am Law 100 <RankClimb /> firms. Clean code, solid
     architecture, delivered on time.
   </>,
-  "AI made the mechanical parts of coding faster than ever. I lean into that. More time for architecture, system design, and the decisions that actually move a product forward. Today I'm building products on top of AI: RAG with reranking, multi-model orchestration with routing and fallback, structured generation in production. What sets the direction? Taste, product instinct, and domain expertise. AI amplifies those. It doesn't replace them.",
+  <>
+    AI made the mechanical parts of coding faster than ever. I lean into that. More
+    time for architecture, system design, and the decisions that actually move a product
+    forward. Today I'm building products on top of AI: RAG with reranking, multi-model
+    orchestration with routing and fallback, structured generation in production. What
+    sets the direction? <Amplify />. AI amplifies those. It doesn't replace them.
+  </>,
 ];
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
@@ -652,8 +714,12 @@ const About: React.FC = () => {
             {PARAGRAPHS.map((para, i) => (
               <Graf
                 key={i}
-                initial={reduced ? false : { clipPath: 'inset(0 100% 0 0)' }}
-                animate={{ clipPath: 'inset(0 0% 0 0)' }}
+                /* The wipe is driven by the RIGHT inset (100% → −0.4em); the other three sides
+                   settle to −0.4em, expanding the clip PAST the border box so it never crops a
+                   hover treatment that overhangs the paragraph edge — the Amplify box on a
+                   first-word-on-line. Negative insets grow the clip rect outward. */
+                initial={reduced ? false : { clipPath: 'inset(-0.4em 100% -0.4em -0.4em)' }}
+                animate={{ clipPath: 'inset(-0.4em -0.4em -0.4em -0.4em)' }}
                 transition={{ duration: 1.1, delay: 0.2 + i * 0.18, ease }}
               >
                 {para}
