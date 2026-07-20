@@ -265,7 +265,11 @@ const Column = styled.div`
 
 const Graf = styled(motion.p)`
   font-family: ${p => p.theme.font.body};
-  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+  /* Reading scale for a 680px measure: tops at 1.3rem (~63 chars/line, the classic
+     measure), floors at 18px on small viewports. The old clamp(1.25rem, 2.5vw, 1.5rem)
+     hit 24px on desktop and read as display type; a flat 1rem (the lab's utilitarian
+     empty-state size) read as UI copy. This sits between, still long-form. */
+  font-size: clamp(1.125rem, 1.6vw, 1.3rem);
   line-height: 1.6;
   color: ${p => p.theme.color.ink};
   /* Exactly one line (1.6em = the 1.6 line-height), so the paragraph gap sits on the
@@ -274,8 +278,6 @@ const Graf = styled(motion.p)`
   /* 300, not 200: ExtraLight strokes go hairline under antialiased smoothing on the
      light paper — contrast passes but the strokes don't render. Light keeps the air. */
   font-weight: 300;
-  /* Inter's default tracking is tuned for UI sizes; at 24px it reads loose. */
-  letter-spacing: -0.01em;
   text-wrap: pretty;
 
   &:last-child {
