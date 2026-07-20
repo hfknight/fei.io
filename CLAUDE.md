@@ -56,7 +56,7 @@ its own palette.
 
 | Path | Component | Description |
 |---|---|---|
-| `/` | `Landing` | Video background, loading screen, intro panel |
+| `/` | `Landing` | Split-stage pet-video hero with draggable lens reveals |
 | `/readme` | `About` | Personal statement, dark editorial layout |
 | `/changelog` | `Day` | **Retired.** Route kept, no nav link. |
 | `/lab` | `Lab` | Lab index |
@@ -113,11 +113,25 @@ The portfolio is structured as a **day-journey visualization** — five time-of-
   - `Header.tsx` — fixed top-right nav bar; active link state, Home link when not on `/`
   - `Footer.tsx` — fixed bottom bar with copyright
   - `Layout.tsx` — renders `<Header> + {children} + <Footer>`
-- `src/components/Landing/` — landing page (`/`) only
-  - `index.tsx` — orchestrates video, loading screen, intro panel
-  - `VideoBackground.tsx` — `<video>` with WebM + MP4 fallback
-  - `LoadingScreen.tsx` — animated loading overlay
-  - `IntroPanel.tsx` — hero text over video
+- `src/components/Landing/` — landing page (`/`) only. React renders static markup with
+  `data-*` hooks; `landingEngine.ts` mutates it imperatively.
+  - `index.tsx` — mounts the tree, creates/destroys the engine; gates the loader intro
+    on first visit + fine hover + motion allowed
+  - `SplitStage.tsx` — two half-screen video panes (Jojo light / Ollie dark) with
+    gradient + frost overlays; the engine scrubs each clip to track the cursor
+  - `Lockup.tsx` — centered "I'm Fei" hero lockup; recedes while a lens is dragged
+  - `PetCaption.tsx` — per-pet caption flanking the lockup; hidden below `lg`
+  - `Loader.tsx` — liquid-glass first-visit overlay: curtains part, logo fills by real
+    download progress, engine-driven
+  - `Lenses.tsx` / `lensEngine.ts` / `lensMath.ts` / `blobMapWorker.ts` — two draggable
+    refraction lenses: static markup, imperative drag/refraction/clone engine, shared
+    DOM-free Snell math, off-thread merged-lens displacement-map raster
+  - `TravelPath.tsx`, `MoodClock.tsx`, `StackReveal.tsx` — lens-only reveals (city-map
+    travel route, Dallas time/mood stamp, tech-chip stacks) — see "Landing lens reveals"
+  - `landingConfig.ts` — tuning constants: per-clip scrub windows, `CLIP_FPS`, lens optics
+  - `introState.ts` — module-scoped "intro has played" flag, shared with the
+    route-transition layer
+  - `LoadingScreen.tsx` — standalone animated loading overlay, served at `/loading`
 - `src/components/DayJourney/TimeSection/` — one subdirectory per time period; each owns its own visuals and animations
 - `src/components/DayJourney/TimeSection/Midnight/Constellation/` — animated constellation component featuring pets (Chinchilla, TabbyCat, Samoyed)
 - `src/styles/tokens.ts` — the single source of truth: neutral oklch ramp at hue 265, type/space/radius/motion primitives, and the glass recipe driven by `GLASS_K`.
