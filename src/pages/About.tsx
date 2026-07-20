@@ -14,13 +14,22 @@ const Page = styled.div`
   --word-h: 96px;
   --word-drop: 8px;
   --img-margin: 20px;
-  min-height: 100dvh;
+  /* Full-screen composition: the PAGE never scrolls — the portrait column is pinned,
+     and overflowing copy scrolls inside Content alone. Mobile stacks the columns, so
+     it reverts to normal document scroll below md. */
+  height: 100dvh;
+  overflow: hidden;
   background: ${p => p.theme.color.surface};
   display: grid;
   grid-template-columns: 340px 1fr;
+  grid-template-rows: 100dvh;
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     grid-template-columns: 1fr;
+    grid-template-rows: none;
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
   }
 `;
 
@@ -237,14 +246,20 @@ const Content = styled.div`
   padding: 7rem 2rem 5rem;
   display: flex;
   justify-content: center;
+  /* The page's only scroll region (the grid row is a fixed 100dvh, so the constrained
+     height makes overflow-y real). min-width: 0 lets the grid track shrink instead of
+     forcing a horizontal page overflow. */
+  overflow-y: auto;
+  min-width: 0;
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     padding: 3.5rem 1.75rem 4rem;
+    overflow-y: visible;
   }
 `;
 
 const Column = styled.div`
-  max-width: 620px;
+  max-width: 680px;
   width: 100%;
 `;
 
@@ -253,8 +268,15 @@ const Graf = styled(motion.p)`
   font-size: clamp(1.25rem, 2.5vw, 1.5rem);
   line-height: 1.6;
   color: ${p => p.theme.color.ink};
-  margin: 0 0 2.5rem;
-  font-weight: 200;
+  /* Exactly one line (1.6em = the 1.6 line-height), so the paragraph gap sits on the
+     text's own baseline rhythm. */
+  margin: 0 0 1.6em;
+  /* 300, not 200: ExtraLight strokes go hairline under antialiased smoothing on the
+     light paper — contrast passes but the strokes don't render. Light keeps the air. */
+  font-weight: 300;
+  /* Inter's default tracking is tuned for UI sizes; at 24px it reads loose. */
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
 
   &:last-child {
     margin-bottom: 0;
@@ -351,6 +373,14 @@ const About: React.FC = () => {
         </ColumnGroup>
         <Content>
           <Column>
+            {/* Planned: paragraphs may carry inline markers for per-word treatments —
+                [[word]] for the default emphasis, [[style:word]] if more than one
+                treatment is needed. A renderRich(text) helper would split on the
+                markers and wrap matches in a styled (motion.)span; the JSON only marks
+                intent, the component owns the appearance. NOTE: the entrance below
+                animates clip-path on the whole <p>, so per-word animations must fire
+                after the wipe (delay past 0.2 + i * 0.18 + 1.1s) or be static styles,
+                or the word animates while still clipped. */}
             {content.map((para, i) => (
               <Graf
                 key={i}

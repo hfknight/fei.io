@@ -64,7 +64,7 @@ const Page = styled.div`
 `;
 
 const Column = styled.div`
-  max-width: 660px;
+  max-width: 680px;
   width: 100%;
 `;
 
