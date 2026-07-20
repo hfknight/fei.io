@@ -423,6 +423,120 @@ const Architected: React.FC = () => {
   );
 };
 
+/* "top 10" — a rank isn't a starting point, it's an arrival. Hovering rolls an odometer:
+   the number climbs down from 99 and locks on 10, digits streaming vertically past a
+   one-line window. Deliberately unlike the other three treatments — the scramble resolves
+   HORIZONTALLY into random-then-fixed glyphs; this is a MONOTONIC count moving on the Y
+   axis, meaningful at every frame. Numbers are two digits throughout (10–99) so the window
+   never reflows the sentence.
+
+   Baseline safety: an overflow-clipped inline-block reports its bottom edge as the baseline,
+   which would drop "top 10 firms" off the line. So the in-flow, never-clipped Ghost owns the
+   size and baseline; the rolling column is absolutely positioned (out of flow), and its clip
+   can't touch the wrapper's baseline. The roll ends on 10 exactly over the Ghost, so the
+   hand-back is seamless. Reduced motion never rolls — the Ghost's static 10 is all there is. */
+const RANK_START = 99;
+const RANK_END = 10;
+const RANK_DUR = 800;
+const easeOutExpo = (t: number): number => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t));
+const RANK_ROLL = Array.from(
+  { length: RANK_START - RANK_END + 1 },
+  (_, i) => RANK_END + i,
+);
+
+/* The marker for the stat, deliberately NOT the principles' upright weight-500: the mono
+   chrome/label face. A credential is data, not a principle, so it's marked by FACE rather
+   than weight and never reads as a fourth principle. Staying inside the system — mono is one
+   of the three defined faces — so no new font is introduced. Mono is inherently tabular,
+   which also guarantees the odometer's digits keep an even width as they roll. Trimmed a hair
+   because JetBrains Mono sets larger on the body than Inter at the same px. */
+const RankTerm = styled.span`
+  font-family: ${p => p.theme.font.mono};
+  font-size: 0.9em;
+  /* Mono's fixed space glyph is ~2x an Inter space, so "top 10" gapped wider than the
+     surrounding words. word-spacing pulls only that one space back to the body's width. */
+  word-spacing: -0.29em;
+`;
+
+const RankWrap = styled.span`
+  position: relative;
+  display: inline-block;
+  vertical-align: baseline;
+  /* Every value is two digits, but tabular figures guarantee the width can't twitch. */
+  font-variant-numeric: tabular-nums;
+`;
+
+/* The resting number: in flow, never clipped, so it fixes the wrapper's box and baseline.
+   Hidden (not removed) while the column rolls, so layout holds. */
+const Ghost = styled.span<{ $rolling: boolean }>`
+  visibility: ${p => (p.$rolling ? 'hidden' : 'visible')};
+`;
+
+/* The moving digits, clipped to a single line. Absolute so the clip never reaches the
+   wrapper's baseline. */
+const RankWindow = styled.span`
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+`;
+
+const RankColumn = styled.span`
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  /* One value per line; each line is exactly the window's height, so precisely one shows. */
+  will-change: transform;
+`;
+
+const RankClimb: React.FC = () => {
+  const reduced = useReducedMotion();
+  const [rolling, setRolling] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const raf = useRef(0);
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => () => cancelAnimationFrame(raf.current), []);
+
+  const start = (): void => {
+    if (reduced || !wrapRef.current) return;
+    cancelAnimationFrame(raf.current);
+    const span = (RANK_START - RANK_END) * wrapRef.current.clientHeight;
+    setRolling(true);
+    const t0 = performance.now();
+    const tick = (now: number): void => {
+      const p = Math.min(1, (now - t0) / RANK_DUR);
+      /* offset −span → 0: column starts shifted up to show 99, settles on 10. */
+      setOffset(-span * (1 - easeOutExpo(p)));
+      if (p >= 1) {
+        setRolling(false);
+        raf.current = 0;
+        return;
+      }
+      raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
+  };
+
+  return (
+    <RankTerm onMouseEnter={start}>
+      top{' '}
+      <RankWrap ref={wrapRef}>
+        <Ghost $rolling={rolling}>{RANK_END}</Ghost>
+        {rolling && (
+          <RankWindow aria-hidden>
+            <RankColumn style={{ transform: `translateY(${offset}px)` }}>
+              {RANK_ROLL.map(n => (
+                <span key={n}>{n}</span>
+              ))}
+            </RankColumn>
+          </RankWindow>
+        )}
+      </RankWrap>
+    </RankTerm>
+  );
+};
+
 /*
  * The copy lives here, not in portfolio.json: the principles need inline markup, and a
  * marker syntax in JSON plus a parser is more machinery than three paragraphs of prose
@@ -444,7 +558,11 @@ const PARAGRAPHS: React.ReactNode[] = [
     </AestheticClause>{' '}
     <Architected />
   </>,
-  "I've spent over a decade building brand-defining websites and complex SaaS platforms, including work for Am Law 100 top 10 firms. Clean code, solid architecture, delivered on time.",
+  <>
+    I've spent over a decade building brand-defining websites and complex SaaS
+    platforms, including work for Am Law 100 <RankClimb /> firms. Clean code, solid
+    architecture, delivered on time.
+  </>,
   "AI made the mechanical parts of coding faster than ever. I lean into that. More time for architecture, system design, and the decisions that actually move a product forward. Today I'm building products on top of AI: RAG with reranking, multi-model orchestration with routing and fallback, structured generation in production. What sets the direction? Taste, product instinct, and domain expertise. AI amplifies those. It doesn't replace them.",
 ];
 
