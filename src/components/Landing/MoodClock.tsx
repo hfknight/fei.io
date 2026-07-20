@@ -55,17 +55,18 @@ const MASK = 'radial-gradient(72% 78% at 50% 50%, #000 0%, #000 62%, rgba(0,0,0,
 
 const Stamp = styled.div`
   position: absolute;
-  /* Tucked between TravelPath's Beijing map (upper-centre) and the fixed nav; centred on
-     its point (translateX) so the nowrap lines can't run off the right edge of a narrow
-     window. */
-  left: 85%;
+  /* Right-aligned to the nav labels above: bar padding (space-3) + the nav track's inset
+     (0.25rem) + the last link's own horizontal padding (0.7rem) is the text's right edge,
+     and the stamp's 26px mask padding is subtracted so the LINES land on that edge, not
+     the box. Right-anchored, the nowrap lines grow leftward into the dark half, so they
+     still can't run off the right edge of a narrow window. */
+  right: calc(${(p) => p.theme.space[3]} + 0.25rem + 0.7rem - 26px);
   top: 12%;
-  transform: translateX(-50%);
   z-index: 7;
   opacity: 0;
   pointer-events: none;
   padding: 16px 26px;
-  text-align: center;
+  text-align: right;
   -webkit-mask: ${MASK};
   mask: ${MASK};
 `;
