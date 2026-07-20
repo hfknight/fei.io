@@ -34,6 +34,18 @@ const glassPill = css`
     0 2px 3px -1px ${p => p.theme.glass.shadow},
     0 8px 18px -6px ${p => p.theme.glass.shadow},
     0 10px 18px -8px ${p => p.theme.glass.hi};
+
+  /* On paper the recipe above degenerates: the ink fill composites to a flat grey slab, the
+     white speculars vanish on a near-white ground, and the backdrop blur has nothing behind
+     it but flat paper. So the light surface drops the glass entirely and wears an outline —
+     a single ink ring. 40% chrome ink, not the glass rim's 0.096 alpha: a ring that is the
+     whole pill needs to read on its own. The dark surface above is untouched. */
+  :root[data-surface='default'] & {
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, ${p => p.theme.chrome.ink} 40%, transparent);
+  }
 `;
 
 const Bar = styled.header`
@@ -85,6 +97,14 @@ const NavItem = styled.li`
   display: flex;
 `;
 
+// The pill is positioned and the label is not, so without this the pill would paint over
+// the text. Raising the label is cheaper than lowering the pill out of the stacking flow.
+// Declared before NavLink so the active-state rule below can target it by class.
+const Label = styled.span`
+  position: relative;
+  z-index: 1;
+`;
+
 const NavLink = styled(Link)<{ $active?: boolean }>`
   position: relative;
   /* An inline <a> paints its vertical padding but contributes none of it to layout height, so
@@ -118,6 +138,20 @@ const NavLink = styled(Link)<{ $active?: boolean }>`
     ${p => !p.$active && glassPill}
   }
 
+  /* On paper, current and hover part ways: hover wears the ink ring (glassPill's light
+     override), and the CURRENT link instead RGB-splits its label — the same chromatic
+     aberration the landing's lenses cast, red fringing one way, cyan the other. The split
+     rides text-shadow so the core glyph stays full-contrast ink; sub-pixel offsets keep it
+     a shimmer, not a misprint. Dark surfaces (home, lab entries, admin) keep the glass
+     pill for the current link — over video and deep grounds the fringe would vanish. */
+  ${p => p.$active && css`
+    :root[data-surface='default'] & ${Label} {
+      text-shadow:
+        -1.2px 0 0 oklch(0.62 0.24 25 / 0.55),
+        1.2px 0 0 oklch(0.7 0.13 230 / 0.55);
+    }
+  `}
+
   /* Six labels are 31 characters; at the desktop metrics they need ~446px and the nav used
      to wrap. Tightening the tracking and the horizontal padding fits them on one row down
      to a 320px viewport, without shrinking the type below the footer's size. */
@@ -130,22 +164,26 @@ const NavLink = styled(Link)<{ $active?: boolean }>`
 
 // transitions.dev "tabs sliding" (16), adapted to the router-driven nav: one pill that
 // slides between links via framer's shared-layout animation, rather than each link
-// tweening its own. The pill is the same glass the links wear on hover — the active
-// route simply keeps it.
+// tweening its own. On dark surfaces the pill is the same glass the links wear on hover —
+// the active route simply keeps it. On paper the pill paints NOTHING (override below wins
+// over glassPill's ring by declaration order): the current link is marked by its label's
+// chromatic aberration instead, and the ring stays a hover-only affordance. The invisible
+// box still slides between links, so the layout animation is a no-op there, not a glitch.
 const Pill = styled(motion.span)`
   position: absolute;
   inset: 0;
   border-radius: ${p => p.theme.radius.pill};
   pointer-events: none;
   ${glassPill}
+
+  :root[data-surface='default'] & {
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
 `;
 
-// The pill is positioned and the label is not, so without this the pill would paint over
-// the text. Raising the label is cheaper than lowering the pill out of the stacking flow.
-const Label = styled.span`
-  position: relative;
-  z-index: 1;
-`;
 
 /**
  * Home carries a glyph rather than a word, so its box is squarer than a label's — the same
