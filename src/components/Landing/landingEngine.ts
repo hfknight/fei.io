@@ -323,7 +323,14 @@ export function createLandingEngine(root: HTMLElement, opts: EngineOpts): Landin
     } else {
       side = 'R';
       const xnR = clamp01((me.clientX - half) / half);
-      tgtO = clamp01(0.42 * (1 - xnR) + 0.58 * yn);  // Ollie tracks (mirrored)
+      // Ollie tracks (mirrored). Weighted 0.15/0.85 rather than Jojo's 0.42/0.58:
+      // clip-4's motion is almost pure pitch (head up at the window start, lowest at its
+      // end), so the vertical axis carries the gaze and the horizontal term is only a
+      // mild bias toward the seam. Heavier x-terms failed in both directions: clip-3's
+      // 0.42 pushed a top-of-screen cursor a third into the window (head dropping with
+      // the cursor high), and 0.25 kept the far-right bottom from ever reaching the nod's
+      // true bottom.
+      tgtO = clamp01(0.15 * (1 - xnR) + 0.85 * yn);
     }
     // frost the half the cursor is NOT on (source 972-974). ([data-hint] at source
     // 975-977 is null-guarded and has no counterpart in our markup — skipped.)
