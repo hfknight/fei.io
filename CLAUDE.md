@@ -129,8 +129,11 @@ The portfolio is structured as a **day-journey visualization** — five time-of-
 ### Landing lens reveals
 
 The landing hides elements that surface **only under a draggable lens**. Give a node
-`data-lens-reveal` and base `opacity: 0` (invisible on the page); `lensEngine.ts`'s
-`buildLensWorld` flips it visible inside every refracted lens clone — one hook covers both
+`data-lens-reveal` and base `opacity: 0`; GlobalStyles additionally forces every reveal to
+`visibility: hidden`, because `opacity: 0` still **paints** — the base copies of TravelPath's
+animated-WebP maps kept decoding and its viewport-wide route SVG kept repainting over the
+videos, hitching the pet scrub. `lensEngine.ts`'s `buildLensWorld` flips both back (inline
+`visibility` beats the global rule) inside every refracted lens clone — one hook covers both
 lenses and the metaball bridge. `TravelPath` (the travel-path reveal: Huangshan → Beijing →
 Shanghai maps joined by a dashed two-tone route, terminating at the Dallas pin in the
 lower-left light half — everything but Dallas hides below the `xl` breakpoint, all-or-nothing,
@@ -149,11 +152,18 @@ The dark chip must be dark *and* fairly opaque: the lens's chromatic-aberration 
 the split channels and washes a thin, translucent chip toward light (which greyed out an earlier
 attempt), so its light marks only stay legible on a deep, near-opaque fill.
 
-Two gotchas. The clone is a **static snapshot**, so live/dynamic content freezes at
+Four gotchas. The clone is a **static snapshot**, so live/dynamic content freezes at
 clone-build time unless synced into every `[data-lens-world]` copy each tick — see `MoodClock`
-driving `[data-time-reveal]` nodes from a `setInterval`. And a revealed node may set its own
-opacity via `data-reveal-opacity` (default `1`; the map rides `0.8`). Reveals are gated with
-the lenses: desktop only (hover + fine pointer), never shipped to touch / reduced-motion.
+driving `[data-time-reveal]` nodes from a `setInterval`. A revealed node may set its own
+opacity via `data-reveal-opacity` (default `1`; the map rides `0.8`). A reveal carrying SVG
+resources (`<mask>`/`<clipPath>` with ids) must re-declare `visibility: visible` on its
+`<defs>`: `url(#id)` resolves to the **first** id in document order — the hidden base copy —
+and mask *content* inherits the hidden, which empties the mask and erases the element in
+every world (TravelPath's route hit this). And continuous animation inside a reveal should be
+gated to when it can be seen: the route's dash march runs only under `html[data-lens-drag]`
+(set by the lens drag handlers, the `data-lockup-recede` channel), because a paint-invalidating
+animation runs in all three worlds at once. Reveals are gated with the lenses: desktop only
+(hover + fine pointer), never shipped to touch / reduced-motion.
 
 ### Route transitions
 
