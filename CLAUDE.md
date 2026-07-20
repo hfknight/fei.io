@@ -45,7 +45,6 @@ Loaded via Google Fonts in `index.html`:
 - **Anton** (400, its only weight) — the `/readme` cut-out wordmark only, referenced inside
   an SVG `<clipPath>` stencil in `About.tsx`. Outside the token system like Big Shoulders:
   SVG presentation attributes take a literal family name.
-- **Playfair Display** (400, 500, italic) — loaded, genuinely unused
 
 The three system faces have exactly one definition each, in `tokens.ts`. Author
 `${p => p.theme.font.body}` — never a raw stack. Changing a face is a one-line change there.
