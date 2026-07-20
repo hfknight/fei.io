@@ -181,7 +181,7 @@ const Lockup: React.FC<{ interactive?: boolean }> = ({ interactive = false }) =>
       <span
         style={{ position: 'relative', textAlign: 'right', whiteSpace: 'nowrap', ...gradientText('linear-gradient(90deg,oklch(0.26 0.010 265) 0%,oklch(0.54 0.008 265) 100%)') }}
       >
-        Sr. Frontend Engineer
+        Sr. Full-Stack Engineer
         {/* Hidden stacks, revealed only under a lens centred on each role (see StackReveal) */}
         {interactive && <StackReveal role="frontend" />}
       </span>
