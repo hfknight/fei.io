@@ -539,8 +539,9 @@ const RankClimb: React.FC = () => {
 
 /* "Taste, product instinct, and domain expertise" — the three human faculties AI amplifies.
    A single dark highlight box lives among them: hovering a term spotlights it (dark fill,
-   light text), and sliding to the next term slides the box across — one box, three homes,
-   via a shared framer layoutId (the tab-indicator "magic move"). They're the closing triad,
+   light text), the box wiping in from the term's left edge like a highlighter stroke, and
+   sliding to the next term slides the box across — one box, three homes, via a shared
+   framer layoutId (the tab-indicator "magic move"). They're the closing triad,
    so at rest they carry the page's concept-word mark (weight 500), like the principles, which
    also teaches the hover. Reduced motion drops the slide: without the layoutId each box just
    appears on its own term, no travel — the static state the house rule asks for. */
@@ -569,20 +570,51 @@ const AmplifyBox = styled(motion.span)`
   border-radius: ${p => p.theme.radius.pill};
 `;
 
+/* The wipe is a clip, NOT a scaleX — it has to be. framer's layout projection owns
+   `transform-origin` and rewrites it inline on every frame of a layoutId element (to half
+   the box's width, its centre), so a CSS `transform-origin: left` loses and the box
+   inflates from its middle instead of unrolling from its left edge. Clipping sits outside
+   the transform machinery entirely, is left-anchored by construction, and leaves the
+   travel projection untouched. Percentages so framer can interpolate the two shapes. */
+const WIPE_CLOSED = 'inset(0% 100% 0% 0%)';
+const WIPE_OPEN = 'inset(0% 0% 0% 0%)';
+
+/* Snappier than the 0.32s travel: the wipe is a single short gesture, and matching the
+   slide's duration made it read as a slow reveal instead of a stroke. */
+const WIPE_S = 0.2;
+const SLIDE_S = 0.32;
+
 const Amplify: React.FC = () => {
   const reduced = useReducedMotion();
   const [active, setActive] = useState<number | null>(null);
+  /* Whether the box is arriving from nothing or travelling from a sibling. Only the
+     first case wipes: during a layoutId move framer is already animating the box across,
+     and replaying scaleX on the incoming copy fights that travel — the box crawls out of
+     its own left edge mid-flight. Travel keeps `initial={false}`, so the slide is the
+     only motion. */
+  const [fresh, setFresh] = useState(true);
+
+  const enter = (i: number) => {
+    setFresh(active === null);
+    setActive(i);
+  };
+
   return (
     <span onMouseLeave={() => setActive(null)}>
       {AMPLIFY.map((word, i) => (
         <Fragment key={word}>
           {i > 0 && (i === AMPLIFY.length - 1 ? ', and ' : ', ')}
-          <AmplifyTerm $active={active === i} onMouseEnter={() => setActive(i)}>
+          <AmplifyTerm $active={active === i} onMouseEnter={() => enter(i)}>
             {active === i && (
               <AmplifyBox
                 aria-hidden
                 layoutId={reduced ? undefined : 'amplify-box'}
-                transition={{ duration: 0.32, ease: ease }}
+                initial={fresh && !reduced ? { clipPath: WIPE_CLOSED } : false}
+                animate={{ clipPath: WIPE_OPEN }}
+                transition={{
+                  layout: { duration: SLIDE_S, ease },
+                  clipPath: { duration: WIPE_S, ease },
+                }}
               />
             )}
             {word}
@@ -616,15 +648,10 @@ const PARAGRAPHS: React.ReactNode[] = [
   </>,
   <>
     I've spent over a decade building brand-defining websites and complex SaaS
-    platforms, including work for Am Law 100 <RankClimb /> firms. Clean code, solid
-    architecture, delivered on time.
+    platforms, including work for Am Law 100 <RankClimb /> firms. Clean code, built to last, delivered on time.
   </>,
   <>
-    AI made the mechanical parts of coding faster than ever. I lean into that. More
-    time for architecture, system design, and the decisions that actually move a product
-    forward. Today I'm building products on top of AI: RAG with reranking, multi-model
-    orchestration with routing and fallback, structured generation in production. What
-    sets the direction? <Amplify />. AI amplifies those. It doesn't replace them.
+    AI made the mechanical parts of coding faster than ever, which buys me more time for defining the right problem, architecture, and the tradeoffs that shape a product. Today I'm building products on top of AI, in production. What sets the direction? <Amplify />. AI amplifies those. It doesn't replace them.
   </>,
 ];
 
