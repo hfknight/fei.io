@@ -67,8 +67,9 @@ its own palette.
 | `/writing/admin/new`, `/writing/admin/:id` | `AdminEditor` | Create/edit a post |
 | `/loading` | `LoadingScreen` | Animated loading overlay |
 
-All routes are wrapped by `Layout` (renders `Header` + `Footer` globally).
-Blog routes are lazy-loaded so the markdown/highlighter bundle stays off the landing page.
+All routes are wrapped by `Layout` (renders `Header` globally; the `Footer` is home-only —
+see below). Blog routes are lazy-loaded so the markdown/highlighter bundle stays off the
+landing page.
 
 ## Blog system (Cloudflare-backed)
 
@@ -111,8 +112,10 @@ The portfolio is structured as a **day-journey visualization** — five time-of-
 
 - `src/components/Layout/` — global shell rendered on every route
   - `Header.tsx` — fixed top-right nav bar; active link state, Home link when not on `/`
-  - `Footer.tsx` — fixed bottom bar with copyright
-  - `Layout.tsx` — renders `<Header> + {children} + <Footer>`
+  - `Footer.tsx` — fixed bottom bar with copyright. Home-only: interior pages compose their
+    own full-height layouts and the fixed bar overlaps or crowds them, so `Layout` renders it
+    only on `/` (`FOOTER_PATH`). Over the landing it sits on the video hero.
+  - `Layout.tsx` — renders `<Header> + {children}`, plus `<Footer>` on `/` only
 - `src/components/Landing/` — landing page (`/`) only. React renders static markup with
   `data-*` hooks; `landingEngine.ts` mutates it imperatively.
   - `index.tsx` — mounts the tree, creates/destroys the engine; gates the loader intro

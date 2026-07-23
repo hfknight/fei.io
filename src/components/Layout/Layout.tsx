@@ -27,11 +27,11 @@ const LIGHT_PREFIXES = ['/writing/'];
 const DARK_PREFIXES = ['/writing/admin', '/lab/'];
 
 /**
- * Routes that suppress the global Footer. `/readme` is a pinned, non-scrolling composition
- * whose two columns run to a shared bottom margin; the fixed copyright would overlap them,
- * and it earns nothing there, so the page drops it rather than reserve space for it.
+ * The Footer is home-only chrome. Interior pages compose their own full-height layouts and
+ * the fixed copyright bar overlaps or crowds them (e.g. `/readme`'s pinned two-column
+ * composition), so it lives only on the landing, where it sits over the video hero.
  */
-const HIDE_FOOTER = new Set(['/readme']);
+const FOOTER_PATH = '/';
 
 /**
  * Falls through to `inverted`, never to `default`. An unmigrated page still hardcodes
@@ -80,7 +80,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <>
       <Header />
       <div className="layout-content">{children}</div>
-      {!HIDE_FOOTER.has(pathname) && <Footer />}
+      {pathname === FOOTER_PATH && <Footer />}
     </>
   );
 };
