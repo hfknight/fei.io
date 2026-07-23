@@ -27,6 +27,13 @@ const LIGHT_PREFIXES = ['/writing/'];
 const DARK_PREFIXES = ['/writing/admin', '/lab/'];
 
 /**
+ * Routes that suppress the global Footer. `/readme` is a pinned, non-scrolling composition
+ * whose two columns run to a shared bottom margin; the fixed copyright would overlap them,
+ * and it earns nothing there, so the page drops it rather than reserve space for it.
+ */
+const HIDE_FOOTER = new Set(['/readme']);
+
+/**
  * Falls through to `inverted`, never to `default`. An unmigrated page still hardcodes
  * #12102a, so a route that matches nothing must land on dark or it paints dark ink on a
  * dark ground.
@@ -73,7 +80,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <>
       <Header />
       <div className="layout-content">{children}</div>
-      <Footer />
+      {!HIDE_FOOTER.has(pathname) && <Footer />}
     </>
   );
 };

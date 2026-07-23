@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import styled, { keyframes } from 'styled-components';
-import { motion, useReducedMotion } from 'framer-motion';
+import styled, { css, keyframes } from 'styled-components';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
 
 const Page = styled.div`
@@ -243,9 +243,16 @@ const ColumnGroup = styled(motion.div)`
 `;
 
 const Content = styled.div`
-  padding: 7rem 2rem 5rem;
+  /* Bottom pad = the portrait's --img-margin, so the content column ends level with the
+     poster's bottom edge. No footer clearance needed — it is hidden on this route (Layout). */
+  padding: 7rem 2rem var(--img-margin);
   display: flex;
   justify-content: center;
+  /* flex-start, NOT the default stretch: stretch pins this single child to the content-box
+     height, and once the projects row makes the content taller than that, it overflows the
+     fixed height — past the bottom padding and under the Footer. flex-start lets the track
+     take its natural height so the pad is honoured. */
+  align-items: flex-start;
   /* The page's only scroll region (the grid row is a fixed 100dvh, so the constrained
      height makes overflow-y real). min-width: 0 lets the grid track shrink instead of
      forcing a horizontal page overflow. */
@@ -258,9 +265,20 @@ const Content = styled.div`
   }
 `;
 
+/* The scroll region's inner track. The prose keeps its 680px measure inside this;
+   the projects row spans the whole thing, which is the point — an accordion at reading
+   width has no room to open. Capped so the row doesn't sprawl on a very wide display. */
+const Track = styled.div`
+  width: 100%;
+  max-width: 1100px;
+`;
+
 const Column = styled.div`
   max-width: 680px;
   width: 100%;
+  /* Centred within Track, so the prose sits exactly where it did when Column was the
+     scroll region's only child. */
+  margin: 0 auto;
 `;
 
 const Graf = styled(motion.p)`
@@ -655,6 +673,581 @@ const PARAGRAPHS: React.ReactNode[] = [
   </>,
 ];
 
+/*
+ * Selected side projects — three panels that share the row's width and trade it on hover:
+ * the hovered panel takes roughly twice a resting share while its neighbours give theirs
+ * up, and its scrim lifts so the panel reads as stepping forward. One flex row, animated
+ * on flex-grow; no measurement, no layout projection.
+ *
+ * Hover-only by design: nothing here is clickable, so nothing joins the tab order, which
+ * matches every other treatment on this page. The links will live in the prose instead.
+ *
+ * `image` is optional and there is no imagery yet, so the panels currently render as deep
+ * ink with a raking gradient — the same material as the portrait column, which keeps the
+ * section in the page's palette rather than parking three grey placeholder boxes on it.
+ * Dropping a path in lights the photograph up with no other change.
+ */
+interface Project {
+  name: string;
+  blurb: string;
+  year: string;
+  kind: string;
+  image?: string;
+  /* The longer copy for the detail view. Falls back to `blurb` when absent, so a project
+     can ship with one line and gain a paragraph later. */
+  detail?: string;
+}
+
+/* TODO: placeholder content — swap in the real three. */
+const PROJECTS: Project[] = [
+  {
+    name: 'Project One',
+    blurb: 'A one-line description of what it is and why it exists.',
+    year: '2026',
+    kind: 'Side project',
+  },
+  {
+    name: 'Project Two',
+    blurb: 'A one-line description of what it is and why it exists.',
+    year: '2025',
+    kind: 'Experiment',
+  },
+  {
+    name: 'Project Three',
+    blurb: 'A one-line description of what it is and why it exists.',
+    year: '2025',
+    kind: 'Tool',
+  },
+];
+
+const PANEL_S = '0.55s';
+/* Shared by Panel and by PanelSlot, which has to match it — see PanelSlot. */
+const PANEL_PAD = '1.5rem';
+
+const ProjectsSection = styled(motion.section)`
+  margin-top: 4.5rem;
+`;
+
+/* The section label follows the site's chrome idiom (Header, Footer, the writing back
+   link) rather than introducing a display heading — the cut-out wordmark is the only
+   large type this page gets, and a second heading would compete with it. */
+const SectionLabel = styled.h2`
+  font-family: ${p => p.theme.font.mono};
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: ${p => p.theme.color.inkMuted};
+  margin: 0 0 1.25rem;
+`;
+
+/* The row's box, and the detail view's — the expansion fills exactly the area the panels
+   occupied rather than the viewport, so it reads as the section opening rather than a
+   modal taking the screen. Height comes from a 16:10 ratio on the section's own width, which
+   makes each of the three panels a tall portrait column at any track width. */
+const RowFrame = styled.div`
+  position: relative;
+  aspect-ratio: 16 / 10;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    aspect-ratio: auto;
+  }
+`;
+
+const PanelRow = styled.div`
+  display: flex;
+  gap: 4px;
+  height: 100%;
+
+  /* The accordion. Both rules are one class + one pseudo-class, so the second wins on
+     the hovered panel and the first still applies to its siblings. */
+  &:hover > * {
+    flex-grow: 0.8;
+  }
+  & > *:hover {
+    flex-grow: 2;
+  }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    flex-direction: column;
+    height: auto;
+
+    /* No accordion when the panels are stacked — trading height on hover on a touch
+       device is motion with nothing to reveal. */
+    &:hover > *,
+    & > *:hover {
+      flex-grow: 1;
+    }
+  }
+
+  /* Static state per the house rule: the panels keep their equal shares and only the
+     scrim responds. */
+  @media (prefers-reduced-motion: reduce) {
+    &:hover > *,
+    & > *:hover {
+      flex-grow: 1;
+    }
+  }
+`;
+
+/* The panel fill, shared by the resting panel and the expanded hero so the two are the
+   same material and the magic-move has nothing to cross-fade. */
+const panelSkin = css<{ $image?: string }>`
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.07), rgba(0, 0, 0, 0.25)),
+    ${p => p.theme.color.ink};
+  ${p =>
+    p.$image &&
+    css`
+      background-image: url('${p.$image}');
+      background-size: cover;
+      background-position: center;
+    `}
+`;
+
+/* A button, not a div: clicking opens the detail view, so it has to be reachable and
+   operable from the keyboard. The panel carries no button chrome — the styles below
+   reset it — but it keeps the semantics. */
+const Panel = styled(motion.button)<{ $image?: string }>`
+  appearance: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  position: relative;
+  flex: 1 1 0;
+  /* Without this a flex item floors at its content's intrinsic width and the panels
+     refuse to compress, so the hovered one has nothing to take. */
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: ${PANEL_PAD};
+  border-radius: 2px;
+  transition: flex-grow ${PANEL_S} cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Deep ink with a raking gradient, echoing the portrait column's frost. A photograph,
+     when there is one, sits underneath and the scrim below grades it. */
+  ${panelSkin}
+
+  &:focus-visible {
+    outline: 2px solid ${p => p.theme.accent.base};
+    outline-offset: 3px;
+  }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    height: 200px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
+  /* The scrim, on its own layer so it can fade independently of the panel's own
+     background — hovering lifts it and the panel steps forward. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(transparent 20%, rgba(8, 9, 12, 0.72));
+    opacity: 1;
+    transition: opacity ${PANEL_S} ease;
+  }
+
+  &:hover::before {
+    opacity: 0.45;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      transition: none;
+    }
+  }
+
+  > * {
+    position: relative;
+  }
+`;
+
+/* The short accent rule above each eyebrow, as in the reference. It extends on hover —
+   the same left-anchored reveal the rest of the page runs on. */
+const PanelRule = styled.span`
+  width: 24px;
+  height: 2px;
+  background: ${p => p.theme.accent.base};
+  margin-bottom: 0.85rem;
+  /* scaleX, not width: a width transition relayouts the panel on every frame, and this
+     one runs while the accordion is already animating flex-grow on three panels at once.
+     A plain element with no framer projection over it, so transform-origin holds — the
+     rule grows rightward from its left end. 24px x 2.3333 = the 56px extended length. */
+  transform-origin: left center;
+  transition: transform ${PANEL_S} cubic-bezier(0.16, 1, 0.3, 1);
+
+  ${Panel}:hover & {
+    transform: scaleX(2.3333);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+const PanelEyebrow = styled.span`
+  /* Block so its margin-bottom pushes the name down in the detail caption, where it is a
+     flow child rather than a flex item (in the resting panel the flex column blockifies it
+     anyway, so this is a no-op there). */
+  display: block;
+  font-family: ${p => p.theme.font.mono};
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  /* Fixed light ink: this sits on the deep panel, not on the page's paper. */
+  color: rgba(255, 255, 255, 0.72);
+  margin-bottom: 0.5rem;
+`;
+
+const PanelName = styled.h3`
+  font-family: ${p => p.theme.font.display};
+  font-size: clamp(1.1rem, 1.5vw, 1.35rem);
+  font-weight: 600;
+  line-height: 1.2;
+  color: #fff;
+  margin: 0 0 0.5rem;
+`;
+
+const PanelBlurb = styled.p`
+  font-family: ${p => p.theme.font.body};
+  font-weight: 300;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.66);
+  margin: 0;
+  text-wrap: pretty;
+`;
+
+/* The gap the expanded panel leaves in the row. Holds the slot open so the prose below
+   doesn't jump while the hero is away. */
+const PanelSlot = styled.div`
+  flex: 1 1 0;
+  min-width: 0;
+  /* Must match Panel's padding exactly. With flex-basis: 0 the padding sits OUTSIDE the
+     distributed free space, so a padded button ends up 48px (1.5rem x 2) wider than an
+     unpadded stand-in — the row stops being equal thirds, and the bands, whose geometry
+     is a plain 100%/3, then leave a sliver of the neighbouring panel showing. */
+  padding: ${PANEL_PAD};
+`;
+
+/*
+ * The detail view. Clicking a panel wipes the row away under paper-coloured bands that
+ * slide in from the left in sequence, and the clicked panel travels out of the row and
+ * grows into the hero — a framer layoutId shared with the resting panel, the same
+ * magic-move the amplify box runs on.
+ *
+ * Portalled to <body>, which is not optional: ProjectsSection animates clip-path and
+ * settles at inset(0%), and a clip-path on ANY ancestor clips position:fixed descendants
+ * — the overlay would be trapped inside the section's box. The portal also escapes
+ * PageTransition's wrapper. React context crosses a portal, so framer still matches the
+ * layoutId across it.
+ */
+/* Columns in the row — the band geometry is derived from it, so one number governs both.
+   One fewer band than this actually renders: the survivor's column is spared. */
+const BANDS = PROJECTS.length;
+
+const Overlay = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+`;
+
+const Band = styled(motion.div)`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* The +1px closes the sub-pixel seams that show between three thirds of an odd width. */
+  width: calc(100% / ${BANDS} + 1px);
+  background: ${p => p.theme.color.surface};
+`;
+
+/* The expanded panel — the survivor grown to the whole frame. Deliberately childless while
+   it animates: a layoutId that grows a 278x631 panel to an 841x631 frame is a large,
+   non-uniform scale (≈0.33 in x, ≈1 in y), and framer drives that with a transform, so any
+   text INSIDE the hero would be squashed horizontally for the length of the move. The
+   caption is a sibling instead (see DetailCaption), and rides no transform. The dark box
+   itself scales cleanly — a gradient has no proportions to distort. */
+const Hero = styled(motion.div)<{ $image?: string }>`
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  ${panelSkin}
+
+  /* The reading scrim, so the caption stays legible once a real photograph sits here. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(transparent 35%, rgba(8, 9, 12, 0.74));
+  }
+`;
+
+/* The detail copy, a SIBLING of the hero rather than a child — see Hero for why. Pinned to
+   the frame's lower-left and faded in only once the hero has finished expanding, so it never
+   rides the distorting scale. */
+const DetailCaption = styled(motion.div)`
+  position: absolute;
+  z-index: 1;
+  left: ${PANEL_PAD};
+  right: ${PANEL_PAD};
+  bottom: ${PANEL_PAD};
+  max-width: 620px;
+`;
+
+const DetailName = styled.h3`
+  font-family: ${p => p.theme.font.display};
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 600;
+  line-height: 1.15;
+  color: #fff;
+  margin: 0 0 0.75rem;
+`;
+
+const DetailText = styled.p`
+  font-family: ${p => p.theme.font.body};
+  font-weight: 300;
+  font-size: clamp(1rem, 1.4vw, 1.15rem);
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.72);
+  margin: 0;
+  text-wrap: pretty;
+`;
+
+const CloseButton = styled(motion.button)`
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 3;
+  appearance: none;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-family: ${p => p.theme.font.mono};
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  /* Sits on the hero, not on paper, so it takes the panel's light ink — the page's muted
+     ink would be invisible against the deep fill. */
+  color: rgba(255, 255, 255, 0.72);
+
+  &:hover {
+    color: #fff;
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${p => p.theme.accent.base};
+    outline-offset: 4px;
+  }
+`;
+
+const Detail: React.FC<{
+  project: Project;
+  index: number;
+  reduced: boolean;
+  onClose: () => void;
+}> = ({ project, index, reduced, onClose }) => {
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  /* Not a modal, and deliberately not described as one: the detail fills the section's own
+     box, so the rest of the page stays visible and usable behind nothing. aria-modal and a
+     focus trap would both be claims the layout doesn't back up. It is a disclosure — the
+     panels carry aria-expanded, Escape closes, and focus is moved in and handed back. */
+  useEffect(() => {
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  /* The losing columns wipe RADIATING OUTWARD from the one that was clicked: the two bands
+     nearest the survivor go first and each sweeps AWAY from it, so the closing reads as
+     emanating from the selection rather than marching left-to-right.
+       - order  — distance from the survivor (an adjacent column is 0, the next is 1), so the
+                  stagger fans out from the centre. Clicking the middle makes both bands
+                  order 0 → they close symmetrically, at once.
+       - fromRight — a band LEFT of the survivor enters from its right (the survivor's side)
+                  and pushes left; a band on the right does the mirror. Its own entry offset
+                  is also where it retreats to on close. */
+  const bands = Array.from({ length: BANDS }, (_, i) => i)
+    .filter(i => i !== index)
+    .map(i => ({ i, order: Math.abs(i - index) - 1, fromRight: i < index }));
+  const maxOrder = Math.max(0, ...bands.map(b => b.order));
+
+  /* The click is a three-beat sequence, not one blended motion — the earlier version ran
+     all three at once, so the growing hero swallowed the bands before they finished and the
+     wipe never read. Now: (1) the bands sweep the losers, (2) the survivor expands, (3) the
+     caption fades in. The beats OVERLAP slightly rather than abut, so it reads as one
+     connected gesture. */
+  const BAND_DUR = 0.42;
+  const BAND_STAGGER = 0.08;
+  const bandIn = (order: number) => ({ duration: BAND_DUR, ease, delay: order * BAND_STAGGER });
+  const bandOut = (order: number) => ({
+    duration: 0.34,
+    ease,
+    delay: (maxOrder - order) * 0.05,
+  });
+
+  /* When the last band's tween ends — derived, because maxOrder differs by which panel was
+     clicked (0 for the middle, 1 for an edge), so a fixed hero delay would give an uneven
+     gap. Measuring from WIPE_END keeps the timing identical for every panel. */
+  const WIPE_END = maxOrder * BAND_STAGGER + BAND_DUR;
+  /* The expansion LEADS the wipe's end by this much — it begins a touch before the last band
+     fully settles, overlapping the two beats. Safe despite the earlier "hero hides the wipe"
+     problem: the survivor grows from its OWN column outward and only reaches the outer band
+     columns late in its travel, by which point those bands have long landed. */
+  const EXPAND_LEAD = 0.12;
+  const EXPAND_DELAY = Math.max(0, WIPE_END - EXPAND_LEAD);
+  const heroIn = { duration: 0.55, ease, delay: EXPAND_DELAY };
+  /* After the hero has essentially finished growing. */
+  const captionIn = { duration: 0.35, ease, delay: EXPAND_DELAY + 0.5 };
+
+  return (
+    <Overlay role="group" aria-label={`${project.name} — details`}>
+      {/* Only the LOSERS are wiped. The clicked panel has left the row and its slot is an
+          empty PanelSlot, so that third of the frame already shows bare page paper — a band
+          there would sweep across the very column that is supposed to survive. Each band
+          covers the column it replaces, radiating out from the survivor (see `bands`). */}
+      {bands.map(({ i, order, fromRight }) => {
+        const off = fromRight ? '100%' : '-100%';
+        return (
+          <Band
+            key={i}
+            aria-hidden
+            style={{ left: `calc(${i} * 100% / ${BANDS})` }}
+            initial={reduced ? false : { x: off }}
+            animate={{ x: 0, transition: bandIn(order) }}
+            exit={reduced ? undefined : { x: off, transition: bandOut(order) }}
+          />
+        );
+      })}
+
+      <Hero
+        $image={project.image}
+        /* Same id as the resting panel, which is unmounted for this index while the detail
+           is open — one element in flight, so framer moves it rather than cross-fading two.
+           The delay in heroIn is what holds it at panel size until the bands have swept. */
+        layoutId={reduced ? undefined : `project-panel-${index}`}
+        transition={reduced ? { duration: 0 } : heroIn}
+      />
+
+      <DetailCaption
+        initial={reduced ? false : { opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0, transition: reduced ? { duration: 0 } : captionIn }}
+        exit={reduced ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
+      >
+        <PanelEyebrow>
+          {project.kind} / {project.year}
+        </PanelEyebrow>
+        <DetailName>{project.name}</DetailName>
+        <DetailText>{project.detail ?? project.blurb}</DetailText>
+      </DetailCaption>
+
+      <CloseButton
+        ref={closeRef}
+        onClick={onClose}
+        initial={reduced ? false : { opacity: 0 }}
+        animate={{ opacity: 1, transition: reduced ? { duration: 0 } : captionIn }}
+        exit={reduced ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
+      >
+        Close
+      </CloseButton>
+    </Overlay>
+  );
+};
+
+const Projects: React.FC<{ reduced: boolean }> = ({ reduced }) => {
+  const [open, setOpen] = useState<number | null>(null);
+  const triggers = useRef<(HTMLButtonElement | null)[]>([]);
+
+  /* Focus went into the overlay on open, so it has to come back to the panel that sent it
+     there — otherwise closing drops it on <body> and the keyboard loses its place.
+     Deferred to an effect, NOT called alongside setOpen: at that moment the panel for this
+     index is still unmounted and its ref callback has already written null, so a synchronous
+     focus() lands on nothing. The effect runs after the commit that puts the panel back. */
+  const restoreTo = useRef<number | null>(null);
+
+  const close = () => {
+    restoreTo.current = open;
+    setOpen(null);
+  };
+
+  useEffect(() => {
+    if (open !== null || restoreTo.current === null) return;
+    triggers.current[restoreTo.current]?.focus();
+    restoreTo.current = null;
+  }, [open]);
+
+  return (
+    <ProjectsSection
+      /* Picks up the paragraphs' entrance so the section belongs to the page rather than
+         arriving as a separate block. Delayed past the last Graf. */
+      initial={reduced ? false : { clipPath: 'inset(0 100% 0 0)' }}
+      animate={{ clipPath: 'inset(0 0% 0 0)' }}
+      transition={{ duration: 1.1, delay: 0.2 + PARAGRAPHS.length * 0.18, ease }}
+    >
+      <SectionLabel>Selected side projects</SectionLabel>
+      <RowFrame>
+      <PanelRow>
+        {PROJECTS.map((p, i) =>
+          /* The open panel leaves the row entirely rather than hiding: its layoutId has to
+             belong to exactly one mounted element, or framer cross-fades a pair instead of
+             flying one. PanelSlot holds its share of the row so nothing reflows. */
+          open === i ? (
+            <PanelSlot key={p.name} aria-hidden />
+          ) : (
+            <Panel
+              key={p.name}
+              ref={(el: HTMLButtonElement | null) => {
+                triggers.current[i] = el;
+              }}
+              $image={p.image}
+              layoutId={reduced ? undefined : `project-panel-${i}`}
+              transition={{ duration: 0.6, ease }}
+              onClick={() => setOpen(i)}
+              aria-expanded={false}
+            >
+              <PanelRule aria-hidden />
+              <PanelEyebrow>
+                {p.kind} / {p.year}
+              </PanelEyebrow>
+              <PanelName>{p.name}</PanelName>
+              <PanelBlurb>{p.blurb}</PanelBlurb>
+            </Panel>
+          ),
+        )}
+      </PanelRow>
+
+        <AnimatePresence>
+          {open !== null && (
+            <Detail
+              key="detail"
+              project={PROJECTS[open]}
+              index={open}
+              reduced={reduced}
+              onClose={close}
+            />
+          )}
+        </AnimatePresence>
+      </RowFrame>
+    </ProjectsSection>
+  );
+};
+
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 const About: React.FC = () => {
@@ -737,6 +1330,7 @@ const About: React.FC = () => {
         </Masthead>
         </ColumnGroup>
         <Content>
+          <Track>
           <Column>
             {PARAGRAPHS.map((para, i) => (
               <Graf
@@ -753,6 +1347,8 @@ const About: React.FC = () => {
               </Graf>
             ))}
           </Column>
+          <Projects reduced={!!reduced} />
+          </Track>
         </Content>
       </Page>
     </PageTransition>
