@@ -1,7 +1,13 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import styled, { css, keyframes } from 'styled-components';
+import styled, { createGlobalStyle, css, keyframes } from 'styled-components';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { ArrowDown } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
+/* Plain import = the file URL (svgr components need ?react); the ascii sampler rasterises it.
+   The feather, because it IS the site's mark — the loader and the home lockup both draw this
+   exact geometry. Only its alpha is used; the file's orange fills are discarded (see
+   AsciiPortrait), so the mark arrives in the page's own ink. */
+import featherUrl from '../assets/fei-feather.svg';
 
 const Page = styled.div`
   position: relative;
@@ -14,22 +20,149 @@ const Page = styled.div`
   --word-h: 96px;
   --word-drop: 8px;
   --img-margin: 20px;
-  /* Full-screen composition: the PAGE never scrolls — the portrait column is pinned,
-     and overflowing copy scrolls inside Content alone. Mobile stacks the columns, so
-     it reverts to normal document scroll below md. */
-  height: 100dvh;
-  overflow: hidden;
+  /* The portrait column's width and Content's inline padding, declared once: the projects
+     box breaks OUT of the content column to full viewport width by subtracting exactly
+     these two, so a literal in either place would silently misalign the bleed. */
+  --rail: 340px;
+  --content-pad: 2rem;
+  /* The strip of the first screen the section cue (label + chevron) occupies. The prose
+     stage takes the rest, so cue + stage = one exact viewport. */
+  --cue-h: 3.25rem;
+  /* Gap between panels in the row. */
+  --panel-gap: 4px;
+
+  /* The frame's inline insets, and they are NOT symmetric on purpose.
+
+     Right lands the frame's edge on the nav links' right edge: Header's bar padding
+     (theme.space[3]) plus the nav list's own 0.25rem TRACK_PAD, which together are where the
+     last link's box actually ends. Both are Header's numbers; the 0.25rem is duplicated here
+     because TRACK_PAD is a module-local const in Header.tsx, not an exported token — if that
+     inset changes, this has to follow.
+
+     Left is deliberately much wider. It is the only dial that shortens the frame: the ratio is
+     fixed, so height only comes down by taking width away, and taking it from the left both
+     shortens the frame and opens air between it and the portrait column. */
+  --frame-right: calc(${p => p.theme.space[3]} + 0.25rem);
+  --frame-left: 6rem;
+
+  /* The frame is 16:10 — the ratio belongs to the FRAME because that is the shape a clicked
+     panel expands into (the Hero fills RowFrame), and the expanded state is the one the ratio
+     is for. RowFrame declares the aspect-ratio itself; this mirror of its height in vw is what
+     the prose transform below needs, since CSS cannot read a sibling's computed height.
+     Frame width = the content track minus its two inline insets (see ProjectsSection), so:
+     (100vw − --rail − --frame-left − --frame-right) / 1.6.
+
+     Note what this costs, deliberately: at 1440x900 the frame is 1060x662, and the readme is a
+     font-driven 495px that does not shrink with the viewport — so there is no band left for it
+     to clear, and the band rises OVER it. 16:10 is a wide ratio, so width buys height, and
+     height is exactly what the prose was competing for; the two cannot both hold at this size.
+     Accepted for now, to be revisited. The prose therefore RECEDES rather than getting out of
+     the way — see Column. */
+  --box-h: calc((100vw - var(--rail) - var(--frame-left) - var(--frame-right)) / 1.6);
+  /* The prose→ascii morph, staged as FOUR overlapping beats rather than one crossfade. A
+     single dissolve read as a jolt for a structural reason: the readme is four ragged blocks
+     of proportional type, the portrait is one flush grid of monospace with the mark already
+     formed in it — nothing about the two shapes rhymes, so no amount of fade time hides the
+     substitution. Each beat below removes one of those differences BEFORE the swap, so what
+     finally crossfades is two things that already look alike:
+
+       1. --collapse-t  the paragraph gaps close, so four blocks become one solid rectangle
+       2. --swap        that rectangle crossfades to the grid — which at this point is a flat
+                        field of UNIFORM ink, not a feather: a block of text handing over to a
+                        block of text
+       3. --emerge-t    only now does the mark surface, each cell's ink grading from the flat
+                        field value out to its own coverage step
+       4.               the whole unit keeps shrinking to its fitted end (see SwapUnit)
+
+     Beat 3 is the one that matters most: the feather used to ARRIVE fully formed the instant
+     the ascii faded up, which is what read as abrupt. Now it develops out of the field.
+     The ramps deliberately OVERLAP — emerge starts before the crossfade has finished, so the
+     mark is already surfacing as the grid lands. */
+  --swap: 0.42;
+  --swap-run: 0.12;
+  --collapse-t: clamp(0, calc((var(--p, 0) - 0.05) / 0.25), 1);
+  --lh-t: clamp(0, calc((var(--p, 0) - 0.05) / 0.30), 1);
+  /* The measure narrowing. This is the beat that makes the mark legible at all: the raster
+     can only have as many rows as the readme has LINES, and at its reading measure that is
+     14 — far too coarse for a feather. Narrowing the column reflows the same words into ~30
+     shorter lines, which doubles the vertical resolution AND pulls the block toward the
+     mark's own tall-narrow proportion, so the feather ends up filling it instead of sitting
+     in it. The text does reflow on each frame of this, which is why it is a short window and
+     why the grid — the expensive DOM — does not exist yet while it runs. */
+  --narrow-t: clamp(0, calc((var(--p, 0) - 0.04) / 0.28), 1);
+  --emerge-t: clamp(0, calc((var(--p, 0) - 0.50) / 0.34), 1);
+  /* The leading, shared by the prose and the grid so the two stay dimensionally locked (see
+     AsciiPre). It tightens as the page zooms out — the block condenses toward the solid slab
+     the mark is read out of, rather than staying at reading leading while everything else
+     shrinks around it. */
+  --lh: calc(1.6 - 0.42 * var(--lh-t, 0));
+  /* The DOCUMENT scrolls, and the portrait column is pinned with sticky (see ColumnGroup).
+     It used to be the reverse — a fixed 100dvh page with a private scroll region inside
+     Content — but a scroll container cannot let a child escape it horizontally
+     (overflow-y: auto forces overflow-x to compute to auto, so hidden is the only way to
+     suppress the scrollbar, and that clips), and the projects band has to bleed to the full
+     viewport width, over this very column. Document scroll has no such conflict:
+     html already carries overflow-x: hidden globally. */
+  min-height: 100dvh;
   background: ${p => p.theme.color.surface};
   display: grid;
-  grid-template-columns: 340px 1fr;
-  grid-template-rows: 100dvh;
+  grid-template-columns: var(--rail) 1fr;
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     grid-template-columns: 1fr;
-    grid-template-rows: none;
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
+    /* The morph is desktop-only, but the scroll listener still writes --p here — so EVERY beat
+       has to be pinned off explicitly or it leaks onto a phone, where the page is plain flow
+       and nothing is transforming. Two of these were caught leaking in testing: the paragraph
+       gaps closing, and the leading tightening as you scrolled a phone. */
+    --collapse-t: 0;
+    --lh-t: 0;
+    --narrow-t: 0;
+    --emerge-t: 1;
+  }
+`;
+
+/* #root carries `overflow-x: hidden` globally (index.css), which makes it a scroll container —
+   and therefore the nearest scrolling ancestor of everything on the page. A position: sticky
+   element resolves against that ancestor, #root never scrolls (it has no fixed height), so
+   every sticky inside it is silently inert: it simply scrolls away with the document. This
+   page pins two things that way (the portrait column and the prose stage), so the clip has to
+   be lifted, and it is lifted only while this route is mounted. Nothing is lost: html carries
+   the same overflow-x: hidden in GlobalStyles, so the horizontal clip that keeps the projects
+   band's 100vw bleed from producing a scrollbar is still in force one level up. */
+const UnclipRoot = createGlobalStyle`
+  #root {
+    overflow-x: visible;
+    max-width: none;
+  }
+
+  /* TWO STATES, no resting place between them: the readme at the top, and the projects frame
+     fully up. A scroll down — however small the gesture — carries you all the way to the
+     frame; a scroll up carries you back. Mandatory snapping on the document, with exactly two
+     snap points declared (Content's start, ProjectsSection's end), so there is nothing to land
+     on in between.
+
+     The morph is not skipped by this: the browser animates the snap, scroll events fire the
+     whole way, and --p follows them — so one flick plays the entire zoom-out, merge and reveal
+     rather than requiring the user to meter it out by hand.
+
+     Snapping is declared on html because the DOCUMENT is the scroll container here (see Page).
+     It is scoped to this route by createGlobalStyle's mount, like the clip lift above. */
+  html {
+    scroll-snap-type: y mandatory;
+  }
+
+  /* Off wherever the two-state model does not hold: mobile stacks the page into ordinary flow
+     with far more than two screens of content, and under reduced motion the morph is disabled
+     and the stage is unpinned, so snapping would only skip past the readme. */
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    html {
+      scroll-snap-type: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-snap-type: none;
+    }
   }
 `;
 
@@ -134,8 +267,8 @@ const Masthead = styled.div`
 /* Narrow left panel: the portrait, veiled by the landing's frosted-glass skin.
    Sticky so the image holds the eye while the copy scrolls past it. */
 const Portrait = styled.aside`
-  position: sticky;
-  top: 0;
+  /* ColumnGroup owns the pin now (see there); this is just the frame inside it. */
+  position: relative;
   height: 100dvh;
   overflow: hidden;
   /* The column is desaturated wholesale (image, frost and grain alike); the Peek window
@@ -195,7 +328,6 @@ const Portrait = styled.aside`
   }
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    position: relative;
     height: 42vh;
 
     /* No cut-out letters to line up with here, so the column goes back to a plain
@@ -239,46 +371,155 @@ const Peek = styled(motion.div)`
    carries its slice of the picture. The image zoom is NOT here: it lives on Portrait's
    .img layer, so only the picture grows inside its static frame. */
 const ColumnGroup = styled(motion.div)`
-  position: relative;
-`;
-
-const Content = styled.div`
-  /* Bottom pad = the portrait's --img-margin, so the content column ends level with the
-     poster's bottom edge. No footer clearance needed — it is hidden on this route (Layout). */
-  padding: 7rem 2rem var(--img-margin);
-  display: flex;
-  justify-content: center;
-  /* flex-start, NOT the default stretch: stretch pins this single child to the content-box
-     height, and once the projects row makes the content taller than that, it overflows the
-     fixed height — past the bottom padding and under the Footer. flex-start lets the track
-     take its natural height so the pad is honoured. */
-  align-items: flex-start;
-  /* The page's only scroll region (the grid row is a fixed 100dvh, so the constrained
-     height makes overflow-y real). min-width: 0 lets the grid track shrink instead of
-     forcing a horizontal page overflow. */
-  overflow-y: auto;
-  min-width: 0;
+  /* The pin. The WHOLE composition sticks as one — portrait, wordmark and Peek together —
+     because Masthead and Peek are absolutely positioned against this box at fixed offsets;
+     pinning only the portrait (as it was, before the page itself stopped scrolling) would
+     let the wordmark slide off it. align-self: start is required: a stretched grid item is
+     as tall as the row, and a sticky element with no slack in its containing block never
+     moves. A transform on a sticky element is harmless — unlike position: fixed, sticky's
+     reference is the scroll container, not the transformed ancestor. */
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  align-self: start;
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    padding: 3.5rem 1.75rem 4rem;
-    overflow-y: visible;
+    position: relative;
+    height: auto;
   }
 `;
 
-/* The scroll region's inner track. The prose keeps its 680px measure inside this;
-   the projects row spans the whole thing, which is the point — an accordion at reading
-   width has no room to open. Capped so the row doesn't sprawl on a very wide display. */
-const Track = styled.div`
+const Content = styled.div`
+  /* No vertical padding: Stage is sized to an exact viewport minus the cue strip, so any
+     top pad would push the first screen past 100dvh and put the box's stop off by that much.
+     The stage centres the prose instead, which is what the pad used to buy. */
+  padding: 0 var(--content-pad);
+  /* Lets the grid track shrink rather than forcing a horizontal page overflow. No overflow
+     of its own: this must NOT be a scroll container, or it would clip the projects band's
+     bleed (see Page). */
+  min-width: 0;
+  /* The top snap point (see UnclipRoot). Declared here rather than on Stage, which is sticky:
+     a sticky element's snap area travels with it as it sticks, so the browser keeps
+     re-resolving the target and the scroll fights itself. Content does not move. */
+  scroll-snap-align: start;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    --content-pad: 1.75rem;
+    padding: 3.5rem var(--content-pad) 4rem;
+  }
+`;
+
+/* The first screen: the readme prose, held for exactly one viewport minus the cue strip.
+   Sticky, so it stays put while the projects box rolls up beneath it under plain native
+   scroll — there is no pinning script, and the box's "stop" is simply the scroll end. */
+const Stage = styled.div`
+  position: sticky;
+  top: 0;
+  /* A FULL viewport, so the prose centres on the viewport's centre line. It used to be
+     100dvh − --cue-h, which centred it on the stage instead and left it sitting half a cue
+     strip (26px) high. The cue still shows at rest without taking height from here: the
+     projects section is pulled back up over this box's last --cue-h instead (see there). */
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    position: static;
+    height: auto;
+    display: block;
+  }
+
+  /* The static equivalent, and it has to be this rather than "the same layout without the
+     tween": --p is never written under reduced motion, so the prose would stay full size in
+     the middle of the stage and the rising box would simply cover it — a worse outcome than
+     no effect at all. Dropping the pin puts the whole page back in plain flow, prose above
+     box, nothing overlapping and nothing moving. */
+  @media (prefers-reduced-motion: reduce) {
+    position: static;
+    height: auto;
+    display: block;
+    padding: 5rem 0;
+  }
+`;
+
+/* How much the reading measure gives up on the way down (see --narrow-t on Page). 640 − 350
+   leaves ~290px, about 29 characters a line, which reflows the readme into ~30 lines. */
+const MEASURE_NARROW = 350;
+
+/* Where the paragraphs stop being paragraphs and become one continuous flow (see Graf).
+   Deliberately INSIDE the narrowing window (--narrow-t, 0.04 → 0.32): merging reflows the
+   text, and during narrowing the text is reflowing on every frame anyway, so the one extra
+   reflow is indistinguishable from the ones already happening. Merge before or after that
+   window and it reads as a jump. */
+const MERGE_AT = 0.15;
+
+/* The moving object of the prose→ascii swap: Column (the readme) and AsciiPortrait ride in
+   here together, so the rise-and-shrink is ONE trajectory and the crossfade happens between
+   two things travelling as one — not a moving thing and a parked one.
+
+   The trajectory ends FITTED, not centred: at p=1 the unit's centre has travelled to the
+   middle of the free band above the risen frame (BAND_TOP down to the cue's final top), and
+   its scale has come down far enough that the ascii portrait's full height sits inside that
+   band. Both end values depend on real layout (viewport height, the frame's 16:10 height),
+   so they are measured and written as --fit-dy / --fit-scale by AsciiPortrait's fit effect
+   rather than derived in CSS — calc() cannot divide a length by a length to make a scale.
+   The var() fallbacks only cover the beat before that effect first runs.
+
+   Scale and translate are LINEAR in --p on purpose: scroll position is the easing. */
+const SwapUnit = styled.div`
+  position: relative;
   width: 100%;
-  max-width: 1100px;
+  transform: translateY(calc(var(--p, 0) * var(--fit-dy, -18vh)))
+    scale(calc(1 + var(--p, 0) * (var(--fit-scale, 0.4) - 1)));
+  will-change: transform;
+
+  /* Mobile stacks the page in plain flow — but the scroll listener still writes --p there,
+     so the transform must be explicitly off, exactly like Column's. */
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    transform: none;
+  }
 `;
 
 const Column = styled.div`
-  max-width: 680px;
+  /* Centred in the stage. This reverses an earlier call — the column used to be flush-left so
+     the prose, the section label and the projects row shared one left rail — but the prose is
+     now the whole first screen, and centred is what a lone screen of type wants.
+
+     640px, chosen against the copy rather than as a round number. The greeting sets to 611px on
+     one line at Graf's 20.8px, and it has to stay unbroken — but 620 left only 9px of slack,
+     thin enough that a font fallback or a nudge to the size clamp would wrap it. 640 gives 29px
+     (~5%), enough to absorb metric differences, and lands at ~65 characters a line — the middle
+     of the 45–75 measure, where 680 sat at ~69. The narrowest SAFE width rather than the
+     narrowest possible one. Check the greeting if the face, weight or clamp ever moves. */
+  max-width: calc(640px - ${MEASURE_NARROW}px * var(--narrow-t, 0));
   width: 100%;
-  /* Centred within Track, so the prose sits exactly where it did when Column was the
-     scroll region's only child. */
-  margin: 0 auto;
+  /* Belt and braces with the stage's justify-content: the stage drops to display: block in
+     the reduced-motion and mobile fallbacks, where only the auto margins centre this. */
+  margin-inline: auto;
+  /* So AmplifyGroup can drop its nowrap once the measure is too narrow to hold the phrase —
+     a viewport media query cannot see this, because it is the COLUMN that is shrinking. */
+  container-type: inline-size;
+  /* The zoom-out, front half of the prose→ascii swap (see --swap on Page). --p is the 0→1
+     scroll progress written on Page by the scroll listener in About.
+
+     There is deliberately NO transform of its own. An extra shrink used to live here, and it
+     was the bug behind the double-image: it made the prose smaller than the grid replacing it,
+     so the two boxes were different sizes mid-fade and the eye saw two things at once instead
+     of one. Both sides now ride SwapUnit's single scale and nothing else, so they are the same
+     size at every frame of the crossfade.
+
+     opacity only — nothing here reflows, and no framer layout projection is involved. */
+  /* Ramp CENTRED on --swap (half a run each side), overlapping the ascii's mirror ramp — the
+     two must cross at 50/50, not meet at zero: ramps that ABUT at the swap point leave a beat
+     where both sides are invisible and the screen blinks empty mid-gesture. */
+  opacity: clamp(0, calc((var(--swap) + var(--swap-run) / 2 - var(--p, 0)) / var(--swap-run)), 1);
+  will-change: opacity;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    max-width: none;
+    opacity: 1;
+  }
 `;
 
 const Graf = styled(motion.p)`
@@ -288,11 +529,26 @@ const Graf = styled(motion.p)`
      hit 24px on desktop and read as display type; a flat 1rem (the lab's utilitarian
      empty-state size) read as UI copy. This sits between, still long-form. */
   font-size: clamp(1.125rem, 1.6vw, 1.3rem);
-  line-height: 1.6;
+  /* Shared with the grid, and tightening on scroll — see --lh on Page. */
+  line-height: var(--lh, 1.6);
   color: ${p => p.theme.color.ink};
-  /* Exactly one line (1.6em = the 1.6 line-height), so the paragraph gap sits on the
-     text's own baseline rhythm. */
-  margin: 0 0 1.6em;
+  /* Deliberately OFF the baseline rhythm. This was 1.6em — exactly one line-height, so a
+     paragraph gap read as one full blank line — which spaced four paragraphs on a single screen
+     further apart than they wanted.
+
+     What matters is the WHITE, not the margin: at 20.8px inside a 33.28px line-height, lines
+     already carry ~12.5px of visible space between them. 1rem put paragraphs at ~28px of white
+     — only 2.3x the line gap, which read as one dense block with the breaks barely landing.
+     1.5rem gives ~36px, a clear 3x, while still sitting well under the old 1.6em's ~46px.
+
+     The gap CLOSES on scroll (--collapse-t, beat 1 of the morph on Page): by the time the
+     crossfade starts the four paragraphs have become one solid rectangle, which is the shape
+     the ascii grid is. This is a visual collapse, not a DOM one — genuinely re-parenting the
+     runs into a single <p> mid-scroll would reflow the whole column and tear out the hover
+     machinery (the dim, the shimmer, the odometer, the travelling box) that lives on these
+     elements. Closing the gaps alone still leaves each paragraph starting a new line, though —
+     see the merge below, which finishes the job. */
+  margin: 0 0 calc(1.5rem * (1 - var(--collapse-t, 0)));
   /* 300, not 200: ExtraLight strokes go hairline under antialiased smoothing on the
      light paper — contrast passes but the strokes don't render. Light keeps the air. */
   font-weight: 300;
@@ -300,6 +556,65 @@ const Graf = styled(motion.p)`
 
   &:last-child {
     margin-bottom: 0;
+  }
+
+  /* THE MERGE. Closing the gaps made the paragraphs adjacent, but they were still four blocks,
+     so each one kept starting its own line and left a short line above it — the ragged notches
+     that show up as gaps in the mark. Going inline drops them into one continuous flow, which
+     is what the reveal wants: a solid slab of words.
+
+     A discrete switch, not a tween — display cannot interpolate — driven by a data attribute
+     the scroll listener toggles at MERGE_AT rather than by a --var, for the same reason. It is
+     placed inside the narrowing window so its reflow hides among the ones already running.
+
+     The ::after restores the space between the runs; without it the last word of one paragraph
+     welds to the first word of the next. */
+  [data-merged] & {
+    display: inline;
+    /* The entrance wipe has to GO here, not just finish. framer leaves its clip-path on the
+       element as an inline style, and clip-path on a multi-line INLINE box resolves against a
+       reference box that is no longer the run's own — the paragraphs render clipped to their
+       opening fragment and most of the readme vanishes. !important because it is overriding
+       an inline style. Safe: by MERGE_AT the entrance is long finished, and the wipe has
+       nothing left to do during the morph. */
+    clip-path: none !important;
+
+    /* Break words. At the narrowed measure a run of long words leaves a ragged right edge, and
+       every notch of that whitespace is a hole in the mark — the reveal wants a solid slab, not
+       a paragraph. break-all rather than overflow-wrap: anywhere, which only breaks to avoid
+       overflow and still prefers spaces, so the raggedness survives it. Legitimate here and
+       nowhere else on the page: by this point the copy is being read as an image, not as
+       language. text-wrap goes back to auto because pretty spends its effort balancing the
+       last lines of a paragraph, which is exactly the raggedness being removed. */
+    word-break: break-all;
+    text-wrap: auto;
+  }
+
+  /* break-all cannot get inside an inline-BLOCK: those are atomic, so RankWrap's odometer and
+     each AmplifyTerm stay whole and push a short line wherever they fall — three notches in the
+     mark, in the middle of the block. Flattening them to inline lets the break run through.
+     Marked with an attribute rather than referenced by component, because both are declared
+     below Graf and a styled-components interpolation cannot reach forward. Safe in this state:
+     what inline-block buys them is the travelling highlight box and the rolling digit window,
+     and neither can be hovered once the readme has become texture. */
+  [data-merged] & [data-atomic] {
+    display: inline;
+  }
+  [data-merged] &::after {
+    content: ' ';
+  }
+
+  /* Never on mobile: the page is plain flow there and the readme stays four paragraphs, but
+     the scroll listener still writes the attribute. */
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    [data-merged] & {
+      display: block;
+      word-break: normal;
+      text-wrap: pretty;
+    }
+    [data-merged] &::after {
+      content: none;
+    }
   }
 
   /* The Intuitive hover: everything that isn't the Intuitive clause recedes, and the
@@ -539,7 +854,8 @@ const RankClimb: React.FC = () => {
   return (
     <RankTerm onMouseEnter={start}>
       top{' '}
-      <RankWrap ref={wrapRef}>
+      {/* data-atomic: an inline-block the merged reveal has to flatten — see Graf. */}
+      <RankWrap ref={wrapRef} data-atomic>
         <Ghost $rolling={rolling}>{RANK_END}</Ghost>
         {rolling && (
           <RankWindow aria-hidden>
@@ -602,6 +918,25 @@ const WIPE_OPEN = 'inset(0% 0% 0% 0%)';
 const WIPE_S = 0.2;
 const SLIDE_S = 0.32;
 
+/* The triad is one phrase, so it is kept on one line: a break between "and" and "domain
+   expertise" reads as a stumble, and it also splits the travelling highlight's runway across
+   two lines, where the box's slide from one term to the next has to jump a row.
+
+   Only above md. The run sets to ~447px; the stacked mobile column is ~319px, and there nowrap
+   would push the phrase off the side of the page instead of wrapping it — a much worse failure
+   than the one it prevents. */
+const AmplifyGroup = styled.span`
+  white-space: normal;
+
+  /* Held on one line only while the measure can actually hold the ~447px phrase. A CONTAINER
+     query, not a viewport one: the column narrows on scroll (--narrow-t), and a nowrap run
+     wider than its own column does not wrap — it overhangs the block, which would break the
+     very rectangle the crossfade depends on. */
+  @container (min-width: 560px) {
+    white-space: nowrap;
+  }
+`;
+
 const Amplify: React.FC = () => {
   const reduced = useReducedMotion();
   const [active, setActive] = useState<number | null>(null);
@@ -618,11 +953,12 @@ const Amplify: React.FC = () => {
   };
 
   return (
-    <span onMouseLeave={() => setActive(null)}>
+    <AmplifyGroup onMouseLeave={() => setActive(null)}>
       {AMPLIFY.map((word, i) => (
         <Fragment key={word}>
           {i > 0 && (i === AMPLIFY.length - 1 ? ', and ' : ', ')}
-          <AmplifyTerm $active={active === i} onMouseEnter={() => enter(i)}>
+          {/* data-atomic: an inline-block the merged reveal has to flatten — see Graf. */}
+          <AmplifyTerm data-atomic $active={active === i} onMouseEnter={() => enter(i)}>
             {active === i && (
               <AmplifyBox
                 aria-hidden
@@ -639,7 +975,7 @@ const Amplify: React.FC = () => {
           </AmplifyTerm>
         </Fragment>
       ))}
-    </span>
+    </AmplifyGroup>
   );
 };
 
@@ -653,9 +989,10 @@ const PARAGRAPHS: React.ReactNode[] = [
   /* Every run of text is wrapped in a span so the Intuitive focus-dim (on Graf) has an
      element to fade — a bare text node can't be selected, let alone transitioned. */
   <>
-    <span data-plain>
-      Howdy! I'm Fei Hu. Full-stack engineer with a designer's touch. My bar is clear.
-    </span>{' '}
+    <span data-plain>Howdy! I'm Fei Hu. Full-stack engineer with a designer's touch.</span>
+  </>,
+  <>
+    <span data-plain>My bar is clear.</span>{' '}
     <IntuitiveClause data-clause="intuitive">
       <Term>Intuitive</Term> — software should explain itself on first touch.
     </IntuitiveClause>{' '}
@@ -672,6 +1009,240 @@ const PARAGRAPHS: React.ReactNode[] = [
     AI made the mechanical parts of coding faster than ever, which buys me more time for defining the right problem, architecture, and the tradeoffs that shape a product. Today I'm building products on top of AI, in production. What sets the direction? <Amplify />. AI amplifies those. It doesn't replace them.
   </>,
 ];
+
+/*
+ * The logo reveal — back half of the morph (see --swap on Page). Once the zoom-out has
+ * crushed the readme below legibility, the SAME WORDS take on the mark: each character is
+ * tinted by the feather pixel behind it, so the text stops being read as language and starts
+ * being read as picture.
+ *
+ * It is a CLONE OF THE README, not a generated grid, and that is the whole trick. Two earlier
+ * versions built a monospace grid and tried to make it line up with the prose — first by
+ * guessing its size, then by measuring the prose and matching the rectangle exactly. Both
+ * double-imaged, because matching the BOX is not enough: the prose is proportional Inter with
+ * word spaces and ragged line ends, a grid is solid monospace, and two blocks of the same
+ * words at different rhythms read as two blocks. Cloning removes the problem instead of
+ * managing it — same face, same metrics, same word spacing, same line breaks, same ragged
+ * edges, because it is the same DOM. The crossfade has nothing left to give away.
+ *
+ * cloneNode also means the clone can be mangled freely: every text node is exploded into
+ * one span per character (spaces stay bare text, so the wrapping opportunities — and
+ * therefore the line breaks — are untouched), which would be far too invasive to do to the
+ * live prose, where the hover machinery lives.
+ *
+ * Sampling is per character rather than per cell: each span's own centre is mapped into the
+ * feather's contained rect and its alpha becomes the character's ink step. So the mark's
+ * resolution is the readme's own line count and character spacing — which is why the measure
+ * narrows first (--narrow-t), buying ~30 lines instead of 14.
+ *
+ * MONOCHROME, dark on the page's own paper: only the mark's ALPHA is sampled — the SVG's
+ * orange fills are discarded. (An inverted treatment — light mark on a dark panel — was tried
+ * and dropped: the panel read as a foreign card dropped onto the paper.)
+ */
+/* Ink ladder. Index 0 is the field around the mark, present but only just. Nine steps because
+   the reveal is coarse — one sample per character — and the gradation does the work the
+   resolution cannot. */
+const ASCII_LEVELS = [7, 15, 25, 36, 48, 61, 75, 88, 100];
+/* Where every character starts, before the mark surfaces: one flat value across the whole
+   block, so the clone arrives as an undifferentiated field of type and the feather has
+   somewhere to emerge FROM. */
+const ASCII_FLAT = 62;
+/* Resolution of the offscreen feather the characters are sampled against. Generous — it costs
+   one canvas at mount, and it is sampled at arbitrary sub-character positions. */
+const LOGO_RASTER_H = 660;
+
+/* Mirrors of layout the fit effect cannot read from CSS: the header clearance the fitted
+   unit must stay below, and the breathing room kept inside the free band. */
+const BAND_TOP = 80;
+const FIT_PAD = 24;
+
+const RevealLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  /* The mirror of Column's ramp, centred on --swap like it, so the two cross at 50/50 rather
+     than both passing through zero (see Column). */
+  opacity: clamp(0, calc((var(--p, 0) - (var(--swap) - var(--swap-run) / 2)) / var(--swap-run)), 1);
+  will-change: opacity;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    display: none;
+  }
+
+  /* The clone carries the readme's own styled-components classes — which is what makes it lay
+     out identically, but also means it inherits Column's FADE-OUT ramp. Left alone the clone
+     dies exactly as this layer brings it in, and the reveal never appears at all. Its opacity
+     has to be pinned so the ramp above is the only one in play. */
+  > * {
+    opacity: 1 !important;
+  }
+
+  /* Everything flattens to the flat ink (the per-character rules below then lift the mark out
+     of it). !important because no descendant may keep its own colour — AmplifyTerm sets one,
+     and it would otherwise survive as a dark bar across the reveal. */
+  * {
+    color: color-mix(in srgb, ${p => p.theme.color.ink} ${ASCII_FLAT}%, transparent) !important;
+  }
+
+  ${ASCII_LEVELS.map((mix, i) => {
+    const d = mix - ASCII_FLAT;
+    return css`
+      span[data-l='${i}'] {
+        color: color-mix(
+          in srgb,
+          ${p => p.theme.color.ink}
+            calc(${ASCII_FLAT}% ${d < 0 ? '-' : '+'} ${Math.abs(d)}% * var(--emerge-t, 1)),
+          transparent
+        ) !important;
+      }
+    `;
+  })}
+`;
+
+/* Explode every text node into one span per character. Spaces are left as bare text: they are
+   the line-break opportunities, and wrapping them would not change the breaks but would double
+   the node count for nothing. Returns the spans in document order. */
+const splitIntoChars = (root: HTMLElement): HTMLSpanElement[] => {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const texts: Text[] = [];
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) texts.push(n as Text);
+
+  const spans: HTMLSpanElement[] = [];
+  for (const node of texts) {
+    const frag = document.createDocumentFragment();
+    for (const ch of node.data) {
+      if (ch === ' ' || ch === '\n') {
+        frag.appendChild(document.createTextNode(ch));
+        continue;
+      }
+      const span = document.createElement('span');
+      span.textContent = ch;
+      frag.appendChild(span);
+      spans.push(span);
+    }
+    node.parentNode?.replaceChild(frag, node);
+  }
+  return spans;
+};
+
+const LogoReveal: React.FC<{
+  pageRef: React.RefObject<HTMLDivElement | null>;
+  sectionRef: React.RefObject<HTMLElement | null>;
+  /* The readme itself — this is cloned, and its end-of-morph layout is what gets sampled. */
+  columnRef: React.RefObject<HTMLDivElement | null>;
+}> = ({ pageRef, sectionRef, columnRef }) => {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [built, setBuilt] = useState(false);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    const source = columnRef.current;
+    if (!host || !source) return;
+    let cancelled = false;
+
+    const img = new Image();
+    img.src = featherUrl;
+    img.onload = () => {
+      if (cancelled || !host.isConnected) return;
+
+      /* The clone: an exact copy, so the line breaks match by construction. Inline styles are
+         stripped because framer leaves the paragraph entrance's clip-path on them, and a clone
+         frozen mid-wipe would reveal a clipped block. */
+      const clone = source.cloneNode(true) as HTMLElement;
+      clone.removeAttribute('style');
+      clone.querySelectorAll<HTMLElement>('[style]').forEach(el => el.removeAttribute('style'));
+      clone.setAttribute('aria-hidden', 'true');
+      const chars = splitIntoChars(clone);
+      host.replaceChildren(clone);
+
+      /* Sample in the state the block will be in when the reveal RUNS — narrowed, tight, gaps
+         closed — not the one it is in at mount. Forced on the clone, read back, then removed;
+         one synchronous layout, at mount, and the only one. */
+      const forced: [string, string][] = [
+        ['--collapse-t', '1'],
+        ['--lh-t', '1'],
+        ['--narrow-t', '1'],
+      ];
+      forced.forEach(([k, v]) => clone.style.setProperty(k, v));
+      /* The merge is an attribute, not a var, and it changes the line breaks — so it has to be
+         part of the forced state or every character would be sampled at the wrong position. */
+      clone.setAttribute('data-merged', '');
+
+      const box = clone.getBoundingClientRect();
+      /* Read every rect before writing anything back: reads after writes would force a layout
+         per character instead of one for the batch. */
+      const rects = chars.map(c => c.getBoundingClientRect());
+      forced.forEach(([k]) => clone.style.removeProperty(k));
+      clone.removeAttribute('data-merged');
+
+      /* The feather, contained in the block and centred — it is much taller than the block is,
+         so the fit is height-bound. */
+      const rasterW = Math.max(1, Math.round(LOGO_RASTER_H * (img.naturalWidth / img.naturalHeight)));
+      const canvas = document.createElement('canvas');
+      canvas.width = rasterW;
+      canvas.height = LOGO_RASTER_H;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, rasterW, LOGO_RASTER_H);
+      const px = ctx.getImageData(0, 0, rasterW, LOGO_RASTER_H).data;
+
+      const markW = box.height * (img.naturalWidth / img.naturalHeight);
+      const markX = box.left + (box.width - markW) / 2;
+      const top = ASCII_LEVELS.length - 1;
+
+      chars.forEach((span, i) => {
+        const r = rects[i];
+        /* Character centre, in the mark's own normalised space. */
+        const u = (r.left + r.width / 2 - markX) / markW;
+        const v = (r.top + r.height / 2 - box.top) / box.height;
+        let level = 0;
+        if (u >= 0 && u < 1 && v >= 0 && v < 1) {
+          const sx = Math.min(rasterW - 1, Math.floor(u * rasterW));
+          const sy = Math.min(LOGO_RASTER_H - 1, Math.floor(v * LOGO_RASTER_H));
+          level = Math.round((px[(sy * rasterW + sx) * 4 + 3] / 255) * top);
+        }
+        span.setAttribute('data-l', String(level));
+      });
+
+      if (!cancelled) setBuilt(true);
+    };
+
+    return () => {
+      cancelled = true;
+    };
+  }, [columnRef]);
+
+  /* The fit: measures what the CSS trajectory cannot derive (see SwapUnit) and writes it to
+     Page as --fit-dy / --fit-scale. The section's top AT SCROLL END is exactly
+     viewport - section height (the scroll range ends with the section's bottom on the
+     viewport's), so the free band is BAND_TOP down to that line; the unit's centre travels to
+     the band's centre and its scale brings the block's height inside it. */
+  useEffect(() => {
+    if (!built) return;
+    const page = pageRef.current;
+    const section = sectionRef.current;
+    const host = hostRef.current;
+    if (!page || !section || !host) return;
+    const apply = () => {
+      const vh = window.innerHeight;
+      const cueTop = vh - section.offsetHeight;
+      const avail = cueTop - BAND_TOP - FIT_PAD;
+      const h = (host.firstElementChild as HTMLElement | null)?.offsetHeight ?? host.offsetHeight;
+      const fit = Math.min(1, Math.max(0.08, avail / Math.max(1, h)));
+      page.style.setProperty('--fit-scale', String(fit));
+      page.style.setProperty('--fit-dy', `${(BAND_TOP + cueTop) / 2 - vh / 2}px`);
+    };
+    apply();
+    window.addEventListener('resize', apply);
+    return () => window.removeEventListener('resize', apply);
+  }, [built, pageRef, sectionRef]);
+
+  return <RevealLayer ref={hostRef} aria-hidden />;
+};
 
 /*
  * Selected side projects — three panels that share the row's width and trade it on hover:
@@ -724,29 +1295,107 @@ const PANEL_S = '0.55s';
 /* Shared by Panel and by PanelSlot, which has to match it — see PanelSlot. */
 const PANEL_PAD = '1.5rem';
 
-const ProjectsSection = styled(motion.section)`
-  margin-top: 4.5rem;
+/* The rolling unit: cue strip + box, in NORMAL FLOW. It is not pinned, transformed or
+   scripted — the sticky Stage above it is exactly one viewport minus the cue, so this unit's
+   height IS the page's scroll range, and when you reach the bottom of Content the box's
+   bottom edge is sitting on the viewport's. That is the whole "stops when it hits its bottom".
+   (Flow, deliberately, not position: fixed + a scripted translateY. A fixed element silently
+   re-anchors to any ancestor carrying a transform or filter — the same trap the sharpImage
+   comment above records — and a scroll-driven transform on this subtree would hand framer's
+   layoutId projection the wrong reference frame when a panel expands into the Hero.)
+
+   Width: inside the content track, NOT the full viewport — a 16:10 frame gets taller as it gets
+   wider, and at 100vw that is ~875px on a 900px screen, so the ratio and the page both stop
+   working. Content's own inline padding is cancelled first so the frame can set its own insets
+   (see --frame-left / --frame-right on Page) rather than inherit the column's symmetric one.
+
+   The BOTTOM inset stays --img-margin, the portrait's own poster border, so the frame's bottom
+   edge lands level with the picture's. There is no TOP inset: that edge is the band's leading
+   edge as it rolls up, and paper above it would read as a gap opening under the cue rather than
+   as a border. */
+const ProjectsSection = styled.section`
+  position: relative;
+  /* Pulled back over the stage's last --cue-h. The stage is a full viewport so the prose can
+     centre on the viewport's centre line; this negative margin is what still leaves the cue
+     strip showing at rest, and it keeps the scroll range at exactly the frame + its bottom
+     border — shortening the stage instead would have cost the prose its centring. */
+  margin-top: calc(-1 * var(--cue-h));
+  margin-inline: calc(-1 * var(--content-pad));
+  padding: 0 var(--frame-right) var(--img-margin) var(--frame-left);
+  /* The bottom snap point (see UnclipRoot): align this box's END with the scrollport's, which
+     is the position the flow already settles at — the frame's bottom on the viewport's. So the
+     snap target and the natural scroll end are the same place, and the two-state model costs
+     the layout nothing. */
+  scroll-snap-align: end;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    /* Stacked, so there is no portrait to clear and no nav column to align to: the frame goes
+       back to an even poster border on both sides. */
+    --frame-left: var(--img-margin);
+    --frame-right: var(--img-margin);
+    margin: 4.5rem calc(-1 * var(--content-pad)) 0;
+  }
 `;
 
 /* The section label follows the site's chrome idiom (Header, Footer, the writing back
    link) rather than introducing a display heading — the cut-out wordmark is the only
-   large type this page gets, and a second heading would compete with it. */
+   large type this page gets, and a second heading would compete with it.
+
+   It sits in the cue strip: the one thing showing below the prose at rest, so the first
+   screen says there is a section here without the box itself peeking. It rides up with the
+   box rather than staying behind on the stage, so the section is still titled once it lands. */
 const SectionLabel = styled.h2`
+  height: var(--cue-h);
+  /* Centred over the content column, which this element now spans exactly — so plain centring
+     lands it on the prose's own centre line. (It needed a --rail offset while the band bled to
+     the full viewport; that is gone with the bleed.) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: ${p => p.theme.font.mono};
   font-size: 0.62rem;
   font-weight: 400;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: ${p => p.theme.color.inkMuted};
-  margin: 0 0 1.25rem;
+  margin: 0;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    /* No separate content column to centre over here — the label goes back to the left margin. */
+    height: auto;
+    justify-content: flex-start;
+    margin-bottom: 1.25rem;
+  }
+`;
+
+/* The scroll affordance beside the label: at rest the cue strip is the only thing under the
+   prose, and the chevron says the box is further down. Faded straight from --p — by the time
+   you are a fraction into the roll the box is visibly moving and the hint has done its job —
+   so no observer and no state. The inner bob draws the eye without a loud colour. */
+const ScrollHint = styled.span`
+  display: inline-flex;
+  margin-left: 0.7rem;
+  color: ${p => p.theme.color.inkMuted};
+  pointer-events: none;
+  opacity: clamp(0, calc(1 - var(--p, 0) * 5), 1);
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    display: none;
+  }
+`;
+
+const Bob = styled(motion.span)`
+  display: inline-flex;
 `;
 
 /* The row's box, and the detail view's — the expansion fills exactly the area the panels
    occupied rather than the viewport, so it reads as the section opening rather than a
-   modal taking the screen. Height comes from a 16:10 ratio on the section's own width, which
-   makes each of the three panels a tall portrait column at any track width. */
-const RowFrame = styled.div`
+   modal taking the screen. */
+const RowFrame = styled(motion.div)`
   position: relative;
+  /* The ratio lives here, on the frame, because the frame is the shape a clicked panel expands
+     into — Hero is inset: 0 on this box, so the expanded state IS this rectangle. --box-h on
+     Page mirrors this height in vw for the prose transform, which cannot read it from here. */
   aspect-ratio: 16 / 10;
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
@@ -756,7 +1405,7 @@ const RowFrame = styled.div`
 
 const PanelRow = styled.div`
   display: flex;
-  gap: 4px;
+  gap: var(--panel-gap);
   height: 100%;
 
   /* The accordion. Both rules are one class + one pseudo-class, so the second wins on
@@ -839,6 +1488,10 @@ const Panel = styled(motion.button)<{ $image?: string }>`
   }
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    /* flex-basis has to be released with the height: in a COLUMN flex container the basis is
+       the main size, so the row's flex shorthand above zeroed these panels and the 200px never
+       applied — they collapsed to a sliver of their own bottom-aligned text. */
+    flex: 0 0 auto;
     height: 200px;
   }
 
@@ -946,11 +1599,10 @@ const PanelSlot = styled.div`
  * grows into the hero — a framer layoutId shared with the resting panel, the same
  * magic-move the amplify box runs on.
  *
- * Portalled to <body>, which is not optional: ProjectsSection animates clip-path and
- * settles at inset(0%), and a clip-path on ANY ancestor clips position:fixed descendants
- * — the overlay would be trapped inside the section's box. The portal also escapes
- * PageTransition's wrapper. React context crosses a portal, so framer still matches the
- * layoutId across it.
+ * It renders inline, absolutely positioned against RowFrame — the detail is meant to fill
+ * exactly the box, so it wants to be trapped there. (An older note here claimed it was
+ * portalled to <body> to escape a clip-path on the section; there is no such clip-path and
+ * no portal.)
  */
 /* Columns in the row — the band geometry is derived from it, so one number governs both.
    One fewer band than this actually renders: the survivor's column is spared. */
@@ -1170,7 +1822,11 @@ const Detail: React.FC<{
   );
 };
 
-const Projects: React.FC<{ reduced: boolean }> = ({ reduced }) => {
+const Projects: React.FC<{
+  reduced: boolean;
+  /* Exposes the section's element to AsciiPortrait's fit measurement (see there). */
+  sectionRef: React.RefObject<HTMLElement | null>;
+}> = ({ reduced, sectionRef }) => {
   const [open, setOpen] = useState<number | null>(null);
   const triggers = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -1192,15 +1848,22 @@ const Projects: React.FC<{ reduced: boolean }> = ({ reduced }) => {
     restoreTo.current = null;
   }, [open]);
 
+  /* No reveal animation here any more: the roll-up IS the reveal. The section arrives by
+     scrolling into frame under its own steam, and an opacity/lift tween on top of that would
+     be a second entrance fighting the first. */
   return (
-    <ProjectsSection
-      /* Picks up the paragraphs' entrance so the section belongs to the page rather than
-         arriving as a separate block. Delayed past the last Graf. */
-      initial={reduced ? false : { clipPath: 'inset(0 100% 0 0)' }}
-      animate={{ clipPath: 'inset(0 0% 0 0)' }}
-      transition={{ duration: 1.1, delay: 0.2 + PARAGRAPHS.length * 0.18, ease }}
-    >
-      <SectionLabel>Selected side projects</SectionLabel>
+    <ProjectsSection ref={sectionRef}>
+      <SectionLabel>
+        Selected side projects
+        <ScrollHint aria-hidden>
+          <Bob
+            animate={reduced ? undefined : { y: [0, 3, 0] }}
+            transition={{ duration: 1.4, ease: 'easeInOut', repeat: Infinity }}
+          >
+            <ArrowDown size={13} strokeWidth={2} />
+          </Bob>
+        </ScrollHint>
+      </SectionLabel>
       <RowFrame>
       <PanelRow>
         {PROJECTS.map((p, i) =>
@@ -1252,6 +1915,92 @@ const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 const About: React.FC = () => {
   const reduced = useReducedMotion();
+  const pageRef = useRef<HTMLDivElement>(null);
+  /* The projects section's element, measured by AsciiPortrait's fit effect — its height fixes
+     where the free band ends at scroll end. */
+  const sectionRef = useRef<HTMLElement>(null);
+  /* The readme column, measured by AsciiPortrait to build a grid with its exact geometry. */
+  const columnRef = useRef<HTMLDivElement>(null);
+
+  /* The one scripted piece: 0→1 document scroll progress, written onto Page as --p, which the
+     prose zoom and the chevron fade both read in CSS. A plain listener rather than framer's
+     useScroll — this file already records that hook family reading its scroll root before the
+     ref is attached and then silently never firing, and driving a custom property matches the
+     imperative idiom the landing runs on. Nothing here reads back from the DOM per frame, so
+     there is no layout thrash to rAF around.
+
+     Left at 0 under reduced motion: the box still rolls up on plain scroll (that is the
+     browser's own scrolling, not an animation), but the prose neither shrinks nor travels. */
+  useEffect(() => {
+    const page = pageRef.current;
+    if (!page || reduced) return;
+    const doc = document.documentElement;
+    const onScroll = () => {
+      const range = doc.scrollHeight - doc.clientHeight;
+      const p = range > 0 ? doc.scrollTop / range : 0;
+      page.style.setProperty('--p', String(p));
+      /* The one beat that cannot be a custom property: merging the paragraphs is a display
+         switch, and display does not interpolate (see Graf). */
+      page.toggleAttribute('data-merged', p >= MERGE_AT);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [reduced]);
+
+  /* Direction-driven travel between the page's two states. CSS snapping alone does not give
+     what this needs: it resolves to the NEAREST snap point, so a gentle wheel tick moves ~200
+     of the 625px range and springs straight back to the top — the section never opens unless
+     you happen to flick hard. Here intent is read from the wheel's SIGN instead of from where
+     the scroll landed, so any downward gesture commits to the frame and any upward one returns
+     to the readme, however small.
+
+     The snap CSS stays as the backstop for the paths this does not intercept — dragging the
+     scrollbar, keyboard paging — so those settle on the same two positions.
+
+     Gated on the computed snap value rather than on a duplicated media query: the CSS already
+     decides where the two-state model applies (desktop, motion allowed), so reading it back
+     keeps one source of truth. Cached, because a computed-style read fires a style recalc and
+     wheel events arrive fast. */
+  useEffect(() => {
+    const root = document.documentElement;
+    let enabled = getComputedStyle(root).scrollSnapType !== 'none';
+    const refresh = () => {
+      enabled = getComputedStyle(root).scrollSnapType !== 'none';
+    };
+
+    /* The destination of an in-flight glide, so a repeat wheel in the same direction does not
+       restart it — but a REVERSAL still turns the page around mid-travel. */
+    let heading: number | null = null;
+    let clear = 0;
+
+    const onWheel = (e: WheelEvent) => {
+      if (!enabled || e.ctrlKey || e.deltaY === 0) return;
+      const max = root.scrollHeight - root.clientHeight;
+      const target = e.deltaY > 0 ? max : 0;
+      /* Already parked there: let the event through, so an over-scroll at either end behaves
+         natively rather than being silently swallowed. */
+      if (Math.abs(root.scrollTop - target) < 1) return;
+      e.preventDefault();
+      if (heading === target) return;
+      heading = target;
+      window.scrollTo({ top: target, behavior: 'smooth' });
+      window.clearTimeout(clear);
+      clear = window.setTimeout(() => {
+        heading = null;
+      }, 700);
+    };
+
+    /* Not passive: the whole point is to replace the browser's own scroll with one glide. */
+    window.addEventListener('wheel', onWheel, { passive: false });
+    window.addEventListener('resize', refresh);
+    return () => {
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('resize', refresh);
+      window.clearTimeout(clear);
+    };
+  }, []);
+
   /* Stencil geometry for the wordmark, derived from Anton's measured ink bounds (canvas
      measureText actualBoundingBox*). textLength normalises the ADVANCE width, which keeps
      the glyphs' side bearings — visible as edge gaps. Solving against ink instead makes
@@ -1280,7 +2029,8 @@ const About: React.FC = () => {
 
   return (
     <PageTransition>
-      <Page>
+      <UnclipRoot />
+      <Page ref={pageRef}>
         <ColumnGroup
           initial={reduced ? false : { x: '-100%' }}
           animate={{ x: 0 }}
@@ -1330,8 +2080,9 @@ const About: React.FC = () => {
         </Masthead>
         </ColumnGroup>
         <Content>
-          <Track>
-          <Column>
+          <Stage>
+          <SwapUnit>
+          <Column ref={columnRef}>
             {PARAGRAPHS.map((para, i) => (
               <Graf
                 key={i}
@@ -1347,8 +2098,14 @@ const About: React.FC = () => {
               </Graf>
             ))}
           </Column>
-          <Projects reduced={!!reduced} />
-          </Track>
+          {/* The swap's arrival side. Not mounted under reduced motion: --p is never written
+              there, so it would be invisible dead weight — ~2700 characters of it. */}
+          {!reduced && (
+            <LogoReveal pageRef={pageRef} sectionRef={sectionRef} columnRef={columnRef} />
+          )}
+          </SwapUnit>
+          </Stage>
+          <Projects reduced={!!reduced} sectionRef={sectionRef} />
         </Content>
       </Page>
     </PageTransition>
