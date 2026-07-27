@@ -2054,6 +2054,15 @@ const Projects: React.FC<{
               transition={{ duration: 0.6, ease }}
               onClick={() => setOpen(i)}
               aria-expanded={false}
+              /* clip-path is a PAINT operation. A clipped panel is invisible and drops out of
+                 hit-testing, so the mouse cannot reach it — but it keeps its place in the tab
+                 order, and Tab would land on a button that is not there. Every panel still
+                 rendered while the detail is open is a clipped loser (the survivor's slot is a
+                 PanelSlot), so the condition is simply "is the detail open".
+
+                 The old covering bands had exactly the same hole; the clip only makes it
+                 easier to assume otherwise, because the panel genuinely is not painted. */
+              inert={open !== null}
             >
               <PanelRule aria-hidden />
               <PanelEyebrow>
