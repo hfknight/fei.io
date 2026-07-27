@@ -9,6 +9,49 @@ import PageTransition from '../components/PageTransition';
    AsciiPortrait), so the mark arrives in the page's own ink. */
 import featherUrl from '../assets/fei-feather.svg';
 
+/* ── The band, and what it costs the frame ─────────────────────────────────────────────────
+   The end of the scroll shows two things stacked: the fitted ascii portrait in a band under
+   the header, and the projects frame below it. Only one of them can be the free variable.
+
+   It used to be the band: the frame was a fixed 16:10, so it grew with the viewport WIDTH
+   (frame width is the content track, which is 100vw minus the rail and two insets) and the
+   band got whatever height was left over. That runs out — at 1920x1080 the frame alone is
+   977px of a 1080px viewport, leaving the band 23px, and the mark was scaled down to the
+   0.08 floor, which is to say it disappeared on exactly the screens with the most room.
+
+   Now it is the frame. The mark is fixed at MARK_W px wide, the band is that block plus its
+   air, and the frame takes the rest of the viewport — at whatever ratio that arithmetic
+   gives. The frame is a REMAINDER, not a shape.
+
+   Width is the dial rather than height because the feather is tall and narrow: its block
+   runs ~2.5x as tall as it is wide, so width is both the smaller number and the one that
+   says whether the mark reads at a glance. The ink lands a few percent inside the block. */
+const MARK_W = 100;
+
+/* Mirrors of layout the fit effect cannot read from CSS: the header clearance the band must
+   stay below, and the breathing room kept above and below the block inside it. */
+const BAND_TOP = 80;
+const FIT_PAD = 24;
+
+/* The band's ceiling, as a share of the viewport. The fixed mark is sized for the screens
+   that were losing it; on a short one the same block would leave the frame a letterbox slot,
+   so past this point the MARK gives way instead of the frame. */
+const BAND_MAX_VH = 0.36;
+
+/* The two ends of the leading ramp (see --lh on Page). Named because the fit effect has to set
+   --lh ITSELF when it measures the fitted block, not just --lh-t: --lh is substituted where it
+   is declared, on Page, so an --lh-t forced further down the tree arrives too late to change
+   it and the block measures a full reading leading too tall. */
+const LH_REST = 1.6;
+const LH_TIGHT = 1.18;
+
+/* The declared --band-h, standing in for the first frames before the fit effect measures the
+   real one — see --band-h on Page for why it has to be close. MARK_W times the fitted block's
+   height-to-width proportion, plus its air. The 2.5 is an EYEBALL of that proportion, not a
+   derivation: the real one is font-driven (718/290 = 2.48 at the reading sizes as of writing)
+   and moves with the type, which is exactly why the effect measures it. Two pixels out today. */
+const BAND_H_FALLBACK = Math.round(MARK_W * 2.5 + 2 * FIT_PAD);
+
 const Page = styled.div`
   position: relative;
   /* Slides the shared portrait horizontally for BOTH the column and the cut-out letters. */
@@ -39,26 +82,19 @@ const Page = styled.div`
      because TRACK_PAD is a module-local const in Header.tsx, not an exported token — if that
      inset changes, this has to follow.
 
-     Left is deliberately much wider. It is the only dial that shortens the frame: the ratio is
-     fixed, so height only comes down by taking width away, and taking it from the left both
-     shortens the frame and opens air between it and the portrait column. */
+     Left is deliberately much wider, to open air between the frame and the portrait column.
+     (It used to double as the frame's height dial — while the ratio was fixed, the only way to
+     bring the height down was to take width away. The frame takes its height from the viewport
+     now, so this inset only does the one job.) */
   --frame-right: calc(${p => p.theme.space[3]} + 0.25rem);
   --frame-left: 6rem;
 
-  /* The frame is 16:10 — the ratio belongs to the FRAME because that is the shape a clicked
-     panel expands into (the Hero fills RowFrame), and the expanded state is the one the ratio
-     is for. RowFrame declares the aspect-ratio itself; this mirror of its height in vw is what
-     the prose transform below needs, since CSS cannot read a sibling's computed height.
-     Frame width = the content track minus its two inline insets (see ProjectsSection), so:
-     (100vw − --rail − --frame-left − --frame-right) / 1.6.
-
-     Note what this costs, deliberately: at 1440x900 the frame is 1060x662, and the readme is a
-     font-driven 495px that does not shrink with the viewport — so there is no band left for it
-     to clear, and the band rises OVER it. 16:10 is a wide ratio, so width buys height, and
-     height is exactly what the prose was competing for; the two cannot both hold at this size.
-     Accepted for now, to be revisited. The prose therefore RECEDES rather than getting out of
-     the way — see Column. */
-  --box-h: calc((100vw - var(--rail) - var(--frame-left) - var(--frame-right)) / 1.6);
+  /* The strip the finished ascii portrait sits in, measured and written by LogoReveal's fit
+     effect — the frame below takes what it leaves (see RowFrame). This declared value only
+     covers the frames before that effect first runs, so it is kept CLOSE rather than round:
+     the frame's height, and therefore the document's scroll range and --p's denominator, are
+     derived from it, and a wrong value would resize the page under the reader on load. */
+  --band-h: ${BAND_H_FALLBACK}px;
   /* The prose→ascii morph, staged as FOUR overlapping beats rather than one crossfade. A
      single dissolve read as a jolt for a structural reason: the readme is four ragged blocks
      of proportional type, the portrait is one flush grid of monospace with the mark already
@@ -95,7 +131,7 @@ const Page = styled.div`
      AsciiPre). It tightens as the page zooms out — the block condenses toward the solid slab
      the mark is read out of, rather than staying at reading leading while everything else
      shrinks around it. */
-  --lh: calc(1.6 - 0.42 * var(--lh-t, 0));
+  --lh: calc(${LH_REST} - ${LH_REST - LH_TIGHT} * var(--lh-t, 0));
   /* The DOCUMENT scrolls, and the portrait column is pinned with sticky (see ColumnGroup).
      It used to be the reverse — a fixed 100dvh page with a private scroll region inside
      Content — but a scroll container cannot let a child escape it horizontally
@@ -1051,11 +1087,6 @@ const ASCII_FLAT = 62;
    one canvas at mount, and it is sampled at arbitrary sub-character positions. */
 const LOGO_RASTER_H = 660;
 
-/* Mirrors of layout the fit effect cannot read from CSS: the header clearance the fitted
-   unit must stay below, and the breathing room kept inside the free band. */
-const BAND_TOP = 80;
-const FIT_PAD = 24;
-
 const RevealLayer = styled.div`
   position: absolute;
   inset: 0;
@@ -1130,10 +1161,9 @@ const splitIntoChars = (root: HTMLElement): HTMLSpanElement[] => {
 
 const LogoReveal: React.FC<{
   pageRef: React.RefObject<HTMLDivElement | null>;
-  sectionRef: React.RefObject<HTMLElement | null>;
   /* The readme itself — this is cloned, and its end-of-morph layout is what gets sampled. */
   columnRef: React.RefObject<HTMLDivElement | null>;
-}> = ({ pageRef, sectionRef, columnRef }) => {
+}> = ({ pageRef, columnRef }) => {
   const hostRef = useRef<HTMLDivElement>(null);
   const [built, setBuilt] = useState(false);
 
@@ -1217,29 +1247,50 @@ const LogoReveal: React.FC<{
   }, [columnRef]);
 
   /* The fit: measures what the CSS trajectory cannot derive (see SwapUnit) and writes it to
-     Page as --fit-dy / --fit-scale. The section's top AT SCROLL END is exactly
-     viewport - section height (the scroll range ends with the section's bottom on the
-     viewport's), so the free band is BAND_TOP down to that line; the unit's centre travels to
-     the band's centre and its scale brings the block's height inside it. */
+     Page as --fit-scale / --fit-dy / --band-h. The scale comes from MARK_W, so it no longer
+     depends on the section's height — the dependency runs the other way now, and it is the
+     frame that reads --band-h back (see MARK_W and RowFrame).
+
+     The block is measured in the state it ENDS in — narrowed, tight, merged — not the reading
+     state it is in at rest, using the same forced read the sampler above does. That matters:
+     narrowing reflows 14 wide lines into ~30 short ones, so the resting block is 640x538 and
+     the fitted one 290x718. The old code scaled against the resting height and the fitted
+     block therefore came out a third taller than the band it was fitted to. The height cannot
+     be a constant either way — it is font-driven, and it moves with the type. */
   useEffect(() => {
     if (!built) return;
     const page = pageRef.current;
-    const section = sectionRef.current;
     const host = hostRef.current;
-    if (!page || !section || !host) return;
+    const block = host?.firstElementChild as HTMLElement | null;
+    if (!page || !block) return;
     const apply = () => {
+      const forced: [string, string][] = [
+        ['--collapse-t', '1'],
+        ['--narrow-t', '1'],
+        /* --lh, not --lh-t — see LH_TIGHT. */
+        ['--lh', String(LH_TIGHT)],
+      ];
+      forced.forEach(([k, v]) => block.style.setProperty(k, v));
+      block.setAttribute('data-merged', '');
+      const w = Math.max(1, block.offsetWidth);
+      const h = Math.max(1, block.offsetHeight);
+      forced.forEach(([k]) => block.style.removeProperty(k));
+      block.removeAttribute('data-merged');
+
       const vh = window.innerHeight;
-      const cueTop = vh - section.offsetHeight;
-      const avail = cueTop - BAND_TOP - FIT_PAD;
-      const h = (host.firstElementChild as HTMLElement | null)?.offsetHeight ?? host.offsetHeight;
-      const fit = Math.min(1, Math.max(0.08, avail / Math.max(1, h)));
+      /* Width sets the scale; the viewport cap is the backstop on short screens (BAND_MAX_VH). */
+      const fit = Math.min(1, MARK_W / w, (vh * BAND_MAX_VH - 2 * FIT_PAD) / h);
+      const band = Math.round(h * fit + 2 * FIT_PAD);
       page.style.setProperty('--fit-scale', String(fit));
-      page.style.setProperty('--fit-dy', `${(BAND_TOP + cueTop) / 2 - vh / 2}px`);
+      page.style.setProperty('--band-h', `${band}px`);
+      /* The unit rests centred on the viewport (Stage is a full 100dvh flex centre), so its
+         travel is the band's centre minus that line. */
+      page.style.setProperty('--fit-dy', `${BAND_TOP + band / 2 - vh / 2}px`);
     };
     apply();
     window.addEventListener('resize', apply);
     return () => window.removeEventListener('resize', apply);
-  }, [built, pageRef, sectionRef]);
+  }, [built, pageRef]);
 
   return <RevealLayer ref={hostRef} aria-hidden />;
 };
@@ -1304,10 +1355,12 @@ const PANEL_PAD = '1.5rem';
    comment above records — and a scroll-driven transform on this subtree would hand framer's
    layoutId projection the wrong reference frame when a panel expands into the Hero.)
 
-   Width: inside the content track, NOT the full viewport — a 16:10 frame gets taller as it gets
-   wider, and at 100vw that is ~875px on a 900px screen, so the ratio and the page both stop
-   working. Content's own inline padding is cancelled first so the frame can set its own insets
-   (see --frame-left / --frame-right on Page) rather than inherit the column's symmetric one.
+   Width: inside the content track, NOT the full viewport — it has to clear the portrait column,
+   and the frame's left edge is where the readme's own margin is. (This used to be load-bearing
+   for a second reason, that a 16:10 frame at 100vw was ~875px tall on a 900px screen; the frame
+   takes its height from the viewport now, so only the alignment reason is left.) Content's own
+   inline padding is cancelled first so the frame can set its own insets (see --frame-left /
+   --frame-right on Page) rather than inherit the column's symmetric one.
 
    The BOTTOM inset stays --img-margin, the portrait's own poster border, so the frame's bottom
    edge lands level with the picture's. There is no TOP inset: that edge is the band's leading
@@ -1393,12 +1446,29 @@ const Bob = styled(motion.span)`
    modal taking the screen. */
 const RowFrame = styled(motion.div)`
   position: relative;
-  /* The ratio lives here, on the frame, because the frame is the shape a clicked panel expands
-     into — Hero is inset: 0 on this box, so the expanded state IS this rectangle. --box-h on
-     Page mirrors this height in vw for the prose transform, which cannot read it from here. */
-  aspect-ratio: 16 / 10;
+  /* The remainder of the viewport once the ascii band has taken its fixed share: one screen,
+     less the band above it (its header clearance plus its measured height) and the cue strip
+     and poster border below. So the frame's height is set by the SCREEN, not by its own width,
+     and the shape it lands on is whatever is left — see MARK_W for why that trade was made.
+
+     Height rather than aspect-ratio even though this box is what a clicked panel expands into
+     (Hero is inset: 0 here, so the expanded state IS this rectangle): the detail view wants
+     the largest rectangle the page can spare, and that is this one. */
+  height: calc(100dvh - ${BAND_TOP}px - var(--band-h) - var(--cue-h) - var(--img-margin));
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    height: auto;
+  }
+
+  /* The band never appears here — the morph is off, so the page is plain flow, prose above
+     box, and there is no fitted portrait to leave room for. With nothing to remain FROM, the
+     frame goes back to being a shape. */
+  @media (prefers-reduced-motion: reduce) {
+    height: auto;
+    aspect-ratio: 16 / 10;
+  }
+
+  @media (prefers-reduced-motion: reduce) and (max-width: ${({ theme }) => theme.breakpoints.md}) {
     aspect-ratio: auto;
   }
 `;
@@ -1824,9 +1894,7 @@ const Detail: React.FC<{
 
 const Projects: React.FC<{
   reduced: boolean;
-  /* Exposes the section's element to AsciiPortrait's fit measurement (see there). */
-  sectionRef: React.RefObject<HTMLElement | null>;
-}> = ({ reduced, sectionRef }) => {
+}> = ({ reduced }) => {
   const [open, setOpen] = useState<number | null>(null);
   const triggers = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -1852,7 +1920,7 @@ const Projects: React.FC<{
      scrolling into frame under its own steam, and an opacity/lift tween on top of that would
      be a second entrance fighting the first. */
   return (
-    <ProjectsSection ref={sectionRef}>
+    <ProjectsSection>
       <SectionLabel>
         Selected side projects
         <ScrollHint aria-hidden>
@@ -1916,9 +1984,6 @@ const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 const About: React.FC = () => {
   const reduced = useReducedMotion();
   const pageRef = useRef<HTMLDivElement>(null);
-  /* The projects section's element, measured by AsciiPortrait's fit effect — its height fixes
-     where the free band ends at scroll end. */
-  const sectionRef = useRef<HTMLElement>(null);
   /* The readme column, measured by AsciiPortrait to build a grid with its exact geometry. */
   const columnRef = useRef<HTMLDivElement>(null);
 
@@ -2101,11 +2166,11 @@ const About: React.FC = () => {
           {/* The swap's arrival side. Not mounted under reduced motion: --p is never written
               there, so it would be invisible dead weight — ~2700 characters of it. */}
           {!reduced && (
-            <LogoReveal pageRef={pageRef} sectionRef={sectionRef} columnRef={columnRef} />
+            <LogoReveal pageRef={pageRef} columnRef={columnRef} />
           )}
           </SwapUnit>
           </Stage>
-          <Projects reduced={!!reduced} sectionRef={sectionRef} />
+          <Projects reduced={!!reduced} />
         </Content>
       </Page>
     </PageTransition>
