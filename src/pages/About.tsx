@@ -1343,6 +1343,9 @@ const PROJECTS: Project[] = [
 ];
 
 const PANEL_S = '0.55s';
+/* The section label's follow. Long on purpose — it is a lag, not a tween, and its job is to
+   still be moving once the roll's own scroll has stopped. See LabelInner. */
+const LABEL_S = '1.1s';
 /* Shared by Panel and by PanelSlot, which has to match it — see PanelSlot. */
 const PANEL_PAD = '1.5rem';
 
@@ -1396,28 +1399,92 @@ const ProjectsSection = styled.section`
 
    It sits in the cue strip: the one thing showing below the prose at rest, so the first
    screen says there is a section here without the box itself peeking. It rides up with the
-   box rather than staying behind on the stage, so the section is still titled once it lands. */
+   box rather than staying behind on the stage, so the section is still titled once it lands.
+
+   It is also the one part of the section the mat does NOT run under (see RowFrame's ::before,
+   which starts at the frame's top edge): the label stays on paper, so the light box reads as
+   the thing the label is titling rather than as a band the label is sitting inside. */
 const SectionLabel = styled.h2`
+  position: relative;
   height: var(--cue-h);
-  /* Centred over the content column, which this element now spans exactly — so plain centring
-     lands it on the prose's own centre line. (It needed a --rail offset while the band bled to
-     the full viewport; that is gone with the bleed.) */
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-family: ${p => p.theme.font.mono};
-  font-size: 0.62rem;
-  font-weight: 400;
-  letter-spacing: 0.2em;
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: ${p => p.theme.color.inkMuted};
+  color: ${p => p.theme.color.ink};
   margin: 0;
 
+  /* The label's travel: 0 = centred over the content column, 1 = flush with the frame's left
+     edge. Driven off --p like the chevron's fade, so it is scroll POSITION rather than a
+     triggered tween — it runs forward as the box rolls up and unwinds on the way back, with no
+     observer, no state and nothing to fall out of sync with the roll.
+
+     The window is the WHOLE roll, less a short dead zone at the start so the chevron's fade
+     (--p * 5, gone by 0.2) reads as its own beat first. It deliberately does not settle early:
+     the wheel handler commits every gesture to a single smooth-scroll across the entire range,
+     so --p sweeps 0→1 in a few hundred ms, and any window narrower than the full range shrinks
+     the travel to something the eye never catches. The lag on LabelInner is the other half of
+     that — see there. */
+  --label-t: clamp(0, calc((var(--p, 0) - 0.1) / 0.9), 1);
+
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    /* No separate content column to centre over here — the label goes back to the left margin. */
+    /* No separate content column to centre over here — the label starts at the left margin
+       and has nowhere to travel to. */
+    --label-t: 1;
     height: auto;
-    justify-content: flex-start;
     margin-bottom: 1.25rem;
+  }
+
+  /* --p is never written under reduced motion, so the ramp above would pin the label at its
+     resting centre. There is no roll-up to be mid-way through here either — the page is plain
+     flow — so it takes the LANDED position directly. */
+  @media (prefers-reduced-motion: reduce) {
+    --label-t: 1;
+  }
+`;
+
+/* Out of flow so the label can slide without the cue strip reflowing around it, and because
+   centre→left is not something `justify-content` can interpolate.
+
+   `left` and the pull-back are scaled by the SAME (1 - t), which makes the inner's left edge
+   land at 0.5 * (1 - t) * (labelWidth - ownWidth) — i.e. exactly linear between centred and
+   flush, with no measurement. The target is the section's CONTENT box, so the label ends up
+   aligned with the frame's left edge (the panels'), not with the section's outer edge. */
+const LabelInner = styled.span`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% * (1 - var(--label-t)));
+  transform: translateX(calc(-50% * (1 - var(--label-t))));
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+
+  /* The label TRAILS --p rather than tracking it. The roll is one committed smooth-scroll of a
+     few hundred ms (see the wheel handler in About), which is far too short for a move this
+     small to register — so each --p tick restarts this transition toward the new target, the
+     label follows about a fifth of a second behind, and when the scroll stops it keeps gliding
+     the remaining distance into place. The travel outlives the gesture that caused it, which is
+     the only way it gets enough time on screen to be seen.
+
+     Both properties carry the SAME duration and curve: they are two halves of one position
+     (see the interpolation note above) and would diverge mid-flight on different timings.
+     left is a layout property, but this element is out of flow and childless, so the only box
+     it dirties is its own. */
+  transition:
+    left ${LABEL_S} ${p => p.theme.ease.expo},
+    transform ${LABEL_S} ${p => p.theme.ease.expo};
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    /* Back into flow, which is what gives the label its height once --cue-h is off. */
+    position: static;
+    transform: none;
+  }
+
+  /* Nothing to ease: --label-t is pinned to its landed value on both of these. */
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
@@ -1470,6 +1537,23 @@ const RowFrame = styled(motion.div)`
 
   @media (prefers-reduced-motion: reduce) and (max-width: ${({ theme }) => theme.breakpoints.md}) {
     aspect-ratio: auto;
+  }
+
+  /* The mat: a light fill for the whole section EXCEPT the label's cue strip. Anchored to the
+     frame and pushed back out over the section's own insets, rather than painted on the section
+     with a --cue-h offset — that offset is only correct while the label is exactly one cue tall,
+     which it is not on mobile. Negative insets track --frame-left / --frame-right / --img-margin
+     wherever they are redefined, so the breakpoint needs no second rule.
+
+     Not z-index: -1, which would escape whatever stacking context framer's layout projection
+     hands the frame mid-flight. It sits first in tree order and the panels are positioned, so
+     they already paint over it and only the 4px gaps and the border show through. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 calc(-1 * var(--frame-right)) calc(-1 * var(--img-margin))
+      calc(-1 * var(--frame-left));
+    background: var(--n-1);
   }
 `;
 
@@ -1922,15 +2006,17 @@ const Projects: React.FC<{
   return (
     <ProjectsSection>
       <SectionLabel>
-        Selected side projects
-        <ScrollHint aria-hidden>
-          <Bob
-            animate={reduced ? undefined : { y: [0, 3, 0] }}
-            transition={{ duration: 1.4, ease: 'easeInOut', repeat: Infinity }}
-          >
-            <ArrowDown size={13} strokeWidth={2} />
-          </Bob>
-        </ScrollHint>
+        <LabelInner>
+          Selected side projects
+          <ScrollHint aria-hidden>
+            <Bob
+              animate={reduced ? undefined : { y: [0, 3, 0] }}
+              transition={{ duration: 1.4, ease: 'easeInOut', repeat: Infinity }}
+            >
+              <ArrowDown size={13} strokeWidth={2} />
+            </Bob>
+          </ScrollHint>
+        </LabelInner>
       </SectionLabel>
       <RowFrame>
       <PanelRow>
