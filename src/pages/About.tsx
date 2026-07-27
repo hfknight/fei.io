@@ -1401,9 +1401,9 @@ const ProjectsSection = styled.section`
    screen says there is a section here without the box itself peeking. It rides up with the
    box rather than staying behind on the stage, so the section is still titled once it lands.
 
-   It is also the one part of the section the mat does NOT run under (see RowFrame's ::before,
-   which starts at the frame's top edge): the label stays on paper, so the light box reads as
-   the thing the label is titling rather than as a band the label is sitting inside. */
+   It sits outside the mat, which is the frame's own fill and so begins where the label ends:
+   the label stays on paper, and the light box reads as the thing the label is titling rather
+   than as a band the label is sitting inside. */
 const SectionLabel = styled.h2`
   position: relative;
   height: var(--cue-h);
@@ -1539,28 +1539,40 @@ const RowFrame = styled(motion.div)`
     aspect-ratio: auto;
   }
 
-  /* The mat: a light fill for the whole section EXCEPT the label's cue strip. Anchored to the
-     frame and pushed back out over the section's own insets, rather than painted on the section
-     with a --cue-h offset — that offset is only correct while the label is exactly one cue tall,
-     which it is not on mobile. Negative insets track --frame-left / --frame-right / --img-margin
-     wherever they are redefined, so the breakpoint needs no second rule.
+  /* The mat. It is the frame's own fill, so it stops exactly at the frame's edges: the
+     section's insets stay paper, and the deliberately lopsided --frame-left / --frame-right
+     (96 / 36 at 1440 — see Page) never render as a visibly uneven border. PanelRow's padding
+     is what actually opens the mat up around the panels.
 
-     Not z-index: -1, which would escape whatever stacking context framer's layout projection
-     hands the frame mid-flight. It sits first in tree order and the panels are positioned, so
-     they already paint over it and only the 4px gaps and the border show through. */
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0 calc(-1 * var(--frame-right)) calc(-1 * var(--img-margin))
-      calc(-1 * var(--frame-left));
-    background: var(--n-1);
-  }
+     Graph paper rather than a flat fill: two hairline gradients crossed at --grid-cell. The
+     cell DIVIDES --img-margin (10 into 20), so a grid line falls exactly on the panels' edge
+     and the mat reads as two whole cells rather than a band cut mid-square — the one thing
+     that makes a small grid look accidental. Static by design.
+
+     The panels are opaque and cover all but the mat and the 4px gaps, so this is a border
+     texture, not a field: it shows on ~11% of the frame. Widening --img-margin is the dial
+     if more of it should read. */
+  --grid-cell: 10px;
+  /* Ink at a low mix rather than a literal grey, so the ruling follows the surface and stays
+     a tint of the page's own neutral instead of drifting to its own hue. 7% is the point at
+     which it reads as texture at arm's length without resolving into stripes. */
+  --grid-line: color-mix(in srgb, ${p => p.theme.color.ink} 7%, transparent);
+  background-color: var(--n-1);
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-cell) var(--grid-cell);
 `;
 
 const PanelRow = styled.div`
   display: flex;
   gap: var(--panel-gap);
   height: 100%;
+  /* The mat's width. --img-margin is the portrait's own poster border and the frame's bottom
+     inset, so the panels sit in the same border the picture does. Inside the 100% height
+     rather than added to it — the global box-sizing is border-box, so the frame keeps the
+     exact height it derives from the viewport and the panels take what is left. */
+  padding: var(--img-margin);
 
   /* The accordion. Both rules are one class + one pseudo-class, so the second wins on
      the hovered panel and the first still applies to its siblings. */
@@ -1758,26 +1770,48 @@ const PanelSlot = styled.div`
  * portalled to <body> to escape a clip-path on the section; there is no such clip-path and
  * no portal.)
  */
-/* Columns in the row — the band geometry is derived from it, so one number governs both.
-   One fewer band than this actually renders: the survivor's column is spared. */
-const BANDS = PROJECTS.length;
+/* The wipe's shape, shared by the PANELS (which do the wiping) and by Detail (whose hero has
+   to wait for them to finish), so the two cannot drift apart.
 
+   The losing columns used to be covered by opaque cards sliding over them. They clip themselves
+   away instead. A card has to PAINT something, and whatever it painted was flat — which put a
+   hole in the frame's ruling for the length of the wipe, since a sliding card cannot carry the
+   grid (its background would slide with it, and its landing offset is not a whole number of
+   cells). Clipping paints nothing, so what the wipe uncovers is the frame itself, grid and all. */
+const WIPE_DUR = 0.42;
+const WIPE_STAGGER = 0.08;
+const EXPAND_LEAD = 0.12;
+
+/* order — distance from the survivor (an adjacent column is 0), so the stagger fans out from
+   the selection rather than marching left-to-right. Clicking the middle makes both neighbours
+   order 0, and they close symmetrically.
+   fromRight — which edge the column collapses TOWARD: one to the left of the survivor closes
+   onto its own left, away from the selection, so the wipe radiates outward. */
+const wipeOf = (i: number, index: number) => ({
+  order: Math.abs(i - index) - 1,
+  fromRight: i < index,
+});
+
+const OPEN_CLIP = 'inset(0% 0% 0% 0%)';
+const wipeClip = (fromRight: boolean) =>
+  fromRight ? 'inset(0% 100% 0% 0%)' : 'inset(0% 0% 0% 100%)';
+
+/* Inset by the mat, NOT inset: 0 — the detail view sits in the same border the panels do, so
+   the frame's light edge is constant across both states rather than being swallowed the moment
+   a panel opens. It has to be declared here even though the padding that opens the mat lives on
+   PanelRow: an absolutely positioned box resolves its insets against the nearest positioned
+   ancestor's PADDING box, which is the whole frame, so a sibling's padding does not contain it.
+
+   Everything inside rides this for free — the bands are percentages of this box, and Hero's
+   inset: 0 is now the matted rectangle the panels actually occupy, which is also what the
+   layoutId magic-move needs to land on. */
 const Overlay = styled.div`
   position: absolute;
-  inset: 0;
+  inset: var(--img-margin);
   z-index: 2;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-`;
-
-const Band = styled(motion.div)`
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  /* The +1px closes the sub-pixel seams that show between three thirds of an odd width. */
-  width: calc(100% / ${BANDS} + 1px);
-  background: ${p => p.theme.color.surface};
 `;
 
 /* The expanded panel — the survivor grown to the whole frame. Deliberately childless while
@@ -1880,43 +1914,28 @@ const Detail: React.FC<{
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  /* The losing columns wipe RADIATING OUTWARD from the one that was clicked: the two bands
-     nearest the survivor go first and each sweeps AWAY from it, so the closing reads as
-     emanating from the selection rather than marching left-to-right.
-       - order  — distance from the survivor (an adjacent column is 0, the next is 1), so the
-                  stagger fans out from the centre. Clicking the middle makes both bands
-                  order 0 → they close symmetrically, at once.
-       - fromRight — a band LEFT of the survivor enters from its right (the survivor's side)
-                  and pushes left; a band on the right does the mirror. Its own entry offset
-                  is also where it retreats to on close. */
-  const bands = Array.from({ length: BANDS }, (_, i) => i)
-    .filter(i => i !== index)
-    .map(i => ({ i, order: Math.abs(i - index) - 1, fromRight: i < index }));
-  const maxOrder = Math.max(0, ...bands.map(b => b.order));
+  /* The wipe is the PANELS' own job now (see Projects) — Detail only has to know when it ends,
+     so the hero does not start growing before the columns it grows over have gone. */
+  const maxOrder = Math.max(
+    0,
+    ...PROJECTS.map((_, i) => i)
+      .filter(i => i !== index)
+      .map(i => wipeOf(i, index).order),
+  );
 
   /* The click is a three-beat sequence, not one blended motion — the earlier version ran
-     all three at once, so the growing hero swallowed the bands before they finished and the
-     wipe never read. Now: (1) the bands sweep the losers, (2) the survivor expands, (3) the
+     all three at once, so the growing hero swallowed the wipe before it finished and the
+     wipe never read. Now: (1) the losers wipe away, (2) the survivor expands, (3) the
      caption fades in. The beats OVERLAP slightly rather than abut, so it reads as one
      connected gesture. */
-  const BAND_DUR = 0.42;
-  const BAND_STAGGER = 0.08;
-  const bandIn = (order: number) => ({ duration: BAND_DUR, ease, delay: order * BAND_STAGGER });
-  const bandOut = (order: number) => ({
-    duration: 0.34,
-    ease,
-    delay: (maxOrder - order) * 0.05,
-  });
 
-  /* When the last band's tween ends — derived, because maxOrder differs by which panel was
-     clicked (0 for the middle, 1 for an edge), so a fixed hero delay would give an uneven
-     gap. Measuring from WIPE_END keeps the timing identical for every panel. */
-  const WIPE_END = maxOrder * BAND_STAGGER + BAND_DUR;
-  /* The expansion LEADS the wipe's end by this much — it begins a touch before the last band
-     fully settles, overlapping the two beats. Safe despite the earlier "hero hides the wipe"
-     problem: the survivor grows from its OWN column outward and only reaches the outer band
-     columns late in its travel, by which point those bands have long landed. */
-  const EXPAND_LEAD = 0.12;
+  /* When the last column finishes clipping away — derived, because maxOrder differs by which
+     panel was clicked (0 for the middle, 1 for an edge), so a fixed hero delay would give an
+     uneven gap. Measuring from WIPE_END keeps the timing identical for every panel. */
+  const WIPE_END = maxOrder * WIPE_STAGGER + WIPE_DUR;
+  /* The expansion LEADS the wipe's end, overlapping the two beats. Safe despite the earlier
+     "hero hides the wipe" problem: the survivor grows from its OWN column outward and only
+     reaches the outer columns late in its travel, by which point they have long gone. */
   const EXPAND_DELAY = Math.max(0, WIPE_END - EXPAND_LEAD);
   const heroIn = { duration: 0.55, ease, delay: EXPAND_DELAY };
   /* After the hero has essentially finished growing. */
@@ -1924,24 +1943,6 @@ const Detail: React.FC<{
 
   return (
     <Overlay role="group" aria-label={`${project.name} — details`}>
-      {/* Only the LOSERS are wiped. The clicked panel has left the row and its slot is an
-          empty PanelSlot, so that third of the frame already shows bare page paper — a band
-          there would sweep across the very column that is supposed to survive. Each band
-          covers the column it replaces, radiating out from the survivor (see `bands`). */}
-      {bands.map(({ i, order, fromRight }) => {
-        const off = fromRight ? '100%' : '-100%';
-        return (
-          <Band
-            key={i}
-            aria-hidden
-            style={{ left: `calc(${i} * 100% / ${BANDS})` }}
-            initial={reduced ? false : { x: off }}
-            animate={{ x: 0, transition: bandIn(order) }}
-            exit={reduced ? undefined : { x: off, transition: bandOut(order) }}
-          />
-        );
-      })}
-
       <Hero
         $image={project.image}
         /* Same id as the resting panel, which is unmounted for this index while the detail
@@ -2034,6 +2035,22 @@ const Projects: React.FC<{
               }}
               $image={p.image}
               layoutId={reduced ? undefined : `project-panel-${i}`}
+              /* A losing column clips itself away rather than being covered by an opaque card,
+                 so what the wipe uncovers is RowFrame — grid included — instead of a flat
+                 rectangle. Nothing here runs while the row is at rest: with `open` null every
+                 panel animates to OPEN_CLIP, which is the value it already has. */
+              animate={{
+                clipPath:
+                  open === null ? OPEN_CLIP : wipeClip(wipeOf(i, open).fromRight),
+                transition:
+                  open === null
+                    ? { duration: 0.34, ease }
+                    : {
+                        duration: WIPE_DUR,
+                        ease,
+                        delay: wipeOf(i, open).order * WIPE_STAGGER,
+                      },
+              }}
               transition={{ duration: 0.6, ease }}
               onClick={() => setOpen(i)}
               aria-expanded={false}
