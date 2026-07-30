@@ -9,34 +9,43 @@ import PageTransition from '../components/PageTransition';
    AsciiPortrait), so the mark arrives in the page's own ink. */
 import featherUrl from '../assets/fei-feather.svg';
 
-/* ── The band, and what it costs the frame ─────────────────────────────────────────────────
-   The end of the scroll shows two things stacked: the fitted ascii portrait in a band under
-   the header, and the projects frame below it. Only one of them can be the free variable.
+/* ── The finished mark, and where it sits ──────────────────────────────────────────────────
+   The end of the scroll shows the projects section filling the screen, with the fitted ascii
+   portrait at the TOP of it — small, centred, and with the panels beginning below it rather
+   than under it.
 
-   It used to be the band: the frame was a fixed 16:10, so it grew with the viewport WIDTH
-   (frame width is the content track, which is 100vw minus the rail and two insets) and the
-   band got whatever height was left over. That runs out — at 1920x1080 the frame alone is
-   977px of a 1080px viewport, leaving the band 23px, and the mark was scaled down to the
-   0.08 floor, which is to say it disappeared on exactly the screens with the most room.
+   So the two are STACKED again, and the band arithmetic is back with them — but reversed from
+   the version that was deleted. It used to be the mark that was derived: the band was a share
+   of the screen and the mark was fitted into whatever it came to. Here the MARK is the given —
+   a fixed MARK_W wide, at a fixed MARK_TOP — and the band is the remainder: the fit effect
+   publishes the block's measured height as --mark-h and --section-top is computed from it, so
+   the frame starts under the mark by construction and no figure has to be kept in step by hand.
 
-   Now it is the frame. The mark is fixed at MARK_W px wide, the band is that block plus its
-   air, and the frame takes the rest of the viewport — at whatever ratio that arithmetic
-   gives. The frame is a REMAINDER, not a shape.
+   Width is the dial rather than height because the feather is tall and narrow — its block runs
+   ~2.5x as tall as it is wide, so width is both the smaller number and the one that says
+   whether the mark reads at a glance. The ink lands a few percent inside the block. At 40 the
+   block is ~100px tall and the raster is down to its ~30 rows against 40 columns; below this
+   the feather stops resolving. */
+const MARK_W = 40;
 
-   Width is the dial rather than height because the feather is tall and narrow: its block
-   runs ~2.5x as tall as it is wide, so width is both the smaller number and the one that
-   says whether the mark reads at a glance. The ink lands a few percent inside the block. */
-const MARK_W = 100;
+/* The mark's top edge, from the viewport's — and at p=1 the section's top is flush with the
+   viewport's, so it doubles as the mark's inset within the section. Clear of the fixed header
+   (1.5rem down, ~40px of chrome) with air under it, and no more: the point of the small mark is
+   that it sits high. */
+const MARK_TOP = 76;
 
-/* Mirrors of layout the fit effect cannot read from CSS: the header clearance the band must
-   stay below, and the breathing room kept above and below the block inside it. */
-const BAND_TOP = 80;
+/* The air between the mark's bottom edge and the cue strip below it. */
+const MARK_GAP = 20;
+
+/* The breathing room kept above and below the block, and the margin the fit keeps between it
+   and the viewport's edge. */
 const FIT_PAD = 24;
 
-/* The band's ceiling, as a share of the viewport. The fixed mark is sized for the screens
-   that were losing it; on a short one the same block would leave the frame a letterbox slot,
-   so past this point the MARK gives way instead of the frame. */
-const BAND_MAX_VH = 0.36;
+/* The mark's ceiling, as a share of the viewport height. It no longer protects the frame —
+   nothing is stacked, so a taller mark takes nothing from anything. It protects the PANEL it
+   is printed on: past this the block starts to read as the panel's content rather than as a
+   mark resting over it, and on a short screen it would run past the panel's edges entirely. */
+const BAND_MAX_VH = 0.28;
 
 /* The two ends of the leading ramp (see --lh on Page). Named because the fit effect has to set
    --lh ITSELF when it measures the fitted block, not just --lh-t: --lh is substituted where it
@@ -45,12 +54,135 @@ const BAND_MAX_VH = 0.36;
 const LH_REST = 1.6;
 const LH_TIGHT = 1.18;
 
-/* The declared --band-h, standing in for the first frames before the fit effect measures the
-   real one — see --band-h on Page for why it has to be close. MARK_W times the fitted block's
-   height-to-width proportion, plus its air. The 2.5 is an EYEBALL of that proportion, not a
-   derivation: the real one is font-driven (718/290 = 2.48 at the reading sizes as of writing)
-   and moves with the type, which is exactly why the effect measures it. Two pixels out today. */
-const BAND_H_FALLBACK = Math.round(MARK_W * 2.5 + 2 * FIT_PAD);
+
+/* Where the page commits to the wide state, and how long the two properties that read it take
+   to get there (see --rail-out on Page). The threshold is low because there is nothing to wait
+   for: the wheel handler commits the entire scroll range on the first downward gesture, so --p
+   is past this within a frame or two of the wheel and the rail starts leaving with the gesture
+   rather than partway through it. The duration is matched to the snap glide's own, so the
+   column is gone by about the time the page has finished travelling to the frame. */
+const WIDEN_AT = 0.05;
+const RAIL_S = '0.5s';
+
+/* The prose→ascii crossfade's centre and width, as fractions of --p. They are emitted as
+   --swap / --swap-run on Page, where the two opacity ramps read them, and they live HERE rather
+   than only in the stylesheet because the scroll listener needs the same numbers: it flips
+   data-swapped once the run has finished, which is the moment the prose is fully transparent and
+   must stop taking pointer events (see Stage). Written twice, they would drift, and the symptom
+   would be an invisible block of text swallowing clicks somewhere over the panels. */
+const SWAP_AT = 0.42;
+const SWAP_RUN = 0.12;
+const SWAP_END = SWAP_AT + SWAP_RUN / 2;
+
+/* The section's own arrival — the last two beats of the sequence, and the only ones that are
+   NOT a scrub. The ruled ground slides in from the right and the panels rise behind it, and
+   neither can ride --p: --p is spent by the time the glide lands, and these have to play after
+   the mark has finished travelling. So they are a flip (data-arrived → --arrive), with their
+   durations and the stagger below carried by ordinary transitions.
+
+   Fired in the glide's TAIL rather than at 1. Two things set the number from opposite sides.
+
+   Low enough to still overlap the scroll: at 1 the whole of beats 3 and 4 would play on a page
+   that has already stopped, which reads as lag rather than as sequence. And it has to be under
+   the p the page actually settles at, which is not reliably 1 — a snap can leave it at ~0.96,
+   and a threshold above that would simply never fire and the section would never arrive.
+
+   High enough that the section is THERE when the ground slides across it. This started at 0.88,
+   where the section still had ~50px of its roll left; the ground was sliding in over a box that
+   was itself still moving up, and what that read as was the ground arriving at less than a full
+   screen tall. By here the roll is all but done and the ground slides across a settled screen. */
+const ARRIVE_AT = 0.93;
+
+/* And where it comes back OFF, which is nowhere near where it went on — this is a hysteresis,
+   not a threshold, and the asymmetry is the whole point of it.
+
+   Run off the same 0.93 the exit collides with the roll: the section rolls back DOWN under the
+   returning prose while the ground slides RIGHT, and two perpendicular movements at once read as
+   neither. What it actually looked like was the ground zooming away into the bottom-right corner.
+
+   There is no fixing that by choosing a direction — any exit that runs during the roll crosses
+   it. So the ground does not exit during the roll at all: it holds its place and rolls away with
+   the section, which is the honest reverse of how it arrived, and only resets off-screen down
+   here, once the section is far enough gone that the reset is below the fold.
+
+   The same reasoning the rail already runs on, and the same order: the frame rolls down first,
+   this resets behind it, the portrait comes back last (see WIDEN_AT, which sits just under). */
+const ARRIVE_OFF = 0.12;
+
+/* How long the return glide waits for the ground to get out of its way — the exact mirror of
+   RAIL_LEAD, and it exists for the same reason: two things moving at once whose order the eye
+   cannot read.
+
+   Holding the exit back to the end of the roll (ARRIVE_OFF above) was not enough, because the
+   roll is not the only thing the ground has to avoid. The frame's own left edge comes back at
+   the same time — margin-inline-start unwinds the rail's 340px plus the inset difference when
+   the portrait returns (see ProjectsSection) — so the ground was travelling right, narrowing
+   from the left, and falling with the section, all inside the same half second. Collapsing
+   toward the bottom-right corner is exactly what those three add up to.
+
+   None of them can be reordered against each other; the ground can simply be got out first.
+   Which also makes the page symmetric: the last thing in is the first thing out.
+
+   The number is what the exit CHAIN comes to, not any one move in it: the panels drop from 0,
+   the ground follows at GROUND_OUT_DELAY, and this is that delay plus most of the ground's own
+   420. Most rather than all — the exit eases out, so the ground is ~97% travelled by here and
+   only its tail is left when the roll takes over. Waiting for the last few pixels would buy
+   nothing visible and cost a beat where a wheel produced nothing. */
+const ARRIVE_LEAD = 420;
+
+/* And what the chain costs when a panel is OPEN, which is a beat nobody else in it has to wait
+   for. The detail is not part of the row — it is an overlay above the whole frame — so nothing
+   in --arrive touches it, and left alone it simply rolled off the screen still open, in front of
+   the panels that were dropping behind it.
+
+   So the up gesture closes it, and the rest of the exit waits this long before it starts: the
+   detail goes back into its panel, THEN the panels drop, then the ground, then the roll.
+
+   Matched to the flight home rather than guessed at — see the Panel's own transition, shortened
+   to 0.4 for exactly this reason. Measured on that curve the hero is within a few px of panel
+   size by ~230ms, so this covers the whole of the move that reads and none of the tail that does
+   not. The two numbers move together: lengthen the flight and this has to follow, or the panels
+   start dropping behind a hero still visibly in the air.
+
+   Closed rather than merely hidden: coming back down to a section still holding a detail open
+   from before the trip is a stranger state than returning to the row. */
+const DETAIL_LEAD = 240;
+const GROUND_S = '0.62s';
+/* The panels' rise. Held back past the ground's own travel so the two read in order rather
+   than as one mass arriving, and staggered left to right. PANEL_RISE is short on purpose —
+   the panels are already rising with the roll, and this is the accent on top of it, not the
+   entrance itself. */
+const PANEL_RISE = 44;
+const PANEL_RISE_S = '0.66s';
+const PANEL_RISE_DELAY = 0.24;
+const PANEL_RISE_STAGGER = 0.085;
+
+/* The way OUT, which is its own set of numbers rather than the entrance reversed — and it has
+   its own ORDER too: the panels drop first and the ground follows them off. In, the ground is
+   the stage and the panels arrive on it; out, the panels leave and the ground is what remains
+   to be struck.
+
+   Everything here is faster than its counterpart above, because the exit is not a beat anyone
+   is meant to dwell on — it is a lead, and the roll is waiting behind it (see ARRIVE_LEAD).
+   Played at entrance speed the whole chain runs the better part of a second before the page is
+   allowed to move, which is a dead beat rather than a sequence.
+
+   The stagger is dropped entirely for the same reason: in, it is the point; out, it is four
+   more frames to wait through. */
+const PANEL_FALL_S = '0.3s';
+const GROUND_OUT_S = '0.42s';
+const GROUND_OUT_DELAY = '0.18s';
+
+/* How long the frame waits for the portrait to get out of its way. The two used to run together
+   — one gesture, everything moving — and the order was unreadable because the thing arriving and
+   the thing leaving crossed. The roll-up IS the document's own scroll, so the only way to put it
+   second is to hold the glide back by this much.
+
+   Shorter than RAIL_S on purpose. The exit eases out, so by here the column is ~90% gone and only
+   its tail is left; waiting the full 0.5s would buy a few pixels of travel at the cost of a dead
+   beat where a wheel produced nothing. Long enough to read as an order, short enough not to read
+   as lag. */
+const RAIL_LEAD = 260;
 
 const Page = styled.div`
   position: relative;
@@ -64,13 +196,84 @@ const Page = styled.div`
   --word-drop: 8px;
   --img-margin: 20px;
   /* The portrait column's width and Content's inline padding, declared once: the projects
-     box breaks OUT of the content column to full viewport width by subtracting exactly
-     these two, so a literal in either place would silently misalign the bleed. */
+     box cancels the pad to set its own insets, and cancels the RAIL too once the column has
+     left (see --rail-out and ProjectsSection), so a literal in either place would silently
+     misalign that edge. */
   --rail: 340px;
   --content-pad: 2rem;
+  /* The rail's exit, 0 → 1: the portrait column slides out on the way down and the projects
+     frame takes the width it leaves behind.
+
+     A THRESHOLD, not a scrub, and that is the whole design of it. This page has exactly two
+     states with no resting place between them (see UnclipRoot), and the wheel handler commits
+     the entire range on any downward gesture — so there is no scroll position in between for a
+     reader to hold. Driving the rail off --p would relayout the frame on every frame of a glide
+     nobody can stop, to draw intermediate states nobody can see. The scroll listener toggles
+     data-wide at WIDEN_AT and the two properties that read this carry their own transitions.
+
+     Note what it does NOT touch: the grid TRACK stays --rail wide. Column's measure is a fixed
+     640px narrowing to 290px (see there), independent of the track, so the readme's line count —
+     and with it the ascii raster's row count, which is what makes the mark legible at all — is
+     unaffected, and the prose's own centring never moves during the morph. The frame's height is
+     a remainder of the viewport (see RowFrame), so widening it changes its RATIO and nothing
+     else: the document's scroll range, and therefore --p's own denominator, hold. */
+  --rail-out: 0;
+
+  &[data-wide] {
+    --rail-out: 1;
+  }
+
+  /* The section's arrival, 0 → 1: the ruled ground slides in from the right and the panels rise
+     behind it (see ARRIVE_AT). A flip like --rail-out and for the same reason — there is no
+     scroll position between the page's two states for a reader to hold a half-arrived section
+     at — but note the fallbacks below run the OPPOSITE way round to the rail's.
+
+     --rail-out's safe stranded value is 0 (the column stays); this one's is 1. A stranded 0
+     leaves the panels at opacity 0, which is not a decoration going missing but the section's
+     entire content. So both fallbacks pin it on the BARE selector, where an attribute already
+     on the element can only agree with them. */
+  --arrive: 0;
+
+  &[data-arrived] {
+    --arrive: 1;
+  }
+
+  /* The scroll listener returns early under reduced motion, so on a cold load data-wide is
+     never written and this is dead. It is here for the WARM one: useReducedMotion can resolve
+     after first paint, and a preference that flips mid-page tears down the listener without
+     clearing the attribute it already set — leaving the column 340px off-screen on a layout
+     that is now plain flow, with nothing having moved in to take its place. data-merged runs
+     the same exposure and is left alone, because stranded it costs some inline paragraphs;
+     stranded, this one costs the portrait. */
+  @media (prefers-reduced-motion: reduce) {
+    &[data-wide] {
+      --rail-out: 0;
+    }
+    /* See --arrive above: on, and on the bare selector, so a preference that flips warm cannot
+       strand the panels invisible. */
+    --arrive: 1;
+    /* No mark here — LogoReveal is not even mounted — so the band goes back to being plain
+       clearance under the nav, which is what this was before the mark moved into it. */
+    --section-top: 5rem;
+  }
+
   /* The strip of the first screen the section cue (label + chevron) occupies. The prose
      stage takes the rest, so cue + stage = one exact viewport. */
   --cue-h: 3.25rem;
+
+  /* The projects section's top inset — which is the MARK'S BAND (see MARK_W). It used to be a
+     constant clearing the fixed header; the mark now lands in that space, so the inset is what
+     puts the panels below it instead of under it: the mark's own top offset, plus the block's
+     measured height, plus air.
+
+     --mark-h is written by the fit effect, because the block's height is font-driven and cannot
+     be derived in CSS. The fallback is MARK_W at the feather's ~2.5 ratio, so the band is about
+     right for the frame or two before that effect first runs.
+
+     Note it costs the first screen nothing: the section is pulled back up by exactly
+     --section-top + --cue-h (see there), so growing this moves the frame down and leaves the cue
+     strip where it was. */
+  --section-top: calc(${MARK_TOP}px + var(--mark-h, ${Math.round(MARK_W * 2.5)}px) + ${MARK_GAP}px);
   /* Gap between panels in the row. */
   --panel-gap: 4px;
 
@@ -89,12 +292,6 @@ const Page = styled.div`
   --frame-right: calc(${p => p.theme.space[3]} + 0.25rem);
   --frame-left: 6rem;
 
-  /* The strip the finished ascii portrait sits in, measured and written by LogoReveal's fit
-     effect — the frame below takes what it leaves (see RowFrame). This declared value only
-     covers the frames before that effect first runs, so it is kept CLOSE rather than round:
-     the frame's height, and therefore the document's scroll range and --p's denominator, are
-     derived from it, and a wrong value would resize the page under the reader on load. */
-  --band-h: ${BAND_H_FALLBACK}px;
   /* The prose→ascii morph, staged as FOUR overlapping beats rather than one crossfade. A
      single dissolve read as a jolt for a structural reason: the readme is four ragged blocks
      of proportional type, the portrait is one flush grid of monospace with the mark already
@@ -114,8 +311,8 @@ const Page = styled.div`
      the ascii faded up, which is what read as abrupt. Now it develops out of the field.
      The ramps deliberately OVERLAP — emerge starts before the crossfade has finished, so the
      mark is already surfacing as the grid lands. */
-  --swap: 0.42;
-  --swap-run: 0.12;
+  --swap: ${SWAP_AT};
+  --swap-run: ${SWAP_RUN};
   --collapse-t: clamp(0, calc((var(--p, 0) - 0.05) / 0.25), 1);
   --lh-t: clamp(0, calc((var(--p, 0) - 0.05) / 0.30), 1);
   /* The measure narrowing. This is the beat that makes the mark legible at all: the raster
@@ -154,6 +351,21 @@ const Page = styled.div`
     --lh-t: 0;
     --narrow-t: 0;
     --emerge-t: 1;
+    /* There is no rail below md — the grid is one column — so there is nothing to slide out
+       and the frame already has the width. Pinned here rather than at each reader, because all
+       three of them reach it only through var().
+
+       On the ATTRIBUTE, not on the bare selector, and that is not decoration: a media query
+       adds no specificity, so a plain --rail-out: 0 here loses to &[data-wide] above and the
+       portrait column slides clean off a phone. Third beat caught leaking this way. */
+    &[data-wide] {
+      --rail-out: 0;
+    }
+    /* No roll and no sequence here — the page is plain flow — so the section is simply there.
+       Bare selector, like the reduced-motion pin above. */
+    --arrive: 1;
+    /* The reveal is display: none below md, so there is no band to reserve. */
+    --section-top: 5rem;
   }
 `;
 
@@ -419,9 +631,25 @@ const ColumnGroup = styled(motion.div)`
   height: 100dvh;
   align-self: start;
 
+  /* The exit (see --rail-out on Page). The whole composition leaves as one piece, exactly as it
+     arrived — picture, wordmark and Peek — because they are all anchored to this box.
+
+     The translate PROPERTY, not transform: framer owns this element's transform for the
+     entrance below (x: -100% → 0) and leaves an inline style on it afterwards, which a CSS
+     transform could not win against. translate composes with transform independently, and both
+     are translations here, so the order they compose in does not matter. */
+  translate: calc(var(--rail-out, 0) * -100%) 0;
+  transition: translate ${RAIL_S} cubic-bezier(0.16, 1, 0.3, 1);
+
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     position: relative;
     height: auto;
+  }
+
+  /* --rail-out never leaves 0 under reduced motion — the listener that toggles data-wide
+     returns early — so this only covers a change of preference on a page already scrolled. */
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
@@ -460,10 +688,31 @@ const Stage = styled.div`
   align-items: center;
   justify-content: center;
 
+  /* Above the projects section, which is its next SIBLING. Both are positioned with an auto
+     z-index, so document order decided it and the section won — which was invisible while the
+     mark finished in a band the section never reached, and became a blank panel the moment the
+     section grew to a full screen and the mark came to rest ON it.
+
+     Safe against the roll it might look like it breaks: what this layer still has to show at
+     that point is the mark alone. The prose underneath it is already gone — its fade and the
+     mark's are two halves of one crossfade (see --swap), and the mark does not reach full
+     opacity until the frame's top has passed it — so nothing is being held over the rising box
+     except the thing that is meant to sit on it. */
+  z-index: 1;
+
+  /* The cost of that z-index, paid back. This box is a full viewport with no fill, so once it
+     paints above the section it is an invisible sheet over the panels — measured, panels two
+     and three hit the Stage itself and the fourth hit a Graf, and none of the three could be
+     hovered or clicked. Nothing here needs to catch a pointer on its own account, so it does
+     not: only the prose does, and it takes it back below. */
+  pointer-events: none;
+
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     position: static;
     height: auto;
     display: block;
+    /* Plain flow, prose above box — nothing overlaps, so nothing needs lifting. */
+    z-index: auto;
   }
 
   /* The static equivalent, and it has to be this rather than "the same layout without the
@@ -494,21 +743,54 @@ const MERGE_AT = 0.15;
    here together, so the rise-and-shrink is ONE trajectory and the crossfade happens between
    two things travelling as one — not a moving thing and a parked one.
 
-   The trajectory ends FITTED, not centred: at p=1 the unit's centre has travelled to the
-   middle of the free band above the risen frame (BAND_TOP down to the cue's final top), and
-   its scale has come down far enough that the ascii portrait's full height sits inside that
-   band. Both end values depend on real layout (viewport height, the frame's 16:10 height),
-   so they are measured and written as --fit-dy / --fit-scale by AsciiPortrait's fit effect
-   rather than derived in CSS — calc() cannot divide a length by a length to make a scale.
-   The var() fallbacks only cover the beat before that effect first runs.
+   The trajectory ends ON THE LAST PANEL, not centred on the page: at p=1 the unit's centre has
+   travelled to that panel's centre on both axes, and its scale has come down far enough that
+   the whole ascii portrait sits within it. The end values depend on real layout (the viewport,
+   and the row's own geometry), so they are measured and written as --fit-dx / --fit-dy /
+   --fit-scale by AsciiPortrait's fit effect rather than derived in CSS — calc() cannot divide a
+   length by a length to make a scale. The var() fallbacks only cover the beat before that
+   effect first runs.
+
+   The sideways half is --fit-dx. Note it is a second, independent horizontal offset from the rail recentring
+   on `translate` below — they compose, and they are separate because they answer to different
+   things: the rail correction follows a STATE (the rail going, hence a transition) and this
+   follows the SCROLL (hence --p, and no transition). Both are unscaled: translateX sits before
+   scale() in this list, so it resolves in the parent's pixels rather than the shrunken block's.
 
    Scale and translate are LINEAR in --p on purpose: scroll position is the easing. */
 const SwapUnit = styled.div`
   position: relative;
   width: 100%;
-  transform: translateY(calc(var(--p, 0) * var(--fit-dy, -18vh)))
+  transform: translate(
+      calc(var(--p, 0) * var(--fit-dx, 0px)),
+      calc(var(--p, 0) * var(--fit-dy, -18vh))
+    )
     scale(calc(1 + var(--p, 0) * (var(--fit-scale, 0.4) - 1)));
   will-change: transform;
+
+  /* The horizontal half of the trajectory, and it is a SEPARATE property from the one above on
+     purpose. The unit is centred in the content track, so once the rail has gone the mark would
+     finish half a rail right of the viewport's centre line, floating off-axis over a frame that
+     is now symmetric — the one thing the wide state gets visibly wrong. Half the rail back to
+     the left puts it on the viewport's centre, where the finished composition wants it.
+
+     It rides the same flip as the rail (see --rail-out on Page), so it needs a transition — and
+     the transform above must NOT have one, or the scrub would lag a frame behind the scroll and
+     the crossfade would slip out of register. The translate property carries its own, and being
+     the outermost of the two it is applied UNSCALED, which is what a recentring wants: a
+     constant offset, not one that shrinks with the block.
+
+     It does NOT finish before the mark emerges, and it does not need to. Measured against a real
+     snap glide: --emerge-t opens around 155ms, by which point this is ~70% travelled, and the
+     last ~34px are spent in the tail of the ease while the mark is surfacing. So what overlaps
+     the emergence is a decelerating settle rather than a block still crossing the screen — the
+     same overlap the four morph beats are built on (see --swap on Page), not a collision. */
+  translate: calc(var(--rail-out, 0) * var(--rail) / -2) 0;
+  transition: translate ${RAIL_S} cubic-bezier(0.16, 1, 0.3, 1);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 
   /* Mobile stacks the page in plain flow — but the scroll listener still writes --p there,
      so the transform must be explicitly off, exactly like Column's. */
@@ -533,6 +815,17 @@ const Column = styled.div`
   /* Belt and braces with the stage's justify-content: the stage drops to display: block in
      the reduced-motion and mobile fallbacks, where only the auto margins centre this. */
   margin-inline: auto;
+
+  /* Taken back from the Stage, which gives up pointer events wholesale (see there). The prose
+     is the one thing on that layer that needs them — the principles' terms are hover targets.
+     Given up again once the crossfade is over: from there the prose is invisible, shrunk to a
+     block the size of a panel and parked on top of one, and hover targets it no longer shows
+     are just a hole in the section underneath. */
+  pointer-events: auto;
+
+  [data-swapped] & {
+    pointer-events: none;
+  }
   /* So AmplifyGroup can drop its nowrap once the measure is too narrow to hold the phrase —
      a viewport media query cannot see this, because it is the COLUMN that is shrinking. */
   container-type: inline-size;
@@ -694,9 +987,21 @@ const IntuitiveClause = styled.span``;
    text turns gradient and a hot band travels through it while hovered. The band is the
    portrait's own glow — #f04d22/#f15b24 sampled from the image's vivid strip (the same
    band Peek frames) — so the colour reads as the page's, not an import. */
+/* The travel has to be exactly ONE tile, or the loop visibly snaps.
+
+   The gradient repeats (background-repeat defaults to repeat), so the pattern's period is the
+   background's own width. A percentage background-position resolves against
+   (container - image), which at 200% is -1 container width — so 100% -> -100% moves the image
+   by exactly 2 container widths, which IS its width, and the frame after the last is identical
+   to the first. The earlier pairing did not divide: 220% wide travelling 120% -> -120% moved
+   2.88 widths against a 2.2-wide tile, i.e. 1.31 tiles, leaving 0.68 of a tile to jump back
+   every cycle.
+
+   It also needs both ENDS of the gradient to be the same colour — they are, ink at 0% and at
+   100% — or the seam shows as a hard edge even when the arithmetic is right. */
 const shimmer = keyframes`
-  from { background-position: 120% 0; }
-  to { background-position: -120% 0; }
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
 `;
 
 const AestheticClause = styled.span`
@@ -710,7 +1015,7 @@ const AestheticClause = styled.span`
       ${p => p.theme.color.ink} 72%,
       ${p => p.theme.color.ink} 100%
     );
-    background-size: 220% 100%;
+    background-size: 200% 100%;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -1104,18 +1409,37 @@ const RevealLayer = styled.div`
   }
 
   /* The clone carries the readme's own styled-components classes — which is what makes it lay
-     out identically, but also means it inherits Column's FADE-OUT ramp. Left alone the clone
-     dies exactly as this layer brings it in, and the reveal never appears at all. Its opacity
-     has to be pinned so the ramp above is the only one in play. */
+     out identically, but also means it inherits whatever those classes declare. Two of them have
+     to be taken back, both !important because the clone's copy of the class and the rule here
+     have the same specificity and only source order would decide it.
+
+     opacity: it inherits Column's FADE-OUT ramp, so left alone the clone dies exactly as this
+     layer brings it in and the reveal never appears at all.
+
+     pointer-events: this layer gives them up, but Column claims them back (its principles are
+     hover targets) — and the clone's copy claims them just the same, from on top of the real
+     prose. The readme's hover treatments were simply unreachable: every pointer landed on the
+     invisible copy. Nothing in here is ever interactive, so it gives them up for good. */
   > * {
     opacity: 1 !important;
+    pointer-events: none !important;
   }
+
+  /* The ink the whole reveal is mixed from — a single variable because the flat field and all
+     nine levels below have to move together.
+
+     The page's own ink, and it stays that: the mark lands in the band ABOVE the frame (see
+     MARK_TOP), which is paper at every point of the sequence — the panels now start below it
+     rather than under it. It was white for as long as the mark finished ON a panel, and it
+     briefly had to change colour mid-sequence for as long as the mark landed on the frame
+     before the panels rose into it. Both are gone with the overlap. */
+  --ascii-ink: ${p => p.theme.color.ink};
 
   /* Everything flattens to the flat ink (the per-character rules below then lift the mark out
      of it). !important because no descendant may keep its own colour — AmplifyTerm sets one,
      and it would otherwise survive as a dark bar across the reveal. */
   * {
-    color: color-mix(in srgb, ${p => p.theme.color.ink} ${ASCII_FLAT}%, transparent) !important;
+    color: color-mix(in srgb, var(--ascii-ink) ${ASCII_FLAT}%, transparent) !important;
   }
 
   ${ASCII_LEVELS.map((mix, i) => {
@@ -1124,7 +1448,7 @@ const RevealLayer = styled.div`
       span[data-l='${i}'] {
         color: color-mix(
           in srgb,
-          ${p => p.theme.color.ink}
+          var(--ascii-ink)
             calc(${ASCII_FLAT}% ${d < 0 ? '-' : '+'} ${Math.abs(d)}% * var(--emerge-t, 1)),
           transparent
         ) !important;
@@ -1247,15 +1571,15 @@ const LogoReveal: React.FC<{
   }, [columnRef]);
 
   /* The fit: measures what the CSS trajectory cannot derive (see SwapUnit) and writes it to
-     Page as --fit-scale / --fit-dy / --band-h. The scale comes from MARK_W, so it no longer
-     depends on the section's height — the dependency runs the other way now, and it is the
-     frame that reads --band-h back (see MARK_W and RowFrame).
+     Page as --fit-scale / --fit-dx / --fit-dy. The scale comes from MARK_W, so it does not
+     depend on the section's height — and nothing depends on it in return now that the mark
+     overlays the section instead of sharing the screen with it (see MARK_W).
 
      The block is measured in the state it ENDS in — narrowed, tight, merged — not the reading
      state it is in at rest, using the same forced read the sampler above does. That matters:
      narrowing reflows 14 wide lines into ~30 short ones, so the resting block is 640x538 and
      the fitted one 290x718. The old code scaled against the resting height and the fitted
-     block therefore came out a third taller than the band it was fitted to. The height cannot
+     block therefore came out a third taller than the space it was fitted to. The height cannot
      be a constant either way — it is font-driven, and it moves with the type. */
   useEffect(() => {
     if (!built) return;
@@ -1280,12 +1604,29 @@ const LogoReveal: React.FC<{
       const vh = window.innerHeight;
       /* Width sets the scale; the viewport cap is the backstop on short screens (BAND_MAX_VH). */
       const fit = Math.min(1, MARK_W / w, (vh * BAND_MAX_VH - 2 * FIT_PAD) / h);
-      const band = Math.round(h * fit + 2 * FIT_PAD);
       page.style.setProperty('--fit-scale', String(fit));
-      page.style.setProperty('--band-h', `${band}px`);
-      /* The unit rests centred on the viewport (Stage is a full 100dvh flex centre), so its
-         travel is the band's centre minus that line. */
-      page.style.setProperty('--fit-dy', `${BAND_TOP + band / 2 - vh / 2}px`);
+      /* The fitted block's height, published so the section can reserve a band for it (see
+         --section-top on Page). This is the one figure CSS cannot get at: the block's height is
+         font-driven and only the forced read above knows it. */
+      const markH = h * fit;
+      page.style.setProperty('--mark-h', `${markH}px`);
+
+      /* Where the mark comes to rest: the TOP of the screen, on the viewport's centre line.
+
+         Both figures are offsets applied to the block's CENTRE, which at rest is the viewport's
+         centre (Stage is a full viewport and centres it), hence the -vh/2 and the zero.
+
+         Horizontally there is nothing to measure. Zero is the viewport's centre line, and the
+         block gets there by itself: SwapUnit's own recentring takes back half the rail when the
+         column leaves (see there), which is exactly the difference between the content track's
+         centre and the viewport's. The mark used to park over the LAST PANEL, which did need the
+         row's geometry — none of that survives the move.
+
+         Vertically it is a constant from the top (see MARK_TOP), which holds because at p=1 the
+         section's top edge is flush with the viewport's. The frame follows the mark rather than
+         the other way round, so nothing about the row is in this. */
+      page.style.setProperty('--fit-dx', '0px');
+      page.style.setProperty('--fit-dy', `${MARK_TOP + markH / 2 - vh / 2}px`);
     };
     apply();
     window.addEventListener('resize', apply);
@@ -1296,37 +1637,103 @@ const LogoReveal: React.FC<{
 };
 
 /*
- * Selected side projects — three panels that share the row's width and trade it on hover:
- * the hovered panel takes roughly twice a resting share while its neighbours give theirs
- * up, and its scrim lifts so the panel reads as stepping forward. One flex row, animated
- * on flex-grow; no measurement, no layout projection.
+ * Selected side projects — a row of panels that share its width and trade it on hover: the
+ * hovered panel takes a larger share while its neighbours give theirs up, and its scrim lifts
+ * so the panel reads as stepping forward. One flex row, animated on flex-grow; no
+ * measurement, no layout projection.
+ *
+ * The count is not fixed anywhere — the row, the accordion and the wipe all derive from
+ * PROJECTS.length. One figure does not follow automatically though: the accordion's emphasis
+ * dilutes as panels are added, so adding one means re-checking the hovered grow. See PanelRow.
  *
  * Hover-only by design: nothing here is clickable, so nothing joins the tab order, which
  * matches every other treatment on this page. The links will live in the prose instead.
  *
- * `image` is optional and there is no imagery yet, so the panels currently render as deep
- * ink with a raking gradient — the same material as the portrait column, which keeps the
- * section in the page's palette rather than parking three grey placeholder boxes on it.
- * Dropping a path in lights the photograph up with no other change.
+ * Three states, and the panel's copy is what distinguishes them: at rest the accent rule,
+ * the eyebrow and the NAME only; hovered (or focused) the blurb fades up under it; opened
+ * the detail paragraph replaces both in the hero's caption. So the blurb is gated — see
+ * PanelBlurb, which fades rather than unhides, to keep the reveal off the layout.
+ *
+ * Both image fields are optional. Without one a panel renders as deep ink with a raking
+ * gradient — the same material as the portrait column, which keeps the section in the
+ * page's palette rather than parking a grey placeholder box on it. Dropping a path in
+ * lights the photograph up with no other change.
  */
 interface Project {
   name: string;
   blurb: string;
   year: string;
   kind: string;
+  /* The RESTING PANEL's picture, shown as a tilted plate (see PanelShot).
+
+     Captured at a ratio of about 0.8 — a desktop-WIDTH window that is taller than it is wide —
+     and that figure is the useful part of this comment. The front page is a full-height grid,
+     so its window's proportions decide the shape of the picture, and the two ends of the range
+     are both wrong. A normal 1.6 landscape leaves the panel showing nine tenths of a single
+     card, because the panel is steeply portrait and cover has to fill it. Going all the way to
+     the panel's own aspect (~0.43) fills it with the page entire, but stretches the grid until
+     its cards are enormous and it stops reading as a desktop site. 0.8 keeps the three-column
+     layout looking like itself while giving the crop nearly two cards to work with. */
   image?: string;
+  /* The same front page, captured LANDSCAPE (~1.6), for the opened split's wide pane.
+
+     Two captures of one page, and the reason is the two slots' proportions rather than anything
+     about the page: the panel is steeply portrait and the pane is landscape, so the ratio that
+     serves one crops badly in the other. The pane is roughly the shape a browser window is, so
+     it takes the shot at roughly a browser's ratio and shows the front page more or less whole —
+     which is the point of the opened view, where there is room to look at it properly. */
+  imageWide?: string;
+  /* The tall screenshot — a desktop capture run down a long interior page. Used ONLY in the
+     opened split, as the narrow pane, where fitting a smaller width makes it run past the
+     bottom and so show more of the site. Nothing falls back to anything here: the split plays
+     its two panes against each other, so it wants imageWide and imageTall both or neither
+     (see Detail).
+
+     EVERY capture needs a browser with WEBGL, and one that has been DRIVEN. Two traps, both of
+     which produce a screenshot that looks fine until you hold it next to the real site:
+
+     1. The background is a WebGL canvas (canvas.lp-fluid — the green dot matrix behind the
+        cards). Headless Chrome run the obvious way, with --disable-gpu, renders it empty and the
+        capture comes back on flat black. Use --enable-unsafe-swiftshader and no --disable-gpu.
+     2. The matrix is a FLUID, fed by pointer motion. With no pointer it decays to almost
+        nothing, so `chrome --headless --screenshot` can never catch it however long it waits —
+        the page has to be driven. Sweep the mouse across the viewport, then PARK IT OFF THE
+        CARDS before shooting: leaving it over one holds that card in hover, which dims every
+        other card's artwork. The hover releases in a few hundred ms; the fluid outlives it.
+
+     Check for the green, and for all five cards being lit, before trusting a recapture.
+
+     GEOMETRY, which is not guessable from the file and cost a wasted capture to rediscover:
+     this is a DESKTOP capture DOWNSCALED, not a narrow viewport. Shoot the full page at 1400
+     CSS wide at DPR 2, then resample the result to 900px wide. Shot at 450 instead — the width
+     the finished file implies — the site serves its stacked mobile layout and the page comes
+     out nearly five times longer. The 1400 is recoverable from the asset if it is ever lost
+     again: the height that width produces, scaled to 900, is what the file already is. */
+  imageTall?: string;
   /* The longer copy for the detail view. Falls back to `blurb` when absent, so a project
      can ship with one line and gain a paragraph later. */
   detail?: string;
 }
 
-/* TODO: placeholder content — swap in the real three. */
+/* TODO: two placeholders left — swap in the real second and third. */
 const PROJECTS: Project[] = [
   {
-    name: 'Project One',
-    blurb: 'A one-line description of what it is and why it exists.',
+    name: 'videogamers.fyi',
+    blurb: 'Tells you what a game is right now, not what it was at launch.',
+    detail:
+      'This website answers one question: is this game worth it right now? Most game ' +
+      'coverage is frozen at launch — here, player counts and patch data refresh every six ' +
+      'hours, community sentiment daily, the verdict itself weekly. Nothing reaches a page ' +
+      'unsourced: verdicts link out to the timestamped player reviews behind them, so any ' +
+      'claim can be checked. It targets the questions that go stale fastest: is it dead, is ' +
+      "it fixed, is it worth this price, is it the better pick over the one you're also " +
+      'weighing. It runs end to end without an editor — I choose which games it covers, the ' +
+      'pipeline does the rest.',
     year: '2026',
-    kind: 'Side project',
+    kind: 'Automated gaming site',
+    image: '/warmind-home@2x.webp',
+    imageWide: '/warmind-home-wide@2x.webp',
+    imageTall: '/warmind-game@2x.webp',
   },
   {
     name: 'Project Two',
@@ -1343,11 +1750,19 @@ const PROJECTS: Project[] = [
 ];
 
 const PANEL_S = '0.55s';
-/* The section label's follow. Long on purpose — it is a lag, not a tween, and its job is to
-   still be moving once the roll's own scroll has stopped. See LabelInner. */
-const LABEL_S = '1.1s';
 /* Shared by Panel and by PanelSlot, which has to match it — see PanelSlot. */
 const PANEL_PAD = '1.5rem';
+
+/* The band kept clear at the bottom of a panel for its blurb, which is taken OUT of flow so
+   that nothing above it can move (see PanelBlurb).
+
+   Two lines of the blurb's own type — 0.85rem at a 1.5 leading. Sized against the RESTING
+   width, not the hovered one, because that is the narrowest the blurb is ever actually read at:
+   the accordion widens on hover, but a keyboard focus shows the copy with the panel still at its
+   resting share. The longest blurb today sets to exactly two lines there. One that runs to three
+   will be cropped by the panel's own overflow rather than pushing anything — keep them short, or
+   raise this and re-check that the names still sit where the composition wants them. */
+const BLURB_H = `${0.85 * 1.5 * 2}rem`;
 
 /* The rolling unit: cue strip + box, in NORMAL FLOW. It is not pinned, transformed or
    scripted — the sticky Stage above it is exactly one viewport minus the cue, so this unit's
@@ -1371,13 +1786,140 @@ const PANEL_PAD = '1.5rem';
    as a border. */
 const ProjectsSection = styled.section`
   position: relative;
-  /* Pulled back over the stage's last --cue-h. The stage is a full viewport so the prose can
+  /* A whole screen, where it used to be the label plus whatever the frame's own height came
+     to. The frame is no longer the REMAINDER of the viewport (see MARK_W) — the section takes
+     the screen and the frame takes the section, so the arithmetic that used to subtract the
+     ascii band above and the cue below has nothing left to subtract.
+
+     Height only. NOT width: 100dvw — this box already bleeds past the content track on both
+     sides with negative margins, and a viewport width on top of those overflows the document
+     rather than filling it. 100dvw also counts the vertical scrollbar's width on desktop, so
+     it is a horizontal scrollbar waiting to happen. The margins already reach the edges.
+
+     A column, so the label keeps its place at the top and the frame absorbs everything left. */
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+
+  /* The mat, and it is the whole screen now rather than the frame's own fill. It used to stop
+     at the frame's edges so the section's insets stayed paper and the deliberately lopsided
+     --frame-left / --frame-right (96 / 36 at 1440 — see Page) never read as an uneven border.
+     That worry does not survive the move and does not need to: an uneven BORDER is visible, but
+     there is no border here — the ruling runs edge to edge and is the ground the frame sits on.
+
+     Graph paper rather than a flat fill: two hairline gradients crossed at --grid-cell. Static
+     by design.
+
+     A line has to fall exactly on the panels' edge — a grid this small looks accidental the
+     moment it is cut mid-square against something straight — which is why the origin is
+     SHIFTED to the frame's own top-left corner instead of tiling from this box's. The panels
+     now start ON that corner (PanelRow gave up its mat), so the two agree at zero. The frame
+     sits --frame-left across and --section-top + --cue-h down from here, and neither is a whole
+     number of cells (96 and 132 against 10) — tiled from the section's corner the ruling would
+     land a fraction of a cell off the panels on both axes. Anchored to the frame it continues outward
+     across the rest of the screen. */
+  --grid-cell: 10px;
+  /* Ink at a low mix rather than a literal grey, so the ruling follows the surface and stays
+     a tint of the page's own neutral instead of drifting to its own hue. 7% is the point at
+     which it reads as texture at arm's length without resolving into stripes. */
+  --grid-line: color-mix(in srgb, ${p => p.theme.color.ink} 7%, transparent);
+
+  /* The ground's travel, timed here rather than at the ::before that spends it — a transition
+     reads its timing from the state it is heading TO, so putting the two sets on the two states
+     of this box is what makes the slide asymmetric. In: immediately, at reading speed, because
+     it is the beat the panels arrive onto. Out: quicker, and held back until the panels have
+     dropped, because it is the last thing left on screen and what it is waiting for is an empty
+     stage (see GROUND_OUT_DELAY). Inherited by the pseudo-element like any custom property. */
+  --ground-s: ${GROUND_S};
+  --ground-delay: 0s;
+
+  ${Page}:not([data-arrived]) & {
+    --ground-s: ${GROUND_OUT_S};
+    --ground-delay: ${GROUND_OUT_DELAY};
+  }
+
+  /* On a layer of its own rather than on the box, so it can FADE. The section's first 132px
+     are on screen at rest — that is the cue strip showing under the prose — and painted
+     directly on the box the ruling turned the bottom of the first screen into graph paper.
+     The first screen is meant to be paper and nothing else, so the ground arrives with the
+     section instead of waiting there inside it.
+
+     A pseudo-element and not a background on the box because there is no way to fade a
+     background-image alone; and ::before rather than ::after so tree order puts it under the
+     label and the frame, both of which are positioned, without needing a z-index to say so. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-color: var(--n-0);
+    background-image:
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    background-size: var(--grid-cell) var(--grid-cell);
+    background-position: var(--frame-left) calc(var(--section-top) + var(--cue-h));
+    /* Beat 3: the ground SLIDES IN from the right once the mark has landed (see --arrive on
+       Page). It used to fade in over the opening tenth of the roll, which made it part of the
+       roll rather than an event of its own.
+
+       The travel is its own width, so at rest it is parked entirely off the right edge — which
+       is also why the ruling is not visible in the cue strip showing on the first screen, the
+       job the old opacity ramp was doing. The overflow it makes on the way is caught by html's
+       own overflow-x: hidden (see UnclipRoot); this box must not clip it itself, or it would
+       clip the panels' hover growth with it.
+
+       translate, not a transform: the section is the frame a clicked panel's layoutId flies
+       inside, and a transform on this subtree — even an identity one at rest — would make it
+       the containing block and hand framer the wrong reference frame. */
+    translate: calc((1 - var(--arrive, 0)) * 100%) 0;
+    transition: translate var(--ground-s) cubic-bezier(0.16, 1, 0.3, 1) var(--ground-delay);
+  }
+
+  /* --arrive is pinned on in both of these (see Page), so the ground is already in place and
+     only the travel has to go: with no sequence to be part of, it is simply the mat. */
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      transition: none;
+    }
+  }
+  /* Pulled back over the stage's last stretch. The stage is a full viewport so the prose can
      centre on the viewport's centre line; this negative margin is what still leaves the cue
-     strip showing at rest, and it keeps the scroll range at exactly the frame + its bottom
-     border — shortening the stage instead would have cost the prose its centring. */
-  margin-top: calc(-1 * var(--cue-h));
-  margin-inline: calc(-1 * var(--content-pad));
-  padding: 0 var(--frame-right) var(--img-margin) var(--frame-left);
+     strip showing at rest — shortening the stage instead would have cost the prose its
+     centring.
+
+     It pulls back --section-top AS WELL AS --cue-h now. The label used to be the section's
+     first pixel, so a cue-h of overlap put exactly the label on screen; with the nav clearance
+     added above it, the same overlap showed 52px of blank padding and the cue disappeared from
+     the first screen. Pulling both back lands the label in precisely the position it held
+     before — the strip's bottom edge is the viewport's either way — and the extra padding now
+     on screen above it is bare paper, indistinguishable from the page it sits on. */
+  margin-top: calc(-1 * (var(--section-top) + var(--cue-h)));
+  margin-inline-end: calc(-1 * var(--content-pad));
+  /* The left edge, and it gives up TWO things at once when the rail leaves (see --rail-out on
+     Page): the rail's own width, and the difference between the two insets — --frame-left's 6rem
+     is there only to open air between the frame and the portrait column, so with no column to
+     clear the frame falls back to --frame-right and wears an even border on both sides.
+
+     Both folded onto the margin rather than split across margin and padding so that exactly ONE
+     layout property is in the transition. It is the page's only animated layout, and it is a
+     deliberate exception rather than an oversight: what reflows is this subtree alone — the
+     label and a four-item flex row — and NOT the prose, whose measure is track-independent (see
+     Column). The frame is also barely on screen while it runs; at rest only the cue strip shows.
+     Nothing else here may follow it. */
+  margin-inline-start: calc(
+    -1 *
+      (var(--content-pad) + var(--rail-out, 0) *
+            (var(--rail) + var(--frame-left) - var(--frame-right)))
+  );
+  transition: margin-inline-start ${RAIL_S} cubic-bezier(0.16, 1, 0.3, 1);
+  /* The top inset is new, and it is clearance rather than styling: the section now reaches the
+     top of the screen, where the fixed header lives. Deep enough to seat the label under the
+     nav rather than beside it. */
+  padding: var(--section-top) var(--frame-right) var(--img-margin) var(--frame-left);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
   /* The bottom snap point (see UnclipRoot): align this box's END with the scrollport's, which
      is the position the flow already settles at — the frame's bottom on the viewport's. So the
      snap target and the natural scroll end are the same place, and the two-state model costs
@@ -1397,107 +1939,119 @@ const ProjectsSection = styled.section`
    link) rather than introducing a display heading — the cut-out wordmark is the only
    large type this page gets, and a second heading would compete with it.
 
-   It sits in the cue strip: the one thing showing below the prose at rest, so the first
-   screen says there is a section here without the box itself peeking. It rides up with the
-   box rather than staying behind on the stage, so the section is still titled once it lands.
+   It is TWO labels in one strip, not one label that travels between two places. They read the
+   same words but they are not the same thing: one is a cue on the readme's screen saying there
+   is something below, the other titles the panels once they are there. As a single travelling
+   element it had to be loud enough to matter at the end and therefore louder than a cue wants to
+   be at the start, and it had to spend the whole roll crossing the screen to get from one job to
+   the other. Parked separately, each can be sized for its own job and neither has to move.
 
-   It sits outside the mat, which is the frame's own fill and so begins where the label ends:
-   the label stays on paper, and the light box reads as the thing the label is titling rather
-   than as a band the label is sitting inside. */
+   Both sit in the cue strip, which is the one thing showing below the prose at rest — so the
+   first screen says there is a section here without the box itself peeking — and which lands
+   directly above the panels once the section is up. Same slot, so nothing reflows between them;
+   they simply hand over.
+
+   The strip sits outside the mat, which begins where it ends: the labels stay on paper, and the
+   ruled ground reads as the thing they are titling rather than as a band they sit inside. */
 const SectionLabel = styled.h2`
   position: relative;
   height: var(--cue-h);
   font-family: ${p => p.theme.font.mono};
-  font-size: 0.82rem;
-  font-weight: 500;
-  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: ${p => p.theme.color.ink};
   margin: 0;
 
-  /* The label's travel: 0 = centred over the content column, 1 = flush with the frame's left
-     edge. Driven off --p like the chevron's fade, so it is scroll POSITION rather than a
-     triggered tween — it runs forward as the box rolls up and unwinds on the way back, with no
-     observer, no state and nothing to fall out of sync with the roll.
-
-     The window is the WHOLE roll, less a short dead zone at the start so the chevron's fade
-     (--p * 5, gone by 0.2) reads as its own beat first. It deliberately does not settle early:
-     the wheel handler commits every gesture to a single smooth-scroll across the entire range,
-     so --p sweeps 0→1 in a few hundred ms, and any window narrower than the full range shrinks
-     the travel to something the eye never catches. The lag on LabelInner is the other half of
-     that — see there. */
-  --label-t: clamp(0, calc((var(--p, 0) - 0.1) / 0.9), 1);
-
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    /* No separate content column to centre over here — the label starts at the left margin
-       and has nowhere to travel to. */
-    --label-t: 1;
     height: auto;
     margin-bottom: 1.25rem;
   }
-
-  /* --p is never written under reduced motion, so the ramp above would pin the label at its
-     resting centre. There is no roll-up to be mid-way through here either — the page is plain
-     flow — so it takes the LANDED position directly. */
-  @media (prefers-reduced-motion: reduce) {
-    --label-t: 1;
-  }
 `;
 
-/* Out of flow so the label can slide without the cue strip reflowing around it, and because
-   centre→left is not something `justify-content` can interpolate.
-
-   `left` and the pull-back are scaled by the SAME (1 - t), which makes the inner's left edge
-   land at 0.5 * (1 - t) * (labelWidth - ownWidth) — i.e. exactly linear between centred and
-   flush, with no measurement. The target is the section's CONTENT box, so the label ends up
-   aligned with the frame's left edge (the panels'), not with the section's outer edge. */
-const LabelInner = styled.span`
+/* Shared geometry: both labels fill the strip and centre in it vertically. Out of flow so the
+   two can occupy the same slot and cross-fade without either reserving space from the other. */
+const labelSlot = css`
   position: absolute;
   top: 0;
   bottom: 0;
-  left: calc(50% * (1 - var(--label-t)));
-  transform: translateX(calc(-50% * (1 - var(--label-t))));
   display: flex;
   align-items: center;
   white-space: nowrap;
 
-  /* The label TRAILS --p rather than tracking it. The roll is one committed smooth-scroll of a
-     few hundred ms (see the wheel handler in About), which is far too short for a move this
-     small to register — so each --p tick restarts this transition toward the new target, the
-     label follows about a fifth of a second behind, and when the scroll stops it keeps gliding
-     the remaining distance into place. The travel outlives the gesture that caused it, which is
-     the only way it gets enough time on screen to be seen.
-
-     Both properties carry the SAME duration and curve: they are two halves of one position
-     (see the interpolation note above) and would diverge mid-flight on different timings.
-     left is a layout property, but this element is out of flow and childless, so the only box
-     it dirties is its own. */
-  transition:
-    left ${LABEL_S} ${p => p.theme.ease.expo},
-    transform ${LABEL_S} ${p => p.theme.ease.expo};
-
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    /* Back into flow, which is what gives the label its height once --cue-h is off. */
+    /* Back into flow, which is what gives the strip its height once --cue-h is off. */
     position: static;
-    transform: none;
+  }
+`;
+
+/* The cue on the readme's screen: centred under the prose, and QUIET — a step down in size,
+   weight and colour from the label that titles the panels. It is an affordance, not a heading,
+   which is also why it is the aria-hidden one of the pair: the words are announced once, by the
+   real heading below.
+
+   Faded straight from --p on the same ramp as its own chevron, so the pair leaves together and
+   early — by a fraction into the roll the box is visibly moving and the cue has done its job.
+   No observer and no state, and nothing left on screen to collide with the section arriving. */
+const RestCue = styled.span`
+  ${labelSlot}
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  color: ${p => p.theme.color.inkMuted};
+  opacity: clamp(0, calc(1 - var(--p, 0) * 5), 1);
+  pointer-events: none;
+
+  /* Neither of these has a first screen for a cue to sit on — the page is plain flow and the
+     panels are simply below the prose — and --p is never written under reduced motion, so the
+     ramp above would leave this at full opacity beside the heading, the same words twice. */
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    display: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
+  }
+`;
+
+/* The panels' own title: flush with the frame's left edge, in the chrome weight the cue steps
+   down from. It arrives WITH the panels rather than with the section — same ramp, same delay as
+   the first of them, so it reads as the head of the row rather than as part of the ground that
+   slid in under it. Out with them too, on the exit's own faster timing (see PANEL_FALL_S).
+
+   Left: 0 is the strip's content box, which is the section's — so this lands on the frame's left
+   edge, the panels' own, rather than on the section's outer edge. */
+const PanelsLabel = styled.span`
+  ${labelSlot}
+  left: 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  color: ${p => p.theme.color.ink};
+  opacity: var(--arrive, 0);
+  translate: 0 calc((1 - var(--arrive, 0)) * ${PANEL_RISE / 3}px);
+  --label-s: ${PANEL_RISE_S};
+  --label-delay: ${PANEL_RISE_DELAY}s;
+  transition:
+    opacity var(--label-s) linear var(--label-delay),
+    translate var(--label-s) cubic-bezier(0.16, 1, 0.3, 1) var(--label-delay);
+
+  ${Page}:not([data-arrived]) & {
+    --label-s: ${PANEL_FALL_S};
+    --label-delay: 0s;
   }
 
-  /* Nothing to ease: --label-t is pinned to its landed value on both of these. */
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
 `;
 
-/* The scroll affordance beside the label: at rest the cue strip is the only thing under the
-   prose, and the chevron says the box is further down. Faded straight from --p — by the time
-   you are a fraction into the roll the box is visibly moving and the hint has done its job —
-   so no observer and no state. The inner bob draws the eye without a loud colour. */
+/* The scroll affordance beside the cue: at rest the strip is the only thing under the prose, and
+   the chevron says the box is further down. It rides the cue's own fade rather than carrying a
+   second copy of that ramp — nested, the two would multiply. The inner bob draws the eye without
+   a loud colour. */
 const ScrollHint = styled.span`
   display: inline-flex;
   margin-left: 0.7rem;
-  color: ${p => p.theme.color.inkMuted};
   pointer-events: none;
-  opacity: clamp(0, calc(1 - var(--p, 0) * 5), 1);
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     display: none;
@@ -1520,8 +2074,14 @@ const RowFrame = styled(motion.div)`
 
      Height rather than aspect-ratio even though this box is what a clicked panel expands into
      (Hero is inset: 0 here, so the expanded state IS this rectangle): the detail view wants
-     the largest rectangle the page can spare, and that is this one. */
-  height: calc(100dvh - ${BAND_TOP}px - var(--band-h) - var(--cue-h) - var(--img-margin));
+     the largest rectangle the page can spare, and that is this one.
+
+     It no longer derives that height itself. The section is a full screen and a flex column,
+     so the frame simply takes what the label above it does not — the same remainder as before,
+     but computed by the layout rather than by subtracting a list of constants that had to be
+     kept in step with the band. */
+  flex: 1 1 auto;
+  min-height: 0;
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     height: auto;
@@ -1539,43 +2099,33 @@ const RowFrame = styled(motion.div)`
     aspect-ratio: auto;
   }
 
-  /* The mat. It is the frame's own fill, so it stops exactly at the frame's edges: the
-     section's insets stay paper, and the deliberately lopsided --frame-left / --frame-right
-     (96 / 36 at 1440 — see Page) never render as a visibly uneven border. PanelRow's padding
-     is what actually opens the mat up around the panels.
-
-     Graph paper rather than a flat fill: two hairline gradients crossed at --grid-cell. The
-     cell DIVIDES --img-margin (10 into 20), so a grid line falls exactly on the panels' edge
-     and the mat reads as two whole cells rather than a band cut mid-square — the one thing
-     that makes a small grid look accidental. Static by design.
-
-     The panels are opaque and cover all but the mat and the 4px gaps, so this is a border
-     texture, not a field: it shows on ~11% of the frame. Widening --img-margin is the dial
-     if more of it should read. */
-  --grid-cell: 10px;
-  /* Ink at a low mix rather than a literal grey, so the ruling follows the surface and stays
-     a tint of the page's own neutral instead of drifting to its own hue. 7% is the point at
-     which it reads as texture at arm's length without resolving into stripes. */
-  --grid-line: color-mix(in srgb, ${p => p.theme.color.ink} 7%, transparent);
-  background-color: var(--n-1);
-  background-image:
-    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-  background-size: var(--grid-cell) var(--grid-cell);
+  /* Transparent. The ruling used to be painted here and stopped at this box's edges; it is the
+     SECTION's now and runs the full screen (see ProjectsSection), which is also why the panels
+     inside no longer hold a mat open to expose it. The section anchors the grid's origin to
+     this corner, so the ruling still meets the panels on a whole cell. */
 `;
 
 const PanelRow = styled.div`
   display: flex;
   gap: var(--panel-gap);
   height: 100%;
-  /* The mat's width. --img-margin is the portrait's own poster border and the frame's bottom
-     inset, so the panels sit in the same border the picture does. Inside the 100% height
-     rather than added to it — the global box-sizing is border-box, so the frame keeps the
-     exact height it derives from the viewport and the panels take what is left. */
-  padding: var(--img-margin);
+  /* No padding. There used to be a mat here — --img-margin all round, matching the portrait's
+     poster border — and it existed to let the frame's own ruling show around the panels. The
+     ruling is the section's now and runs the full screen, so the ground reads either side of
+     the frame without the panels having to give up a border to expose it. */
 
   /* The accordion. Both rules are one class + one pseudo-class, so the second wins on
-     the hovered panel and the first still applies to its siblings. */
+     the hovered panel and the first still applies to its siblings.
+
+     2 against 0.8 per sibling gives the hovered panel 62% of the DISTRIBUTED space — grow
+     shares out free space only, and each panel's PANEL_PAD is paid before the split (see
+     PanelSlot), so every panel carries a fixed 48px that dilutes the winner's share and pads
+     the losers'.
+
+     Tied to the COUNT, not to taste: the siblings' 0.8 is paid per panel, so the same figure
+     buys less emphasis the more of them there are. This was 2.7 while there were four, which
+     is what 2 is worth at three; it came back down with the fourth. Change the count and this
+     has to be re-checked — a fourth wants ~2.7 again, a fifth roughly 3.5. */
   &:hover > * {
     flex-grow: 0.8;
   }
@@ -1606,24 +2156,27 @@ const PanelRow = styled.div`
 `;
 
 /* The panel fill, shared by the resting panel and the expanded hero so the two are the
-   same material and the magic-move has nothing to cross-fade. */
-const panelSkin = css<{ $image?: string }>`
+   same material and the magic-move has nothing to cross-fade. Fill ONLY — no photograph. Both
+   places that carry one carry it as a separate layer above this (PanelShot, DetailSplit),
+   because both need something a background cannot do: the panel tilts its picture, and the
+   hero must not scale its own (see Hero). */
+const panelSkin = css`
   background:
     linear-gradient(155deg, rgba(255, 255, 255, 0.07), rgba(0, 0, 0, 0.25)),
     ${p => p.theme.color.ink};
-  ${p =>
-    p.$image &&
-    css`
-      background-image: url('${p.$image}');
-      background-size: cover;
-      background-position: center;
-    `}
 `;
 
 /* A button, not a div: clicking opens the detail view, so it has to be reachable and
    operable from the keyboard. The panel carries no button chrome — the styles below
-   reset it — but it keeps the semantics. */
-const Panel = styled(motion.button)<{ $image?: string }>`
+   reset it — but it keeps the semantics.
+
+   NOT marked data-surface="inverted", despite being a dark island on a light page and so
+   looking like PostBody's <pre>. Those precedents flip cleanly because their fill is their
+   own; this one takes its fill from panelSkin, which paints --color-ink — a token that means
+   the deep grey on paper and WHITE on the inverted surface. Flipping the attribute here turns
+   the panel into a pale box. Anything wanting the deep-surface accent inside these panels has
+   to reach it without moving the surface out from under the fill. */
+const Panel = styled(motion.button)`
   appearance: none;
   border: 0;
   font: inherit;
@@ -1640,12 +2193,50 @@ const Panel = styled(motion.button)<{ $image?: string }>`
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: ${PANEL_PAD};
+  /* The bottom pad carries the blurb's reserved band as well as its own (see BLURB_H). The
+     blurb is out of flow, so this is what holds the space open for it — and what keeps the name
+     and eyebrow at one height across the row, whatever each panel's copy wraps to. */
+  padding: ${PANEL_PAD} ${PANEL_PAD} calc(${PANEL_PAD} + ${BLURB_H});
   border-radius: 2px;
-  transition: flex-grow ${PANEL_S} cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Deep ink with a raking gradient, echoing the portrait column's frost. A photograph,
-     when there is one, sits underneath and the scrim below grades it. */
+  /* Beat 4: the panels rise behind the ground, staggered left to right (see --arrive on Page).
+
+     Neither half of it uses the property you would reach for first, and for the same reason:
+     this is a motion.button carrying a layoutId, and framer writes BOTH transform and opacity
+     onto it inline (measured: style="transform: none; ...; opacity: 1"). An inline declaration
+     beats any stylesheet, so a CSS transform or opacity here is simply ignored — and a CSS
+     transform would additionally feed framer's layout projection a box that includes the rise.
+
+     translate is a separate property framer never touches, and it composes with the transform
+     framer does write. The fade rides filter for the same reason. The cost of that is an
+     identity filter left on each panel at rest, which makes it its own stacking context —
+     harmless here, since the panel's layers are already absolute children of it and the hero it
+     flies into is a sibling overlay, not a descendant.
+
+     The stagger comes from --i, written per panel in the row, so it follows PROJECTS rather than
+     an nth-child ladder that would have to be kept in step with the count. */
+  --rise-delay: calc(${PANEL_RISE_DELAY}s + var(--i, 0) * ${PANEL_RISE_STAGGER}s);
+  --rise-s: ${PANEL_RISE_S};
+
+  /* ...and both of those are the way IN. A transition reads its timing from the state it is
+     heading TO, so this pair of overrides is the whole of what makes the exit its own move: the
+     panels go FIRST on the way out and they go quickly, together, with the ground held back
+     behind them (see PANEL_FALL_S). Nothing waits on the stagger, because going out it would
+     only be four more frames before the page is allowed to roll. */
+  ${Page}:not([data-arrived]) & {
+    --rise-delay: 0s;
+    --rise-s: ${PANEL_FALL_S};
+  }
+
+  translate: 0 calc((1 - var(--arrive, 0)) * ${PANEL_RISE}px);
+  filter: opacity(var(--arrive, 0));
+  transition:
+    flex-grow ${PANEL_S} cubic-bezier(0.16, 1, 0.3, 1),
+    translate var(--rise-s) cubic-bezier(0.16, 1, 0.3, 1) var(--rise-delay),
+    filter var(--rise-s) linear var(--rise-delay);
+
+  /* Deep ink with a raking gradient, echoing the portrait column's frost. The picture, when
+     there is one, is a layer above this (PanelShot) rather than part of it. */
   ${panelSkin}
 
   &:focus-visible {
@@ -1665,30 +2256,108 @@ const Panel = styled(motion.button)<{ $image?: string }>`
     transition: none;
   }
 
-  /* The scrim, on its own layer so it can fade independently of the panel's own
-     background — hovering lifts it and the panel steps forward. */
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(transparent 20%, rgba(8, 9, 12, 0.72));
-    opacity: 1;
-    transition: opacity ${PANEL_S} ease;
-  }
+  /* The scrim and the picture are both real children now (PanelVeil, PanelShot) rather than a
+     ::before and a background. The picture has to be an element because it is TILTED and a
+     background layer cannot be rotated; and once it is an element the scrim has to be one too,
+     since a ::before paints beneath its element's children and would end up under the very
+     thing it grades. As siblings, tree order puts them in the right order.
 
-  &:hover::before {
+     This rule is what keeps the COPY above all three, and it is load-bearing rather than
+     tidiness. Painting order puts positioned boxes above in-flow content regardless of tree
+     order, so with the layers positioned and the text not, the text was painted over and the
+     panels lost their names entirely. Positioning the text too puts all of them on the same
+     footing, where being later in the tree is what decides. */
+  > * {
+    position: relative;
+  }
+`;
+
+/* The screenshot, as a tilted plate. Oversized well past the panel on every side because it is
+   rotated inside a box that clips: a plate merely as large as the panel would swing its corners
+   inward and show four wedges of bare ink. The panel's own overflow: hidden does the cropping.
+
+   COVER, and the crop is the point rather than a cost. The capture is landscape — the shape the
+   site really is, which is what makes it read as a desktop page — and the panel is steeply
+   portrait, so filling it means showing a vertical band of the page about a card and a half
+   wide. Fitting the whole page in instead leaves it 27% of the panel's height with bare ink
+   under it, and stretching the capture to portrait to avoid that makes the grid's cards
+   enormous and stops it looking like a desktop site (see the Project interface). A band of a
+   real page, on a tilt, was the better trade.
+
+   The tilt is small on purpose — 4 degrees reads as a deliberate angle, where more starts to
+   read as a device mock. It does not animate: the accordion is already moving flex-grow on
+   every panel, and a transform here would be a second motion competing with it. */
+const PanelShot = styled.div<{ $image: string }>`
+  position: absolute;
+  /* Only just enough slack to hide the rotation, and the two axes are deliberately different.
+     A box rotated by 4 degrees needs about H*sin4 of extra width and W*sin4 of extra height to
+     keep its corners outside the panel — against a tall panel that is ~16% across but only ~3%
+     down. Generous vertical slack is the expensive mistake: this box is portrait, so cover
+     scales the landscape picture to match its HEIGHT, and every extra percent of height scales
+     the page up. An earlier -22% top and bottom put it at 1.1x native, which showed a single
+     card blown up past legibility instead of a piece of a page. */
+  /* && so this beats Panel's "> * { position: relative }", which would otherwise drop all
+     three layers into the flex flow and stack them as rows above the copy. */
+  && {
+    position: absolute;
+  }
+  inset: -3% -9%;
+  background-image: url('${p => p.$image}');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform: rotate(-4deg);
+`;
+
+/* The scrim: hovering lifts it and the panel steps forward. On its own layer so it can fade
+   without taking the panel's fill or the plate with it. */
+const PanelVeil = styled.div`
+  /* && — see PanelShot. */
+  && {
+    position: absolute;
+  }
+  inset: 0;
+  background: linear-gradient(transparent 20%, rgba(8, 9, 12, 0.72));
+  opacity: 1;
+  transition: opacity ${PANEL_S} ease;
+
+  ${Panel}:hover & {
     opacity: 0.45;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    &::before {
-      transition: none;
-    }
+    transition: none;
   }
+`;
 
-  > * {
-    position: relative;
+/* The reading shim, and a SEPARATE layer from the veil rather than a second gradient inside it.
+   The plate behind is a screenshot of a working site — itself dense light text — and the panel's
+   name and blurb sit over it, so they need cover that does NOT lift: the copy it protects is
+   exactly what hover reveals. Inside the veil it could not do that, and not for a stacking
+   reason: opacity applies to a whole subtree, pseudo-elements included, so the veil dropping to
+   0.45 would have taken the shim with it however the gradients were arranged.
+
+   Last of the three layers, so it is over both the plate and the veil, and steeply
+   bottom-weighted: clear across the top where the plate does its work, near-opaque under the
+   caption. */
+const PanelShim = styled.div`
+  /* && — see PanelShot. */
+  && {
+    position: absolute;
   }
+  inset: 0;
+  /* Heavier than the scrim it sits over, and it has to be: what is behind is not a photograph
+     but game key art and white UI type, bright in unpredictable places. Measured against the
+     old flat-ink panels this looks excessive; over a screenshot it is the difference between
+     the name reading and the name disappearing into a card. */
+  background: linear-gradient(
+    to top,
+    rgba(8, 9, 12, 0.97) 0%,
+    rgba(8, 9, 12, 0.93) 20%,
+    rgba(8, 9, 12, 0.6) 38%,
+    rgba(8, 9, 12, 0.22) 54%,
+    transparent 72%
+  );
 `;
 
 /* The short accent rule above each eyebrow, as in the reference. It extends on hover —
@@ -1699,7 +2368,7 @@ const PanelRule = styled.span`
   background: ${p => p.theme.accent.base};
   margin-bottom: 0.85rem;
   /* scaleX, not width: a width transition relayouts the panel on every frame, and this
-     one runs while the accordion is already animating flex-grow on three panels at once.
+     one runs while the accordion is already animating flex-grow on every panel at once.
      A plain element with no framer projection over it, so transform-origin holds — the
      rule grows rightward from its left end. 24px x 2.3333 = the 56px extended length. */
   transform-origin: left center;
@@ -1737,7 +2406,32 @@ const PanelName = styled.h3`
   margin: 0 0 0.5rem;
 `;
 
+/* State two of three: the blurb belongs to the hovered panel, not the resting one.
+   It FADES rather than unhides — no max-height, no display flip. Either of those would
+   relayout the panel on every frame, and this reveal runs while the accordion is already
+   animating flex-grow on every panel at once (the same reason PanelRule chose scaleX over
+   width). Holding its box at rest costs nothing: the column is bottom-aligned, so the
+   reserved height simply sits as dark panel above the name. */
 const PanelBlurb = styled.p`
+  /* OUT OF FLOW, and that is the whole point of it rather than a positioning convenience.
+
+     In flow it was invisible but still took its height, and that height is a function of the
+     panel's WIDTH — so the accordion re-wrapped it on every hover and the name and eyebrow above
+     it slid up or down as it did. The same thing showed at rest without any hover at all: the
+     first panel's copy sets to two lines where the others set to one, so the three panels'
+     names sat at three different heights.
+
+     Parked at the bottom of the reserved band instead (see BLURB_H), the copy can wrap to
+     whatever the width gives it and nothing above it moves.
+
+     && to beat Panel's "> * { position: relative }" — the same conflict PanelShot records. */
+  && {
+    position: absolute;
+    left: ${PANEL_PAD};
+    right: ${PANEL_PAD};
+    bottom: ${PANEL_PAD};
+  }
+
   font-family: ${p => p.theme.font.body};
   font-weight: 300;
   font-size: 0.85rem;
@@ -1745,6 +2439,31 @@ const PanelBlurb = styled.p`
   color: rgba(255, 255, 255, 0.66);
   margin: 0;
   text-wrap: pretty;
+
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity ${PANEL_S} cubic-bezier(0.16, 1, 0.3, 1),
+    transform ${PANEL_S} cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* focus-visible too: the panel is a button, so a keyboard user reaching it must get the
+     same second state the mouse gets — otherwise they see only ever the name. */
+  ${Panel}:hover &,
+  ${Panel}:focus-visible & {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    /* No hover to give below md, where the row is a stacked column — a gated blurb there
+       would leave every panel permanently in state one. */
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 /* The gap the expanded panel leaves in the row. Holds the slot open so the prose below
@@ -1754,8 +2473,8 @@ const PanelSlot = styled.div`
   min-width: 0;
   /* Must match Panel's padding exactly. With flex-basis: 0 the padding sits OUTSIDE the
      distributed free space, so a padded button ends up 48px (1.5rem x 2) wider than an
-     unpadded stand-in — the row stops being equal thirds, and the bands, whose geometry
-     is a plain 100%/3, then leave a sliver of the neighbouring panel showing. */
+     unpadded stand-in and the row stops being equal shares — the surviving panels shift
+     under the wipe, which is meant to uncover a frame that has not moved. */
   padding: ${PANEL_PAD};
 `;
 
@@ -1796,18 +2515,19 @@ const OPEN_CLIP = 'inset(0% 0% 0% 0%)';
 const wipeClip = (fromRight: boolean) =>
   fromRight ? 'inset(0% 100% 0% 0%)' : 'inset(0% 0% 0% 100%)';
 
-/* Inset by the mat, NOT inset: 0 — the detail view sits in the same border the panels do, so
-   the frame's light edge is constant across both states rather than being swallowed the moment
-   a panel opens. It has to be declared here even though the padding that opens the mat lives on
-   PanelRow: an absolutely positioned box resolves its insets against the nearest positioned
-   ancestor's PADDING box, which is the whole frame, so a sibling's padding does not contain it.
+/* Flush with the frame, because that is now exactly the rectangle the panels occupy. It used
+   to be inset by the mat instead — PanelRow held --img-margin of padding, and the detail had
+   to repeat it here so the frame's light edge stayed constant whether a panel was open or not.
+   (It could not simply inherit it: an absolutely positioned box resolves its insets against the
+   nearest positioned ancestor's PADDING box, which is the whole frame, so a sibling's padding
+   never contained it.) With the mat gone the two agree at zero.
 
    Everything inside rides this for free — the bands are percentages of this box, and Hero's
-   inset: 0 is now the matted rectangle the panels actually occupy, which is also what the
-   layoutId magic-move needs to land on. */
+   inset: 0 is the rectangle the panels actually occupy, which is also what the layoutId
+   magic-move needs to land on. */
 const Overlay = styled.div`
   position: absolute;
-  inset: var(--img-margin);
+  inset: 0;
   z-index: 2;
   overflow: hidden;
   display: flex;
@@ -1826,7 +2546,8 @@ const Hero = styled(motion.div)<{ $image?: string }>`
   overflow: hidden;
   ${panelSkin}
 
-  /* The reading scrim, so the caption stays legible once a real photograph sits here. */
+  /* The reading scrim, for the projects that have no photograph. One that does is covered
+     by DetailSplit, which paints over this. */
   &::before {
     content: '';
     position: absolute;
@@ -1835,16 +2556,265 @@ const Hero = styled(motion.div)<{ $image?: string }>`
   }
 `;
 
-/* The detail copy, a SIBLING of the hero rather than a child — see Hero for why. Pinned to
-   the frame's lower-left and faded in only once the hero has finished expanding, so it never
-   rides the distorting scale. */
-const DetailCaption = styled(motion.div)`
+/* How the opened frame divides: screenshots left, copy right. The pictures take the larger
+   share — they are the evidence — and the copy a column narrow enough to read as a caption
+   rather than a second body of text. SHOT_WIDE then splits the picture side.
+
+   SHOT_WIDE is where the diagonal STARTS, not where it stays: it is the initial value of a
+   figure the reader drags (see SplitHandle). A number rather than a CSS string because it is
+   also the seed of that state and gets arithmetic done to it. */
+const SPLIT_SHOTS = '63%';
+const SHOT_WIDE = 68;
+/* How far the boundary can be dragged. Neither pane is allowed to close: at the extremes one
+   picture is a sliver, which is a legitimate thing to want to look past, but a pane at zero
+   would leave a wedge of bare ink and read as broken rather than as collapsed. */
+const SPLIT_MIN = 26;
+const SPLIT_MAX = 86;
+const clampSplit = (n: number) => Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, n));
+
+/* The opened detail's screenshots — a SIBLING of the hero for exactly the reason the caption
+   is one,
+   and the reason matters more here than the comment above may suggest. Hero's own note says
+   a large non-uniform scale would squash any text inside it, and that the dark box survives
+   because "a gradient has no proportions to distort". A PHOTOGRAPH has proportions. Measured
+   in flight, framer drives this move as scaleX 0.332 -> 1 against a flat scaleY of 1, so a
+   background-image on the hero is compressed to a third of its width and unsquashes over the
+   travel — the site's own UI smearing horizontally for a third of a second.
+
+   So the picture never rides the transform: it is a plain absolutely-positioned layer that
+   fades in once the hero has arrived. That the resting panel wears a DIFFERENT photograph
+   (the home page, not the game page) makes the fade the natural hand-off point anyway.
+
+   It carries NO reading ramp, unlike the resting panel's picture. Nothing is printed over
+   these — the copy has a column of its own — so a ramp here would only black out the bottom
+   of both screenshots for nothing. */
+const DetailSplit = styled(motion.div)`
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: ${SPLIT_SHOTS};
+  overflow: hidden;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    /* No room for two columns at phone width — the pictures take the top half and the copy
+       takes the bottom, and the diagonal between the two shots survives unchanged. */
+    width: auto;
+    right: 0;
+    bottom: 50%;
+  }
+`;
+
+/* The two screenshots, side by side and separated by a DIAGONAL. Both are absolute rather
+   than flex items because the cut is made by giving each its own clip-path along the same
+   slope: the wide one keeps what is left of the edge, the tall one what is right. They meet
+   on it exactly — no gap, no overlap — and SplitHandle's hairline is what marks the join.
+   (A rotated divider element over two straight panes would have to be re-measured on every
+   resize; two clips written from the same two points cannot drift.)
+
+   The two panes are fitted DIFFERENTLY, and deliberately — see each.
+
+   Both layers fill the WHOLE pane and are cropped to their side of the diagonal by clip-path.
+   Neither is sized to the wedge it happens to be showing, and that is the difference between
+   a wipe and a zoom: a layer sized to its visible box rescales its picture every time the
+   boundary moves, which is what the tall pane used to do — measured across the drag, the
+   interior page rendered anywhere from 810px tall down to 251px, shrinking as it narrowed
+   rather than being uncovered. With the box constant, the scale is constant, and dragging
+   only chooses how much of a stationary picture you can see.
+
+   It also removes a latent version of the same bug on the wide pane. Its cover fit was
+   height-driven and so happened to hold still, but only while its box stayed narrower than
+   height x 1.6 — on a short, wide window it would have crossed that and started rescaling
+   too. A constant box cannot cross it.
+
+   Every horizontal figure below is driven off --shot-split, the one custom property the
+   handle writes. That indirection is the point: dragging changes a variable rather than a
+   styled-components interpolation, so the three elements keep the classes they mounted with
+   instead of the library minting a new rule per pointermove. Note the percentage inside each
+   clip-path resolves against the element's own box — which is the pane — so the same figure
+   means the same column of pixels in both. */
+const SHOT_SLANT = 72;
+/* The drag target's width, wider than the hairline it grabs: 2px is a line to look at, not
+   one to catch with a pointer. */
+const SPLIT_HIT = 28;
+/* The hairline's thickness. It is the whole divider now — the two pictures meet on exactly
+   the same edge, with no ink between them to read as a seam. */
+const SPLIT_RULE = 2;
+
+/* The diagonal, as the pair of edges the two layers share. Written once so they cannot drift:
+   the wide pane keeps what is LEFT of it, the tall pane what is RIGHT, and because both
+   polygons name the same two points there is no gap and no overlap at any position. */
+const EDGE_TOP = 'var(--shot-split)';
+const EDGE_BOT = `calc(var(--shot-split) - ${SHOT_SLANT}px)`;
+
+const shotFill = css<{ $image: string }>`
+  position: absolute;
+  inset: 0;
+  background-image: url('${p => p.$image}');
+  background-repeat: no-repeat;
+`;
+
+/* COVER, where the tall one fits its width. It survives being cropped because it is a grid of
+   cards — a partial view of it is still legibly the same page. The interior page would not
+   survive the same treatment, hence the two panes fit differently.
+
+   It takes imageWide, NOT the resting panel's picture — a landscape capture of the same page,
+   cut for this pane's proportions. See the Project interface for why one file cannot serve both.
+
+   Anchored LEFT, not centred. Centring spends the crop evenly on both edges, so the page lost
+   its left margin and its first column of cards was cut down the middle. Left keeps the page's
+   own leading edge intact and spends the whole crop on the right — which is also the edge the
+   diagonal sweeps, so dragging right uncovers the page rather than re-centring it. */
+const ShotWide = styled.div<{ $image: string }>`
+  ${shotFill}
+  background-size: cover;
+  background-position: left center;
+  clip-path: polygon(0 0, ${EDGE_TOP} 0, ${EDGE_BOT} 100%, 0 100%);
+`;
+
+/* Fits the pane's WIDTH and anchors RIGHT. Width-fitted because it is a long interior page
+   and the point of it is to be legible.
+
+   Right, because of what the sliver holds. This pane is narrowest exactly when the reader has
+   dragged toward the front page, and whatever survives at the right-hand edge is all that is
+   left of it — so the live rail lives there: the player count, the price, "LIVE - 2h ago",
+   the freshness the whole project is about. Anchoring left would have spent the sliver on the
+   article's left margin. Dragging back uncovers the prose.
+
+   And it SCROLLS. The picture is the whole 6,700px article in one still — nothing is recorded
+   here, and deliberately not: a video or animated WebP of a scroll stores a near-complete
+   keyframe per frame, because scrolling content gives inter-frame prediction nothing to hold
+   onto, and what is moving is 12px UI text, which is the first thing a codec smears. One still
+   costs 199KB, renders every frame pixel-exact at any speed, and turns the scroll into a
+   property animation the page can pause and reason about. Travel is the rendered height minus
+   the pane, so a little over 2,000px in 14s.
+
+   alternate, so it eases back up rather than snapping to the top — a jump-cut would read as a
+   loading glitch on what is meant to be ambient. Paused while the hairline is being dragged:
+   the horizontal gesture is the reader's, and the pane should hold still underneath it. */
+const shotScroll = keyframes`
+  from { background-position-y: 0%; }
+  to { background-position-y: 100%; }
+`;
+
+const ShotTall = styled.div<{ $image: string }>`
+  ${shotFill}
+  background-size: 100% auto;
+  /* Split from the shorthand: only Y is animated, and X has to stay pinned to the right. */
+  background-position-x: right;
+  background-position-y: 0%;
+  clip-path: polygon(${EDGE_TOP} 0, 100% 0, 100% 100%, ${EDGE_BOT} 100%);
+  animation: ${shotScroll} 14s ease-in-out infinite alternate;
+
+  [data-shot-drag] & {
+    animation-play-state: paused;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+/* The diagonal itself, as a control — and, since the two pictures now abut with nothing
+   between them, the only thing that draws it. The element is a hit area far wider than the
+   line it carries, a parallelogram on the same slope so the target sits under the line along
+   its whole length rather than under a vertical average of it (the boundary travels
+   SHOT_SLANT across on the way down, so a straight strip would miss it at both ends).
+
+   touch-action: none because the gesture is horizontal and so is nothing else here — without
+   it a touch drag is claimed by the page's own scrolling and the handle never sees a move. */
+const SplitHandle = styled.div`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--shot-split) - ${SHOT_SLANT + SPLIT_HIT / 2}px);
+  width: ${SHOT_SLANT + SPLIT_HIT}px;
+  clip-path: polygon(
+    ${SHOT_SLANT}px 0,
+    ${SHOT_SLANT + SPLIT_HIT}px 0,
+    ${SPLIT_HIT}px 100%,
+    0 100%
+  );
+  cursor: ew-resize;
+  touch-action: none;
+  z-index: 1;
+
+  /* The hairline. ALWAYS drawn, because with the gap closed the two pictures now abut on the
+     same edge and there is nothing else marking the join — an invisible-until-hovered control
+     over a seamless butt-joint is a control nobody finds. It carries both jobs at once: the
+     divider between the screenshots, and the thing you can tell is draggable.
+
+     Hover and focus lift it to full rather than summoning it, so the pointer still gets an
+     answer. Drawn on the same slope, centred on the shared edge. */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: ${p => p.theme.accent.base};
+    clip-path: polygon(
+      ${SHOT_SLANT + SPLIT_HIT / 2 - SPLIT_RULE / 2}px 0,
+      ${SHOT_SLANT + SPLIT_HIT / 2 + SPLIT_RULE / 2}px 0,
+      ${SPLIT_HIT / 2 + SPLIT_RULE / 2}px 100%,
+      ${SPLIT_HIT / 2 - SPLIT_RULE / 2}px 100%
+    );
+    opacity: 0.62;
+    transition: opacity 0.22s ${'cubic-bezier(0.16, 1, 0.3, 1)'};
+  }
+
+  &:hover::after,
+  &:focus-visible::after {
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${p => p.theme.accent.base};
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      transition: none;
+    }
+  }
+`;
+
+/* The detail copy, a SIBLING of the hero rather than a child — see Hero for why. With two
+   screenshots beside it it takes the narrow right-hand column and centres in it; with no
+   pictures at all (a project that supplies neither file) there is no split to sit beside, so
+   it keeps the old full-width perch at the frame's lower-left. */
+const DetailCaption = styled(motion.div)<{ $split: boolean }>`
   position: absolute;
   z-index: 1;
-  left: ${PANEL_PAD};
-  right: ${PANEL_PAD};
-  bottom: ${PANEL_PAD};
-  max-width: 620px;
+  ${p =>
+    p.$split
+      ? css`
+          left: ${SPLIT_SHOTS};
+          right: 0;
+          top: 0;
+          bottom: 0;
+          padding: ${PANEL_PAD};
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+
+          @media (max-width: ${p.theme.breakpoints.md}) {
+            left: 0;
+            top: 50%;
+            /* Centring is a desktop luxury. In half of a phone-width frame the paragraph is
+               taller than the box it sits in, and centred overflow spills BOTH ways — upward
+               over the screenshots and downward past the frame, so the copy collided with the
+               pictures and still lost its last line. Start it at the top and let it scroll. */
+            justify-content: flex-start;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+          }
+        `
+      : css`
+          left: ${PANEL_PAD};
+          right: ${PANEL_PAD};
+          bottom: ${PANEL_PAD};
+          max-width: 620px;
+        `}
 `;
 
 const DetailName = styled.h3`
@@ -1859,8 +2829,13 @@ const DetailName = styled.h3`
 const DetailText = styled.p`
   font-family: ${p => p.theme.font.body};
   font-weight: 300;
-  font-size: clamp(1rem, 1.4vw, 1.15rem);
-  line-height: 1.55;
+  /* A step down from the clamp this carried when the copy was four lines. At that length the
+     larger setting read as the caption's own voice; at the length it runs to now it filled the
+     column and started to compete with the name above it. The leading opens as the size comes
+     down — smaller type wants proportionally more of it, and the column is a fixed narrow
+     measure, so this is where the copy stops reading as a block. */
+  font-size: clamp(0.88rem, 1.15vw, 0.98rem);
+  line-height: 1.65;
   color: rgba(255, 255, 255, 0.72);
   margin: 0;
   text-wrap: pretty;
@@ -1940,11 +2915,68 @@ const Detail: React.FC<{
   const heroIn = { duration: 0.55, ease, delay: EXPAND_DELAY };
   /* After the hero has essentially finished growing. */
   const captionIn = { duration: 0.35, ease, delay: EXPAND_DELAY + 0.5 };
+  /* The pictures lead the caption slightly, so they have settled by the time the copy beside
+     them arrives — one hand-off, not two. See DetailSplit for why they are a separate layer
+     rather than the hero's own background. */
+  const photoIn = { duration: 0.4, ease, delay: EXPAND_DELAY + 0.42 };
+
+  /* Both or neither: the split is a pair of screenshots played against each other, so one
+     picture cannot stand in for it. A project carrying only `image` still gets that picture
+     on its resting panel; its detail simply opens as the flat hero. */
+  const split = !!(project.imageWide && project.imageTall);
+
+  /* Where the diagonal sits, as a percentage of the picture side. Held in state and spent as
+     a CSS variable: the elements that read it never change class, so a drag costs a variable
+     write and no restyling. Resets with the detail, which unmounts on close — the boundary is
+     a way of looking at one project, not a setting. */
+  const [shotSplit, setShotSplit] = useState(SHOT_WIDE);
+  const drag = useRef<{ x: number; from: number; width: number } | null>(null);
+  /* Only so the tall shot can stop scrolling under the gesture — see ShotTall. State rather
+     than a ref because it has to reach the DOM as an attribute, and it costs nothing: the
+     drag is already re-rendering this tree on every move to move the boundary. */
+  const [dragging, setDragging] = useState(false);
+
+  const onHandleDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const host = e.currentTarget.parentElement;
+    if (!host) return;
+    drag.current = {
+      x: e.clientX,
+      from: shotSplit,
+      width: host.getBoundingClientRect().width,
+    };
+    setDragging(true);
+    /* Capture, so the drag survives the pointer leaving a 28px-wide target — which it does
+       immediately, because the handle moves only as fast as we re-render. */
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onHandleMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    setShotSplit(clampSplit(d.from + ((e.clientX - d.x) / d.width) * 100));
+  };
+
+  const onHandleUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!drag.current) return;
+    drag.current = null;
+    setDragging(false);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+
+  /* A drag is not the only way to ask for this. Arrows nudge, shift coarsens — the same
+     bargain every slider makes, and the reason the handle is focusable at all. */
+  const onHandleKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = e.shiftKey ? 8 : 2;
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    setShotSplit(s => clampSplit(s + (e.key === 'ArrowLeft' ? -step : step)));
+  };
 
   return (
     <Overlay role="group" aria-label={`${project.name} — details`}>
       <Hero
-        $image={project.image}
+        /* No $image: the pictures are DetailSplit's job, because this element is the one
+           framer scales. The flat skin is what makes the move safe. */
         /* Same id as the resting panel, which is unmounted for this index while the detail
            is open — one element in flight, so framer moves it rather than cross-fading two.
            The delay in heroIn is what holds it at panel size until the bands have swept. */
@@ -1952,7 +2984,35 @@ const Detail: React.FC<{
         transition={reduced ? { duration: 0 } : heroIn}
       />
 
+      {split && (
+        <DetailSplit
+          data-shot-drag={dragging || undefined}
+          style={{ '--shot-split': `${shotSplit}%` } as React.CSSProperties}
+          initial={reduced ? false : { opacity: 0 }}
+          animate={{ opacity: 1, transition: reduced ? { duration: 0 } : photoIn }}
+          exit={reduced ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
+        >
+          <ShotWide $image={project.imageWide!} />
+          <ShotTall $image={project.imageTall!} />
+          <SplitHandle
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Balance of the two screenshots"
+            aria-valuenow={Math.round(shotSplit)}
+            aria-valuemin={SPLIT_MIN}
+            aria-valuemax={SPLIT_MAX}
+            tabIndex={0}
+            onPointerDown={onHandleDown}
+            onPointerMove={onHandleMove}
+            onPointerUp={onHandleUp}
+            onPointerCancel={onHandleUp}
+            onKeyDown={onHandleKey}
+          />
+        </DetailSplit>
+      )}
+
       <DetailCaption
+        $split={split}
         initial={reduced ? false : { opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0, transition: reduced ? { duration: 0 } : captionIn }}
         exit={reduced ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
@@ -1979,7 +3039,8 @@ const Detail: React.FC<{
 
 const Projects: React.FC<{
   reduced: boolean;
-}> = ({ reduced }) => {
+  closerRef: React.RefObject<(() => boolean) | null>;
+}> = ({ reduced, closerRef }) => {
   const [open, setOpen] = useState<number | null>(null);
   const triggers = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -2001,15 +3062,37 @@ const Projects: React.FC<{
     restoreTo.current = null;
   }, [open]);
 
+  /* The page's exit chain has to be able to close this from outside — an open detail is an
+     overlay above the whole frame, so nothing in --arrive reaches it and it would roll away
+     still open (see DETAIL_LEAD). Reports whether there WAS anything to close, which is what
+     tells the wheel handler how long a lead to take.
+
+     Deliberately re-registered on every render rather than on a dependency list: what it closes
+     over is `open`, and `close` is a new function each render anyway, so a list precise enough
+     to be correct would run exactly as often as no list at all. */
+  useEffect(() => {
+    closerRef.current = () => {
+      if (open === null) return false;
+      close();
+      return true;
+    };
+    return () => {
+      closerRef.current = null;
+    };
+  });
+
   /* No reveal animation here any more: the roll-up IS the reveal. The section arrives by
      scrolling into frame under its own steam, and an opacity/lift tween on top of that would
      be a second entrance fighting the first. */
   return (
     <ProjectsSection>
       <SectionLabel>
-        <LabelInner>
+        {/* The heading proper — first in the tree, and the only copy of these words a screen
+            reader is given (see RestCue). */}
+        <PanelsLabel>Selected side projects</PanelsLabel>
+        <RestCue aria-hidden>
           Selected side projects
-          <ScrollHint aria-hidden>
+          <ScrollHint>
             <Bob
               animate={reduced ? undefined : { y: [0, 3, 0] }}
               transition={{ duration: 1.4, ease: 'easeInOut', repeat: Infinity }}
@@ -2017,7 +3100,7 @@ const Projects: React.FC<{
               <ArrowDown size={13} strokeWidth={2} />
             </Bob>
           </ScrollHint>
-        </LabelInner>
+        </RestCue>
       </SectionLabel>
       <RowFrame>
       <PanelRow>
@@ -2033,10 +3116,12 @@ const Projects: React.FC<{
               ref={(el: HTMLButtonElement | null) => {
                 triggers.current[i] = el;
               }}
-              $image={p.image}
+              /* The rise's place in the stagger — see Panel. */
+              style={{ '--i': i } as React.CSSProperties}
               layoutId={reduced ? undefined : `project-panel-${i}`}
               /* A losing column clips itself away rather than being covered by an opaque card,
-                 so what the wipe uncovers is RowFrame — grid included — instead of a flat
+                 so what the wipe uncovers is the ruled ground the panels sit on — the section's
+                 graph paper, showing through the transparent frame — instead of a flat
                  rectangle. Nothing here runs while the row is at rest: with `open` null every
                  panel animates to OPEN_CLIP, which is the value it already has. */
               animate={{
@@ -2051,7 +3136,16 @@ const Projects: React.FC<{
                         delay: wipeOf(i, open).order * WIPE_STAGGER,
                       },
               }}
-              transition={{ duration: 0.6, ease }}
+              /* The flight HOME, and only that: opening is the Hero's own transition (see
+                 heroIn), because opening is the element over there arriving. This is the panel
+                 the hero flies back INTO, so closing is timed here.
+
+                 0.4 rather than the 0.6 it opened on, and the asymmetry is the point — a close
+                 is not an open reversed. Measured at 0.6, the hero was still 315px wide (against
+                 the panel's 291) a third of a second in, which on the scroll-up path meant the
+                 panels behind it started dropping while it was still visibly in flight. At 0.4
+                 the same curve puts it home in ~230ms, and the exit chain can follow it. */
+              transition={{ duration: 0.4, ease }}
               onClick={() => setOpen(i)}
               aria-expanded={false}
               /* clip-path is a PAINT operation. A clipped panel is invisible and drops out of
@@ -2064,6 +3158,11 @@ const Projects: React.FC<{
                  easier to assume otherwise, because the panel genuinely is not painted. */
               inert={open !== null}
             >
+              {/* Three layers under the copy, in this order: the tilted plate, the scrim that
+                  lifts on hover, and the shim that does not. See PanelShim. */}
+              {p.image && <PanelShot $image={p.image} aria-hidden />}
+              <PanelVeil aria-hidden />
+              {p.image && <PanelShim aria-hidden />}
               <PanelRule aria-hidden />
               <PanelEyebrow>
                 {p.kind} / {p.year}
@@ -2098,6 +3197,22 @@ const About: React.FC = () => {
   const pageRef = useRef<HTMLDivElement>(null);
   /* The readme column, measured by AsciiPortrait to build a grid with its exact geometry. */
   const columnRef = useRef<HTMLDivElement>(null);
+  /* The handoff between this file's two scroll writers, and it exists because they briefly
+     disagree. The wheel handler flags the column out BEFORE anything scrolls (see RAIL_LEAD);
+     the scroll listener derives the same flag from --p and would clear it again over the glide's
+     first few pixels, where p is past 0 but not yet past WIDEN_AT. Measured: the column reached
+     94% of its exit, snapped two-thirds of the way back, then left again. This is raised while
+     the wheel handler is leading and dropped the moment --p crosses WIDEN_AT and the listener
+     can speak for itself. */
+  const leading = useRef(false);
+  /* Its mirror, for the return: the wheel handler clears the section BEFORE anything scrolls
+     (see ARRIVE_LEAD), and the listener — still reading a --p up at ~0.96 — would put it
+     straight back. Raised while the wheel handler is leading out, dropped as soon as --p has
+     fallen under ARRIVE_AT and the listener agrees. */
+  const leaving = useRef(false);
+  /* Projects' own close, registered from inside it so the exit chain can shut an open detail
+     before anything else moves (see DETAIL_LEAD). */
+  const closerRef = useRef<(() => boolean) | null>(null);
 
   /* The one scripted piece: 0→1 document scroll progress, written onto Page as --p, which the
      prose zoom and the chevron fade both read in CSS. A plain listener rather than framer's
@@ -2119,6 +3234,38 @@ const About: React.FC = () => {
       /* The one beat that cannot be a custom property: merging the paragraphs is a display
          switch, and display does not interpolate (see Graf). */
       page.toggleAttribute('data-merged', p >= MERGE_AT);
+      /* Also not a custom property, and for the third distinct reason: pointer-events does not
+         interpolate either, and this one is not cosmetic. Past the crossfade the prose is fully
+         transparent but still hit-testable, and the stage it lives on now paints ABOVE the
+         projects section — so without this it is an invisible sheet over the panels. */
+      page.toggleAttribute('data-swapped', p >= SWAP_END);
+      /* The last two beats, which are transitions rather than scrubs and so cannot be a custom
+         property either (see ARRIVE_AT): the ground slides in and the panels rise.
+
+         Two thresholds, far apart, so the beats play at the END of the way down and at the END
+         of the way back — never over the roll itself (see ARRIVE_OFF). Everything between the
+         two holds whatever it already was, which is what makes it a latch rather than a flip.
+
+         The wheel path does not wait for the lower one: it clears the section up front and holds
+         the glide while it goes (see ARRIVE_LEAD), which is why the set is suppressed while that
+         is running. The threshold still owns every other way back — scrollbar, keyboard — where
+         nothing has led and the exit has to happen somewhere. */
+      if (p >= ARRIVE_AT) {
+        if (!leaving.current) page.toggleAttribute('data-arrived', true);
+      } else {
+        leaving.current = false;
+        if (p <= ARRIVE_OFF) page.toggleAttribute('data-arrived', false);
+      }
+      /* The other one that cannot be a custom property — not because it will not interpolate,
+         but because it must not: the rail's exit is a two-state flip with its own transitions,
+         never a scrub (see --rail-out). Held rather than cleared while the wheel handler is
+         leading, so the two writers do not fight over the glide's opening pixels (see leading). */
+      if (p >= WIDEN_AT) {
+        leading.current = false;
+        page.toggleAttribute('data-wide', true);
+      } else if (!leading.current) {
+        page.toggleAttribute('data-wide', false);
+      }
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -2150,22 +3297,119 @@ const About: React.FC = () => {
        restart it — but a REVERSAL still turns the page around mid-travel. */
     let heading: number | null = null;
     let clear = 0;
+    let glide = 0;
+    /* Whether a lead is running — scheduled, not yet fired. The reversal guards need to know
+       "has this gesture moved the page yet", and only the one at the TOP can ask that of the
+       geometry: 0 is exactly 0, but the bottom is not max. Snapping settles the section's end on
+       the scrollport's, which measures 23px short of the document's own end (581.5 against 605),
+       so no tolerance small enough to mean "hasn't moved" is large enough to match it. */
+    let pending = false;
+    /* The held clear of data-arrived, when a detail had to be shut before the rest of the exit
+       could start. Tracked so a reversal can call it off like the glide. */
+    let exit = 0;
 
     const onWheel = (e: WheelEvent) => {
       if (!enabled || e.ctrlKey || e.deltaY === 0) return;
       const max = root.scrollHeight - root.clientHeight;
       const target = e.deltaY > 0 ? max : 0;
+      /* A reversal DURING the lead, and it has to be caught before the parked check below: the
+         page has not moved yet, so that check would see us at the top, hand the event back to
+         the browser, and let the held glide fire anyway — the reader wheels up and the page
+         goes down. Call the glide off and put the column back instead. */
+      if (heading === max && target === 0 && root.scrollTop < 1) {
+        window.clearTimeout(glide);
+        heading = null;
+        leading.current = false;
+        pageRef.current?.toggleAttribute('data-wide', false);
+        e.preventDefault();
+        return;
+      }
+      /* The same reversal on the other side: wheeled up, the section started clearing out, and
+         the reader changed their mind before the glide fired. Put it back.
+
+         Asked of the LEAD rather than of the scroll position (see pending), and getting that
+         wrong does not cost a missed animation: the flag stays cleared, the muzzle below stays
+         up, and the section sits at the bottom of the screen permanently empty. */
+      if (heading === 0 && target === max && pending) {
+        window.clearTimeout(glide);
+        window.clearTimeout(exit);
+        pending = false;
+        heading = null;
+        leaving.current = false;
+        pageRef.current?.toggleAttribute('data-arrived', true);
+        e.preventDefault();
+        return;
+      }
       /* Already parked there: let the event through, so an over-scroll at either end behaves
          natively rather than being silently swallowed. */
       if (Math.abs(root.scrollTop - target) < 1) return;
       e.preventDefault();
       if (heading === target) return;
       heading = target;
-      window.scrollTo({ top: target, behavior: 'smooth' });
+
+      /* Any downward intent hands the section back to the scroll listener, wherever the page
+         happens to be. The guard above only catches a reversal during the LEAD; reverse once the
+         glide is already rolling and the page turns around without --p ever passing under
+         ARRIVE_AT, which is the only other thing that lifts the muzzle. Without this the section
+         would roll back up empty. */
+      if (target === max) leaving.current = false;
+
+      /* The sequence (see RAIL_LEAD). Going DOWN, the column's exit is flagged here — on the
+         gesture, before anything has scrolled — and the glide is held back while it runs, so the
+         portrait closes out and only then does the frame roll up.
+
+         Flagged from the wheel rather than left to the scroll listener because the listener
+         cannot do it: it reads --p, and during the lead nothing has scrolled, so --p is still 0.
+         The two writers agree — this one only ever sets the flag, and only on the way down; the
+         listener owns every other path (scrollbar, keyboard) and owns clearing it.
+
+         The column needs nothing going UP: the listener releases that flag only once --p falls
+         back under WIDEN_AT, which is the END of the return glide, so the frame rolls down first
+         and the portrait comes back last. The same order, reversed, for free.
+
+         The SECTION is the other way round, and it does not come for free. It is the last thing
+         to arrive, so it has to be the first to leave — and left to a threshold its exit lands in
+         the middle of the roll, crossing both the roll and the frame's own left edge coming back
+         (see ARRIVE_LEAD). So the up gesture leads too: the ground and the panels are flagged out
+         here, and the glide is held while they clear.
+
+         One lead or the other, never both: a gesture is either going down (the column leads) or
+         coming up (the section does). */
+      const page = pageRef.current;
+      const leads = target === max && !!page && !page.hasAttribute('data-wide');
+      const leavesFirst = target === 0 && !!page && page.hasAttribute('data-arrived');
+      /* An open detail is shut here, at the head of the chain, and what it costs is added to
+         everything behind it (see DETAIL_LEAD). Called only on the way up: closing the detail
+         on a DOWN gesture would be the page throwing away what the reader just opened. */
+      const shut = leavesFirst && closerRef.current?.() === true;
+      const detail = shut ? DETAIL_LEAD : 0;
+      const lead = leads ? RAIL_LEAD : leavesFirst ? ARRIVE_LEAD + detail : 0;
+      if (leads) {
+        leading.current = true;
+        page.toggleAttribute('data-wide', true);
+      }
+      if (leavesFirst) {
+        leaving.current = true;
+        const strike = () => page.toggleAttribute('data-arrived', false);
+        window.clearTimeout(exit);
+        if (detail) exit = window.setTimeout(strike, detail);
+        else strike();
+      }
+
+      window.clearTimeout(glide);
+      const start = () => {
+        pending = false;
+        window.scrollTo({ top: target, behavior: 'smooth' });
+      };
+      if (lead) {
+        pending = true;
+        glide = window.setTimeout(start, lead);
+      } else start();
+
       window.clearTimeout(clear);
       clear = window.setTimeout(() => {
         heading = null;
-      }, 700);
+      }, 700 + lead);
     };
 
     /* Not passive: the whole point is to replace the browser's own scroll with one glide. */
@@ -2175,6 +3419,8 @@ const About: React.FC = () => {
       window.removeEventListener('wheel', onWheel);
       window.removeEventListener('resize', refresh);
       window.clearTimeout(clear);
+      window.clearTimeout(glide);
+      window.clearTimeout(exit);
     };
   }, []);
 
@@ -2282,7 +3528,7 @@ const About: React.FC = () => {
           )}
           </SwapUnit>
           </Stage>
-          <Projects reduced={!!reduced} />
+          <Projects reduced={!!reduced} closerRef={closerRef} />
         </Content>
       </Page>
     </PageTransition>
