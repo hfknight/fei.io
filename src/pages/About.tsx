@@ -1713,6 +1713,29 @@ interface Project {
   /* The longer copy for the detail view. Falls back to `blurb` when absent, so a project
      can ship with one line and gain a paragraph later. */
   detail?: string;
+  /* A walkthrough, shown in a phone frame where the split would otherwise be (see Detail).
+     This is the THIRD thing the detail can show, after the two-shot split and the bare skin,
+     and which one a project gets is decided by what it carries rather than by a mode flag.
+
+     Two encodes, and the pair is the point: the webm is AV1, both smaller and higher fidelity
+     than the mp4, but Safari only decodes AV1 where the hardware can. Declared first, so
+     everything that can take it does and the rest fall through to H.264 — which is the only
+     reason to ship the larger file at all. Both or neither; a lone mp4 would work but would
+     serve twice the bytes to every browser that never needed it.
+
+     `image` doubles as the poster, so it wants to be a frame of the same capture at the same
+     size — otherwise the handover from poster to first frame is a visible jump. */
+  videoWebm?: string;
+  videoMp4?: string;
+  /* Set when `image` is a capture of a LIGHT interface. The panel's three layers — plate, veil,
+     shim — were tuned against game key art and white UI type on a dark page, which is bright in
+     places but dark overall. A near-white app screenshot is not: at full strength it turns its
+     panel into a lit rectangle in a row of dark ones, and the name over it stops reading.
+
+     Declared per project rather than fixed in the scrim because it is a fact about the SOURCE,
+     not a preference — and a heavier scrim for everyone would flatten the captures that are
+     already dark. See PanelShot for what it does. */
+  lightCapture?: boolean;
 }
 
 /* TODO: two placeholders left — swap in the real second and third. */
@@ -1736,10 +1759,22 @@ const PROJECTS: Project[] = [
     imageTall: '/warmind-game@2x.webp',
   },
   {
-    name: 'Project Two',
-    blurb: 'A one-line description of what it is and why it exists.',
-    year: '2025',
-    kind: 'Experiment',
+    name: 'fanmatchday.com',
+    blurb:
+      'Plans your FIFA World Cup 2026 matchday, hotel to kickoff, in about thirty seconds.',
+    detail:
+      "You're flying into a host city for a FIFA World Cup 2026 match and the answers are " +
+      "scattered — a stadium site, a transit PDF, FIFA's own bag rules. When do I leave? Is " +
+      'the train running on a Sunday? Will it be 100°F? Tell it your hotel and your match and ' +
+      'it answers all of it on one page: your leave-by time, the route with live driving and ' +
+      'transit ETAs, what you can carry through the gate, the weather, where to eat. English ' +
+      'or Spanish, all 11 US host stadiums, all 78 matches.',
+    year: '2026',
+    kind: 'World Cup 2026 planner',
+    image: '/fanmatchday-home@2x.webp',
+    lightCapture: true,
+    videoWebm: '/fanmatchday-walk.webm',
+    videoMp4: '/fanmatchday-walk.mp4',
   },
   {
     name: 'Project Three',
@@ -2287,7 +2322,7 @@ const Panel = styled(motion.button)`
    The tilt is small on purpose — 4 degrees reads as a deliberate angle, where more starts to
    read as a device mock. It does not animate: the accordion is already moving flex-grow on
    every panel, and a transform here would be a second motion competing with it. */
-const PanelShot = styled.div<{ $image: string }>`
+const PanelShot = styled.div<{ $image: string; $light?: boolean }>`
   position: absolute;
   /* Only just enough slack to hide the rotation, and the two axes are deliberately different.
      A box rotated by 4 degrees needs about H*sin4 of extra width and W*sin4 of extra height to
@@ -2304,9 +2339,31 @@ const PanelShot = styled.div<{ $image: string }>`
   inset: -3% -9%;
   background-image: url('${p => p.$image}');
   background-size: cover;
-  background-position: center;
+  /* TOP, not centre, and it only bites on the captures tall enough to overflow this box.
+     A phone capture is far taller than the plate — cover matches its width and leaves the
+     height spilling both ways — so centred it opened somewhere in the middle of the page,
+     below the header and half into the hero. Anchored to the top it starts where the page
+     does, which is the part that says what the product is.
+
+     Inert for the desktop captures, and that is arithmetic rather than luck: at ~0.8 against
+     this plate's ~0.57 they are the WIDER of the two, so cover matches their height exactly
+     and there is no vertical overflow left for a position to move. */
+  background-position: center top;
   background-repeat: no-repeat;
   transform: rotate(-4deg);
+
+  /* A light capture, damped (see lightCapture on Project). On the PLATE rather than in the
+     scrim above it, which matters on hover: the veil lifts to 0.45 to let the picture through,
+     so a scrim-side fix would hand back the glare at exactly the moment the panel is meant to
+     be read. Damping the source holds on both states.
+
+     Brightness alone greys it out — the contrast and saturation come back up so it still reads
+     as a screenshot of something rather than as a stain. */
+  ${p =>
+    p.$light &&
+    css`
+      filter: brightness(0.38) contrast(1.14) saturate(0.9);
+    `}
 `;
 
 /* The scrim: hovering lifts it and the panel steps forward. On its own layer so it can fade
@@ -2778,15 +2835,106 @@ const SplitHandle = styled.div`
   }
 `;
 
-/* The detail copy, a SIBLING of the hero rather than a child — see Hero for why. With two
-   screenshots beside it it takes the narrow right-hand column and centres in it; with no
-   pictures at all (a project that supplies neither file) there is no split to sit beside, so
-   it keeps the old full-width perch at the frame's lower-left. */
-const DetailCaption = styled(motion.div)<{ $split: boolean }>`
+/* The phone, drawn rather than photographed: a mockup image would be one more asset to keep in
+   step with the panel skin, and it could not take the section's own material. Everything here
+   derives from ONE number — the frame's height — so the whole device scales as a unit and its
+   proportions stay an iPhone's at any size. cqh, because that height is a share of the stage's
+   and CSS cannot otherwise turn a parent's HEIGHT into a child's width.
+
+   The ratios are the device's own: 393x852 points of screen, a 55pt corner, a 125x37 island. */
+const PhoneStage = styled(motion.div)`
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: ${SPLIT_SHOTS};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  container-type: size;
+
+  /* A phone is narrow and the column it sits in is not — fitted to the height it leaves ~500px
+     of bare skin either side. This is what makes that emptiness read as staging rather than as
+     a gap: one soft pool of light under the device, no edges, nothing to mistake for an object.
+     Cheaper than a backdrop image and it cannot compete with the screen. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      55% 60% at 50% 50%,
+      rgba(255, 255, 255, 0.07),
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    /* Same halving the split takes at phone width — pictures above, copy below. */
+    width: auto;
+    right: 0;
+    bottom: 50%;
+  }
+`;
+
+const PhoneFrame = styled.div`
+  /* The one number. Capped so the device does not become the whole composition on a tall
+     screen, and inset from the stage so it never touches the frame's edges. */
+  --h: min(calc(100cqh - 3rem), 620px);
+  --w: calc(var(--h) * ${393 / 852});
+  position: relative;
+  height: var(--h);
+  width: var(--w);
+  border-radius: calc(var(--h) * ${55 / 852});
+  padding: calc(var(--h) * ${10 / 852});
+  /* The rail: a raking metal gradient rather than a flat dark, so the body reads as a solid
+     object under the same light as the panels. */
+  background: linear-gradient(145deg, #55555c 0%, #1b1b1f 24%, #141417 62%, #45454c 100%);
+  box-shadow:
+    0 34px 70px -18px rgba(0, 0, 0, 0.72),
+    0 0 0 1px rgba(255, 255, 255, 0.07);
+`;
+
+const PhoneScreen = styled.div`
+  position: relative;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  /* The screen's corner is the body's less the bezel, which is what keeps the two concentric —
+     a screen sharing the body's radius reads as a sticker on a slab. */
+  border-radius: calc(var(--h) * ${45 / 852});
+  background: #000;
+
+  video,
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+`;
+
+const PhoneIsland = styled.span`
+  position: absolute;
+  z-index: 1;
+  top: calc(var(--h) * ${11 / 852});
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(var(--w) * ${125 / 393});
+  height: calc(var(--h) * ${37 / 852});
+  border-radius: 999px;
+  background: #000;
+`;
+
+/* The detail copy, a SIBLING of the hero rather than a child — see Hero for why. With media
+   beside it — the two-shot split, or the phone — it takes the narrow right-hand column and
+   centres in it; with nothing at all (a project that supplies neither) there is no column to
+   sit beside, so it keeps the old full-width perch at the frame's lower-left. */
+const DetailCaption = styled(motion.div)<{ $aside: boolean }>`
   position: absolute;
   z-index: 1;
   ${p =>
-    p.$split
+    p.$aside
       ? css`
           left: ${SPLIT_SHOTS};
           right: 0;
@@ -2920,10 +3068,20 @@ const Detail: React.FC<{
      rather than the hero's own background. */
   const photoIn = { duration: 0.4, ease, delay: EXPAND_DELAY + 0.42 };
 
-  /* Both or neither: the split is a pair of screenshots played against each other, so one
-     picture cannot stand in for it. A project carrying only `image` still gets that picture
-     on its resting panel; its detail simply opens as the flat hero. */
+  /* What the detail SHOWS, decided by what the project carries rather than by a mode on it.
+     Three outcomes, in this order of preference.
+
+     Both or neither for the split: it is a pair of screenshots played against each other, so
+     one picture cannot stand in for it.
+
+     Then the phone, on the same both-or-neither rule for its two encodes (see Project). It is
+     second because a project with a desktop capture pair has a desktop story to tell; only one
+     of the two can have the column, and nothing so far wants both.
+
+     A project with neither still gets its `image` on the resting panel; its detail opens as the
+     flat hero, which is the case this started as. */
   const split = !!(project.imageWide && project.imageTall);
+  const phone = !split && !!(project.videoWebm && project.videoMp4);
 
   /* Where the diagonal sits, as a percentage of the picture side. Held in state and spent as
      a CSS variable: the elements that read it never change class, so a drag costs a variable
@@ -3011,8 +3169,44 @@ const Detail: React.FC<{
         </DetailSplit>
       )}
 
+      {phone && (
+        /* aria-hidden like the split beside it: the shots are background-image divs and are
+           already invisible to a screen reader, and this is the same thing — the detail's
+           readable content is the caption. A looping muted clip with no controls is decoration
+           over the top of it, not a second account of the project. */
+        <PhoneStage
+          aria-hidden
+          initial={reduced ? false : { opacity: 0 }}
+          animate={{ opacity: 1, transition: reduced ? { duration: 0 } : photoIn }}
+          exit={reduced ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
+        >
+          <PhoneFrame>
+            <PhoneScreen>
+              <PhoneIsland />
+              {reduced ? (
+                /* The poster on its own. Not the clip paused: an autoplaying loop is the thing
+                   the preference is about, and a video element parked on its first frame with
+                   no controls is just a heavier way to show the same picture. */
+                <img src={project.image} alt="" />
+              ) : (
+                /* No preload hint: the detail mounts on click, so loading here IS on demand,
+                   and autoplay overrides the hint anyway. The codec string is exact so a
+                   browser that cannot decode AV1 rejects the webm without fetching it. */
+                <video autoPlay loop muted playsInline poster={project.image}>
+                  <source
+                    src={project.videoWebm}
+                    type="video/webm; codecs=av01.0.05M.08"
+                  />
+                  <source src={project.videoMp4} type="video/mp4" />
+                </video>
+              )}
+            </PhoneScreen>
+          </PhoneFrame>
+        </PhoneStage>
+      )}
+
       <DetailCaption
-        $split={split}
+        $aside={split || phone}
         initial={reduced ? false : { opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0, transition: reduced ? { duration: 0 } : captionIn }}
         exit={reduced ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
@@ -3160,7 +3354,9 @@ const Projects: React.FC<{
             >
               {/* Three layers under the copy, in this order: the tilted plate, the scrim that
                   lifts on hover, and the shim that does not. See PanelShim. */}
-              {p.image && <PanelShot $image={p.image} aria-hidden />}
+              {p.image && (
+                <PanelShot $image={p.image} $light={p.lightCapture} aria-hidden />
+              )}
               <PanelVeil aria-hidden />
               {p.image && <PanelShim aria-hidden />}
               <PanelRule aria-hidden />
