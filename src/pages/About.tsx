@@ -1734,6 +1734,11 @@ interface Project {
      and gets treated as such: heavily damped, so it stays behind the device instead of becoming
      the thing you look at. */
   backdrop?: string;
+  /* The project's id in the Obsidian community registry, where a plugin's install numbers are
+     public. Carried as the ID rather than as a flag because it IS the key the endpoint looks up
+     — one string, and the detail asks for the numbers only where there are numbers to ask for.
+     See functions/api/plugin-stats. */
+  pluginId?: string;
   /* An app tile in place of a capture — for a project whose face is a MARK rather than a
      screen. A plugin has no interface of its own worth photographing: what it puts on screen is
      a note inside someone else's application, so a capture would mostly be that application.
@@ -1814,6 +1819,7 @@ const PROJECTS: Project[] = [
     year: '2026',
     kind: 'Obsidian plugin',
     url: 'https://community.obsidian.md/plugins/x-bookmarks-sync',
+    pluginId: 'x-bookmarks-sync',
     tile: 'bookmark',
     /* Not a capture — there is nothing to capture (see `tile`) — but the same field, because
        it does the same job in both places: the resting panel's picture, which the detail then
@@ -3119,17 +3125,21 @@ const MediaStage = styled(motion.div)<{
      --bleed-dir is which edge that heavy end is at, and it follows the copy: 90deg ramps from
      the left, 270deg from the right. Held in variables for the phone-width case, where the
      argument stops applying — the copy drops BELOW the picture there (see DetailCaption), and a
-     dark side edge is then just a dark side edge. The media query swaps in a flat damp. */
+     dark side edge is then just a dark side edge. The media query swaps in a flat damp.
+
+     The stops hold near-opaque to 28% and are still heavy at the copy's inner edge (37%): the
+     paragraph is the full width of that column, and a ramp that opened earlier left its last
+     lines over floodlights. Past 44% the ramp is done arguing about text and only damping the
+     picture, which is --bleed-far — the one stop that is a fact about the SOURCE rather than
+     about the layout, and so is set per project (see the detail's two stages). */
   --bleed-dir: 90deg;
+  --bleed-far: 0.4;
   --bleed-wash: linear-gradient(
     var(--bleed-dir),
     rgba(10, 10, 14, 0.94) 0%,
-    /* Held near-opaque to 28% and still heavy at the copy's inner edge (37%): the paragraph is
-       the full width of that column, and a ramp that opened earlier left its last lines over
-       floodlights. */
-      rgba(10, 10, 14, 0.88) 28%,
+    rgba(10, 10, 14, 0.88) 28%,
     rgba(10, 10, 14, 0.56) 44%,
-    rgba(10, 10, 14, 0.4) 100%
+    rgba(10, 10, 14, var(--bleed-far)) 100%
   );
   ${p =>
     p.$column === 'left' &&
@@ -3189,6 +3199,94 @@ const StagedTile = motion(styled(AppTile)`
   top: calc(var(--tile-y) * 100%);
   transform: translate(-50%, -50%);
 `);
+
+/* What the mark is standing on: the plugin's real numbers, under it, once the box has finished
+   opening. A directory listing is the one place a plugin has a face AND a public record, and
+   the tile without the record is only half of that.
+
+   Placed against the tile's LANDING point rather than travelling with it — it arrives on the
+   caption's beat, by which time the mark has stopped — so it needs the same three variables the
+   tile does and one more, the gap under it. A SIBLING of the stage rather than a child, because
+   the stage is aria-hidden decoration and this is the one thing in that half of the frame with
+   something to say.
+
+   Not rendered at all when the fetch gives nothing (see Detail): a portfolio claiming a number
+   it could not verify this minute is worse than one that shows the picture alone. */
+/* What /api/plugin-stats answers with — the useful half of a registry entry (see that file). */
+interface PluginStatData {
+  downloads: number;
+  releases: number;
+  version?: string;
+}
+
+const PluginStat = styled(motion.div)`
+  position: absolute;
+  z-index: 1;
+  left: calc(var(--tile-x) * 100%);
+  top: calc(var(--tile-y) * 100% + var(--tile) / 2 + 1.5rem);
+  /* The translate PROPERTY, not a transform. This block arrives with a small y-lift, and
+     framer drives that by writing transform — which replaces this rule wholesale, so a
+     transform-based centring silently loses and the line sits half its own width to the right of
+     the mark. translate is a separate property and composes with framer's transform instead. */
+  translate: -50% 0;
+  text-align: center;
+  pointer-events: none;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    display: none;
+  }
+`;
+
+/* Label and number on ONE line, in that order — the number alone was a figure with no noun, and
+   the noun under it read as a second thought. Baselines aligned rather than boxes centred, so the
+   two faces sit on the same line however their metrics differ. */
+const StatRow = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.5rem;
+`;
+
+/* The noun, in the chrome idiom the eyebrows use. */
+const StatLabel = styled.span`
+  font-family: ${p => p.theme.font.mono};
+  font-size: 0.66rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: 0 1px 10px rgba(6, 6, 10, 0.75);
+`;
+
+/* The number itself, in the display face — the only weight in this half of the frame, and the
+   thing the line exists for.
+
+   Literal white with a shadow under it, not the page's ink: this sits on a PHOTOGRAPH, in the
+   half of the frame the wash deliberately leaves bright (see MediaStage), and the panel's own
+   light ink is tuned against a flat dark fill. The shadow is what carries it over a cloud —
+   the same bargain the close button makes one corner away, with the picture doing more work. */
+const StatCount = styled.span`
+  font-family: ${p => p.theme.font.display};
+  font-size: 1.45rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  color: #fff;
+  text-shadow: 0 1px 14px rgba(6, 6, 10, 0.7);
+`;
+
+/* And the reading of it, in the chrome idiom the eyebrows use, so the pair reads as a caption
+   on the mark rather than as a second heading. */
+const StatMeta = styled.div`
+  margin-top: 0.35rem;
+  font-family: ${p => p.theme.font.mono};
+  font-size: 0.66rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: 0 1px 10px rgba(6, 6, 10, 0.75);
+`;
 
 const PhoneFrame = styled.div`
   /* The one number. Capped so the device does not become the whole composition on a tall
@@ -3414,6 +3512,30 @@ const Detail: React.FC<{
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  /* The plugin's public numbers, fetched when its detail opens — see functions/api/plugin-stats
+     for why this cannot be read from the page. On open rather than on page load: it is one
+     panel's worth of data behind a click, and the endpoint answers from cache anyway.
+
+     Every failure path lands in the same place, which is null: a 404 (the SPA dev server has no
+     /api and hands back index.html, so the parse throws), a 502 from upstream, an aborted
+     unmount. The stat block simply does not render — a number this page could not verify is
+     worse than no number. */
+  const [stats, setStats] = useState<PluginStatData | null>(null);
+  const wantsStats = !!project.pluginId;
+  useEffect(() => {
+    if (!wantsStats) return;
+    const stop = new AbortController();
+    fetch(`/api/plugin-stats?id=${encodeURIComponent(project.pluginId!)}`, {
+      signal: stop.signal,
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then((d: PluginStatData | null) => {
+        if (typeof d?.downloads === 'number') setStats(d);
+      })
+      .catch(() => {});
+    return () => stop.abort();
+  }, [wantsStats, project.pluginId]);
+
   /* The wipe is the PANELS' own job now (see Projects) — Detail only has to know when it ends,
      so the hero does not start growing before the columns it grows over have gone. */
   const maxOrder = Math.max(
@@ -3595,6 +3717,12 @@ const Detail: React.FC<{
           /* The phone keeps the LEFT column; the copy has the right, so the wash ramps from
              there (see MediaStage). */
           $column="left"
+          /* Lighter past the copy than the default: this source is a stadium at golden hour,
+             most of whose interest — the crowd, the floodlights, the ball — is in the half the
+             phone is not covering, and at 0.4 that half read as a dark field with a picture
+             somewhere behind it. The phone can take it: it is a dark rail around a lit screen,
+             so the brighter the room, the more it reads as a device IN the room. */
+          style={{ '--bleed-far': 0.22 } as React.CSSProperties}
           /* Uncovered on the hero's own clock, exactly as the split beside it is (see
              DetailSplit for the full reasoning). It used to fade up on photoIn's later, shorter
              flight, which is what read as the frame opening as a dark box and the scene and the
@@ -3707,6 +3835,35 @@ const Detail: React.FC<{
             </AppTile>
           )}
         </MediaStage>
+      )}
+
+      {/* The record under the mark, once both have landed — the caption's beat, so the frame
+          finishes opening, the copy arrives, and the numbers arrive with it rather than as a
+          fourth event. Only where the mark was measured: with no landing point there is nothing
+          for it to sit under. */}
+      {tile && stats && from?.tile && (
+        <PluginStat
+          style={
+            {
+              '--tile': `${from.tile.size}px`,
+              '--tile-x': TILE_X_END,
+              '--tile-y': from.tile.y,
+            } as React.CSSProperties
+          }
+          initial={reduced ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0, transition: reduced ? { duration: 0 } : captionIn }}
+          exit={reduced ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
+        >
+          <StatRow>
+            <StatLabel>Downloads</StatLabel>
+            <StatCount>{stats.downloads.toLocaleString()}</StatCount>
+          </StatRow>
+          <StatMeta>
+            {stats.version && `v${stats.version}`}
+            {stats.version && stats.releases > 0 && ' · '}
+            {stats.releases > 0 && `${stats.releases} releases`}
+          </StatMeta>
+        </PluginStat>
       )}
 
       <DetailCaption
