@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import styled, { createGlobalStyle, css, keyframes } from 'styled-components';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, ArrowUpRight, Bookmark } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
+import { theme } from '../styles/theme';
 /* Plain import = the file URL (svgr components need ?react); the ascii sampler rasterises it.
    The feather, because it IS the site's mark — the loader and the home lockup both draw this
    exact geometry. Only its alpha is used; the file's orange fills are discarded (see
@@ -1727,6 +1728,26 @@ interface Project {
      size — otherwise the handover from poster to first frame is a visible jump. */
   videoWebm?: string;
   videoMp4?: string;
+  /* A picture behind whatever the detail stages in its media column — for now the phone. The
+     stage's default is one soft pool of light (see MediaStage); this replaces it where the
+     project has a WORLD worth putting the object in rather than just empty room. It is scenery
+     and gets treated as such: heavily damped, so it stays behind the device instead of becoming
+     the thing you look at. */
+  backdrop?: string;
+  /* An app tile in place of a capture — for a project whose face is a MARK rather than a
+     screen. A plugin has no interface of its own worth photographing: what it puts on screen is
+     a note inside someone else's application, so a capture would mostly be that application.
+     The tile is what the thing looks like where you actually meet it, in a plugin directory.
+
+     A key rather than a component, so this array stays data. See AppTile. */
+  tile?: 'bookmark';
+  /* Where the thing actually is, shown in the detail (see DetailLink). The label is DERIVED
+     from this rather than carried beside it, so there is one string to keep true and no way for
+     the two to disagree — and what a reader wants from a portfolio link is the destination, not
+     a verb. For the two sites that makes it a near-repeat of the name above, which reads as
+     confirmation rather than as redundancy; for the plugin the host is the more useful half,
+     since it is what says the thing is listed rather than self-published. */
+  url?: string;
   /* Set when `image` is a capture of a LIGHT interface. The panel's three layers — plate, veil,
      shim — were tuned against game key art and white UI type on a dark page, which is bright in
      places but dark overall. A near-white app screenshot is not: at full strength it turns its
@@ -1754,6 +1775,7 @@ const PROJECTS: Project[] = [
       'pipeline does the rest.',
     year: '2026',
     kind: 'Automated gaming site',
+    url: 'https://videogamers.fyi',
     image: '/warmind-home@2x.webp',
     imageWide: '/warmind-home-wide@2x.webp',
     imageTall: '/warmind-game@2x.webp',
@@ -1771,22 +1793,72 @@ const PROJECTS: Project[] = [
       'or Spanish, all 11 US host stadiums, all 78 matches.',
     year: '2026',
     kind: 'World Cup 2026 planner',
+    url: 'https://fanmatchday.com',
     image: '/fanmatchday-home@2x.webp',
     lightCapture: true,
     videoWebm: '/fanmatchday-walk.webm',
     videoMp4: '/fanmatchday-walk.mp4',
+    backdrop: '/fanmatchday-bg@2x.webp',
   },
   {
-    name: 'Project Three',
-    blurb: 'A one-line description of what it is and why it exists.',
-    year: '2025',
-    kind: 'Tool',
+    name: 'X Bookmarks Sync',
+    blurb: 'Saves your X bookmarks into Obsidian as real notes, with no API key.',
+    detail:
+      'Sync your X (Twitter) bookmarks directly into your Obsidian vault as clean, ' +
+      'structured Markdown notes. No API key. No OAuth. Just your existing browser session. ' +
+      'It runs in an embedded webview against the session you already have, and reads your ' +
+      'bookmark list directly rather than scrolling the page, so a large library syncs ' +
+      'quickly. Each run confirms it actually reached the end of the list; when it cannot, ' +
+      'the next one re-scans in full rather than assuming. Sync incrementally, pick from a ' +
+      'checklist, or pull the full body of a long-form X article into its note.',
+    year: '2026',
+    kind: 'Obsidian plugin',
+    url: 'https://community.obsidian.md/plugins/x-bookmarks-sync',
+    tile: 'bookmark',
+    /* Not a capture — there is nothing to capture (see `tile`) — but the same field, because
+       it does the same job in both places: the resting panel's picture, which the detail then
+       opens onto. Carrying it here rather than as a second backdrop key is what makes the two
+       states continuous: the panel is already showing this sky when it is clicked. */
+    image: '/xbookmarksync-bg@2x.webp',
   },
 ];
+
+/* A project whose picture fills the whole opened frame rather than the picture column: a mark
+   staged in a scene (see MediaStage's bleed wash). Derived rather than declared, because it is
+   what the two keys TOGETHER mean — and read in both states, which is the point: the resting
+   panel has to lay its picture out against the same box the detail will cover against, or the
+   crop jumps at the hand-off. */
+const bleeds = (p: Project) => !!(p.tile && p.image);
 
 const PANEL_S = '0.55s';
 /* Shared by Panel and by PanelSlot, which has to match it — see PanelSlot. */
 const PANEL_PAD = '1.5rem';
+
+/* How the opened frame divides: screenshots left, copy right. The pictures take the larger
+   share — they are the evidence — and the copy a column narrow enough to read as a caption
+   rather than a second body of text. SHOT_WIDE then splits the picture side.
+
+   SHOT_WIDE is where the diagonal STARTS, not where it stays: it is the initial value of a
+   figure the reader drags (see SplitHandle). A number rather than a CSS string because it is
+   also the seed of that state and gets arithmetic done to it. */
+const SPLIT_SHOTS = '63%';
+const SHOT_WIDE = 68;
+/* The slant on the boundary between the two panes, in px — see the drag machinery below. */
+const SHOT_SLANT = 72;
+
+/* The picture-side column, restated in the ROW's terms so a resting panel can size against it
+   (PanelRow is an inline-size container). SPLIT_SHOTS is the same figure as a share of the
+   opened frame; this is the number of pixels that comes to. */
+const SHOT_COL = `calc(100cqw * ${parseFloat(SPLIT_SHOTS) / 100})`;
+
+/* What a HOVERED panel widens to, and it is not a taste figure: it is the width of the wide
+   shot's own pane in the opened detail, measured at the diagonal's NARROW end (the bottom, see
+   EDGE_BOT). So hovering a windowed panel shows exactly the run of the screenshot that survives
+   the split, and opening continues past it rather than re-cropping.
+
+   The narrow end rather than the wide one on purpose: everything the hover reveals is then
+   unambiguously the wide pane's, with none of the wedge the tall shot takes back lower down. */
+const PANEL_HOVER_W = `calc(${SHOT_COL} * ${SHOT_WIDE / 100} - ${SHOT_SLANT}px)`;
 
 /* The band kept clear at the bottom of a panel for its blurb, which is taken OUT of flow so
    that nothing above it can move (see PanelBlurb).
@@ -2144,28 +2216,44 @@ const PanelRow = styled.div`
   display: flex;
   gap: var(--panel-gap);
   height: 100%;
+  /* So a panel's plate can be sized against the FRAME rather than against its own box — which
+     is what lets it hold still while the panel around it changes width (see PanelShot). */
+  container-type: inline-size;
   /* No padding. There used to be a mat here — --img-margin all round, matching the portrait's
      poster border — and it existed to let the frame's own ruling show around the panels. The
      ruling is the section's now and runs the full screen, so the ground reads either side of
      the frame without the panels having to give up a border to expose it. */
 
-  /* The accordion. Both rules are one class + one pseudo-class, so the second wins on
-     the hovered panel and the first still applies to its siblings.
+  /* The accordion, and the hovered panel's width is now a MEASUREMENT rather than a ratio: it
+     lands on PANEL_HOVER_W, the width of the wide shot's own pane in the opened detail, so
+     hovering a windowed panel reveals exactly the run of the screenshot that survives the split
+     and opening carries on past it (see PanelShot).
 
-     2 against 0.8 per sibling gives the hovered panel 62% of the DISTRIBUTED space — grow
-     shares out free space only, and each panel's PANEL_PAD is paid before the split (see
-     PanelSlot), so every panel carries a fixed 48px that dilutes the winner's share and pads
-     the losers'.
+     Every width here is a BASIS, and that is the load-bearing part rather than a style. It was
+     briefly grow-based with a fixed basis on the hovered panel, which bounced: flex-basis is not
+     in Panel's transition list, so the basis jumped to its target while flex-grow was still
+     easing 1 -> 0, and for that half second the panel held BOTH — measured at ~678px before it
+     settled back to 432. Driving every panel off one animatable length means exactly one
+     property moves and there is nothing to overshoot with.
 
-     Tied to the COUNT, not to taste: the siblings' 0.8 is paid per panel, so the same figure
-     buys less emphasis the more of them there are. This was 2.7 while there were four, which
-     is what 2 is worth at three; it came back down with the fourth. Change the count and this
-     has to be re-checked — a fourth wants ~2.7 again, a fifth roughly 3.5. */
+     Both figures follow PROJECTS.length, so adding a panel needs no re-derivation — the thing
+     the old grow ratio demanded every time. */
+  --panel-w: calc(
+    (100cqw - ${PROJECTS.length - 1} * var(--panel-gap)) / ${PROJECTS.length}
+  );
+
+  > * {
+    flex: 0 0 var(--panel-w);
+  }
+
   &:hover > * {
-    flex-grow: 0.8;
+    --panel-w: calc(
+      (100cqw - ${PROJECTS.length - 1} * var(--panel-gap) - ${PANEL_HOVER_W}) /
+        ${PROJECTS.length - 1}
+    );
   }
   & > *:hover {
-    flex-grow: 2;
+    --panel-w: ${PANEL_HOVER_W};
   }
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
@@ -2220,7 +2308,11 @@ const Panel = styled(motion.button)`
   cursor: pointer;
 
   position: relative;
-  flex: 1 1 0;
+  /* No flex here on purpose. The width is PanelRow's now — it drives every panel off one
+     animatable basis (see there) — and a declaration on this component would silently win:
+     both rules are one class deep, and this one is defined later, so source order hands it the
+     tie. That is exactly what happened, and the symptom was a row that ignored hover
+     completely: every panel sat at its equal third and nothing moved. */
   /* Without this a flex item floors at its content's intrinsic width and the panels
      refuse to compress, so the hovered one has nothing to take. */
   min-width: 0;
@@ -2266,7 +2358,9 @@ const Panel = styled(motion.button)`
   translate: 0 calc((1 - var(--arrive, 0)) * ${PANEL_RISE}px);
   filter: opacity(var(--arrive, 0));
   transition:
-    flex-grow ${PANEL_S} cubic-bezier(0.16, 1, 0.3, 1),
+    /* flex-BASIS, because that is the property the accordion now moves — see PanelRow. Left as
+       flex-grow, the width changed instantly and only the (now static) grow eased. */
+    flex-basis ${PANEL_S} cubic-bezier(0.16, 1, 0.3, 1),
     translate var(--rise-s) cubic-bezier(0.16, 1, 0.3, 1) var(--rise-delay),
     filter var(--rise-s) linear var(--rise-delay);
 
@@ -2322,7 +2416,12 @@ const Panel = styled(motion.button)`
    The tilt is small on purpose — 4 degrees reads as a deliberate angle, where more starts to
    read as a device mock. It does not animate: the accordion is already moving flex-grow on
    every panel, and a transform here would be a second motion competing with it. */
-const PanelShot = styled.div<{ $image: string; $light?: boolean }>`
+const PanelShot = styled.div<{
+  $image: string;
+  $light?: boolean;
+  $window?: boolean;
+  $bleed?: boolean;
+}>`
   position: absolute;
   /* Only just enough slack to hide the rotation, and the two axes are deliberately different.
      A box rotated by 4 degrees needs about H*sin4 of extra width and W*sin4 of extra height to
@@ -2364,6 +2463,132 @@ const PanelShot = styled.div<{ $image: string; $light?: boolean }>`
     css`
       filter: brightness(0.38) contrast(1.14) saturate(0.9);
     `}
+
+  /* THE WINDOW. Everything above treats the plate as a picture fitted to its panel — cover
+     against the panel's own box, so the crop changes whenever the panel does, which is what
+     reads as a zoom every time the accordion moves.
+
+     This inverts that. The plate is laid out against the ROW (PanelRow is an inline-size
+     container), at exactly the size and position the wide shot takes in the opened detail:
+     SHOT_COL across, flush left, cover, left-anchored. The panel's own overflow is then the
+     only thing deciding how much of it you see. Nothing about the picture depends on the
+     panel's width, so widening the panel REVEALS rather than rescales — and the pixels a
+     hovered panel shows are the same pixels, at the same size, that the opened detail shows.
+
+     The tilt goes with it, and has to: a plate at 4 degrees and a shot at 0 cannot be the same
+     continuous picture. So does the overshoot, which only existed to hide that rotation.
+
+     Only for a project carrying imageWide — the pane this is matching is that file's. A
+     portrait phone capture at SHOT_COL across would be scaled past any use. */
+  ${p =>
+    p.$window &&
+    css`
+      && {
+        inset: 0 auto 0 0;
+        width: ${SHOT_COL};
+      }
+      transform: none;
+      background-position: left center;
+    `}
+
+  /* The same window, onto a picture that fills the WHOLE frame when opened rather than a column
+     of it (see MediaStage's bleed wash). So the plate is the row's full width at the row's full
+     height, which is the box the detail covers against — same box, same cover, same crop, and
+     the panel is again only deciding how much of it you see.
+
+     Anchored RIGHT where the other window anchors left, and for the same reason: the anchor has
+     to be an edge that does not move. A panel's left edge is only fixed for the FIRST panel —
+     every other one slides when the accordion widens a neighbour. This project is the row's
+     last, so its right edge is the row's right edge and holds through any hover. Move it and
+     the anchor has to move with it; a middle panel has no fixed edge at all and would need its
+     offset tracked. */
+  ${p =>
+    p.$bleed &&
+    css`
+      && {
+        inset: 0 0 0 auto;
+        width: 100cqw;
+      }
+      transform: none;
+      background-position: center;
+    `}
+`;
+
+/* The plugin's face, drawn as the icon a directory would list it under — the one place a plugin
+   has a picture of itself. Sized by --tile alone so the same component serves the panel at
+   thumbnail size and the detail at display size; every other dimension here is a percentage of
+   it, which is also why the radius is a percentage rather than a calc: on a square box the two
+   axes resolve to the same length.
+
+   The material is the icon's own, not the page's, and deliberately so — it has to read as a
+   thing that exists somewhere else. Dark slate lifting to violet from below, an inner rim of
+   light along the top edge, and the glyph in white.
+
+   The violet moved OUT. It used to bloom up the tile's own face, which worked against a flat
+   dark panel and stopped working the day the panel got a violet sky behind it: same hue, so the
+   glow read as the background coming through and the object lost its lower edge. Most of it is
+   now a backlight — a wide violet cast BEHIND the box, where a shadow can only paint outside the
+   border box and so cannot touch the face. The object separates from the sky by being lit from
+   behind rather than by being brighter than it, which is also the more honest reading of an icon
+   floating in front of a light source. What is left inside is a low ember at the foot, enough to
+   say the two belong to the same object.
+
+   Black stays underneath it. The cast is coloured light; the drop is weight, and a violet-only
+   stack floats.
+
+   Set `color`, not `fill`, on the glyph: the icon is a lucide component and takes currentColor,
+   so the tile hands it down and nothing has to reach inside the SVG. */
+const AppTile = styled.span`
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--tile);
+  aspect-ratio: 1;
+  border-radius: 23.5%;
+  color: #fff;
+  background:
+    radial-gradient(118% 88% at 50% 122%, rgba(143, 92, 240, 0.62) 0%, rgba(143, 92, 240, 0) 58%),
+    linear-gradient(180deg, #3e3e47 0%, #2a2a31 62%, #24242b 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.17),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.055),
+    0 calc(var(--tile) * 0.16) calc(var(--tile) * 0.3) calc(var(--tile) * -0.06)
+      rgba(143, 92, 240, 0.5),
+    0 calc(var(--tile) * 0.05) calc(var(--tile) * 0.14) calc(var(--tile) * -0.03)
+      rgba(143, 92, 240, 0.4),
+    0 26px 52px -16px rgba(0, 0, 0, 0.75);
+
+  svg {
+    width: 42%;
+    height: 42%;
+  }
+`;
+
+/* The tile on a RESTING panel, where a capture would otherwise be. Centred in the picture area
+   — the panel less the copy at its foot — rather than in the panel: the lower fifth is the
+   copy's, and the shim that protects it is near-opaque down there, so a tile centred in the
+   whole box would sit half inside its own scrim.
+
+   PANEL_COPY_H is that foot, measured: rule to the panel's bottom edge, which is the copy block
+   plus its padding. A constant because the copy is bottom-anchored flow and has no length this
+   can read — and it is only ever this one project's copy, since the tile is what a project
+   without a capture gets. It shifts by a line's height if the blurb ever reflows.
+
+   A fixed size, not a share of the panel's width, because that width is what the accordion
+   trades on hover — a proportional tile would breathe in and out every time a neighbour was
+   pointed at.
+
+   && to beat Panel's "> * { position: relative }", the same conflict PanelShot records. */
+const PANEL_COPY_H = '134px';
+
+const PanelTile = styled(AppTile)`
+  && {
+    position: absolute;
+  }
+  --tile: 116px;
+  left: 50%;
+  top: calc((100% - ${PANEL_COPY_H}) / 2);
+  transform: translate(-50%, -50%);
 `;
 
 /* The scrim: hovering lifts it and the panel steps forward. On its own layer so it can fade
@@ -2569,6 +2794,25 @@ const wipeOf = (i: number, index: number) => ({
 });
 
 const OPEN_CLIP = 'inset(0% 0% 0% 0%)';
+
+/* The clip the detail's shots are uncovered FROM: the clicked panel's own two edges, as shares
+   of the picture column (see Projects, where they are measured). Vertically open from the start
+   — the panel and the column are the same height, so only the width has anywhere to travel. */
+/* The clicked panel's two edges, as shares of a box the reveal will open across. Both pairs
+   are recorded at click time (see Panel's onClick): the column pair for the layers that live in
+   the picture column, the frame pair for one that bleeds the full width. */
+type PanelFrom = {
+  left: number;
+  right: number;
+  frameLeft: number;
+  frameRight: number;
+  /* The clicked panel's app tile, where it has one: centre as shares of the frame, size in px.
+     What lets the detail leave the mark exactly where the panel had it. */
+  tile?: { x: number; y: number; size: number };
+};
+
+const revealClip = (from: { left: number; right: number }) =>
+  `inset(0% ${(from.right * 100).toFixed(3)}% 0% ${(from.left * 100).toFixed(3)}%)`;
 const wipeClip = (fromRight: boolean) =>
   fromRight ? 'inset(0% 100% 0% 0%)' : 'inset(0% 0% 0% 100%)';
 
@@ -2613,15 +2857,6 @@ const Hero = styled(motion.div)<{ $image?: string }>`
   }
 `;
 
-/* How the opened frame divides: screenshots left, copy right. The pictures take the larger
-   share — they are the evidence — and the copy a column narrow enough to read as a caption
-   rather than a second body of text. SHOT_WIDE then splits the picture side.
-
-   SHOT_WIDE is where the diagonal STARTS, not where it stays: it is the initial value of a
-   figure the reader drags (see SplitHandle). A number rather than a CSS string because it is
-   also the seed of that state and gets arithmetic done to it. */
-const SPLIT_SHOTS = '63%';
-const SHOT_WIDE = 68;
 /* How far the boundary can be dragged. Neither pane is allowed to close: at the extremes one
    picture is a sliver, which is a legitimate thing to want to look past, but a pane at zero
    would leave a wedge of bare ink and read as broken rather than as collapsed. */
@@ -2690,7 +2925,6 @@ const DetailSplit = styled(motion.div)`
    instead of the library minting a new rule per pointermove. Note the percentage inside each
    clip-path resolves against the element's own box — which is the pane — so the same figure
    means the same column of pixels in both. */
-const SHOT_SLANT = 72;
 /* The drag target's width, wider than the hairline it grabs: 2px is a line to look at, not
    one to catch with a pointer. */
 const SPLIT_HIT = 28;
@@ -2835,37 +3069,86 @@ const SplitHandle = styled.div`
   }
 `;
 
-/* The phone, drawn rather than photographed: a mockup image would be one more asset to keep in
-   step with the panel skin, and it could not take the section's own material. Everything here
-   derives from ONE number — the frame's height — so the whole device scales as a unit and its
-   proportions stay an iPhone's at any size. cqh, because that height is a share of the stage's
-   and CSS cannot otherwise turn a parent's HEIGHT into a child's width.
-
-   The ratios are the device's own: 393x852 points of screen, a 55pt corner, a 125x37 island. */
-const PhoneStage = styled(motion.div)`
+/* The column the detail's media sits in — the same one the split takes, and shared by both of
+   the things that are OBJECTS rather than pictures: the phone and the app tile. Neither fills
+   the column the way a pair of screenshots does, so both want the same staging. */
+const MediaStage = styled(motion.div)<{
+  $backdrop?: string;
+  $bleed?: boolean;
+  /* Which side the OBJECT's column is on — the copy has the other. Only meaningful while
+     bleeding, where the stage is the whole frame and the column is no longer its width. */
+  $column?: 'left' | 'right';
+}>`
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
-  width: ${SPLIT_SHOTS};
+  /* The picture column, except where the backdrop is the WHOLE frame (see the bleed wash
+     below) — there the picture takes everything and the column survives only as the padding
+     that keeps the object out of the copy's half. */
+  width: ${p => (p.$bleed ? '100%' : SPLIT_SHOTS)};
+  ${p =>
+    p.$bleed &&
+    p.$column === 'left' &&
+    css`
+      padding-right: calc(100% - ${SPLIT_SHOTS});
+      box-sizing: border-box;
+    `}
+  /* An object placed rather than centred ignores all of that — see StagedTile, which holds the
+     mark at the point the panel had it. */
   display: flex;
   align-items: center;
   justify-content: center;
   container-type: size;
 
-  /* A phone is narrow and the column it sits in is not — fitted to the height it leaves ~500px
-     of bare skin either side. This is what makes that emptiness read as staging rather than as
-     a gap: one soft pool of light under the device, no edges, nothing to mistake for an object.
-     Cheaper than a backdrop image and it cannot compete with the screen. */
+  /* Neither object fills this stage — a phone fitted to the height leaves ~500px of bare skin
+     either side, and a tile leaves more. Without a picture, that emptiness is made to read as
+     staging rather than as a gap by one soft pool of light under the thing: no edges, nothing to
+     mistake for an object of its own.
+
+     A project carrying a backdrop puts a scene there instead, and the scene BLEEDS — it is the
+     whole frame, not the object's column, because a photograph cut off at 63% is a panel with a
+     picture in it, while one that runs edge to edge is a room the object is standing in.
+
+     Which leaves the copy nowhere dark to sit, so the wash has to make it a place. Hence a
+     horizontal ramp rather than a pool: near-opaque at the copy's edge, opening out by the time
+     it reaches the object, and settling at a flat mid-damp across the rest so the picture stays a
+     picture and the thing on it keeps its contrast. One gradient, two jobs — a separate scrim
+     behind the copy would be a second edge to line up.
+
+     --bleed-dir is which edge that heavy end is at, and it follows the copy: 90deg ramps from
+     the left, 270deg from the right. Held in variables for the phone-width case, where the
+     argument stops applying — the copy drops BELOW the picture there (see DetailCaption), and a
+     dark side edge is then just a dark side edge. The media query swaps in a flat damp. */
+  --bleed-dir: 90deg;
+  --bleed-wash: linear-gradient(
+    var(--bleed-dir),
+    rgba(10, 10, 14, 0.94) 0%,
+    /* Held near-opaque to 28% and still heavy at the copy's inner edge (37%): the paragraph is
+       the full width of that column, and a ramp that opened earlier left its last lines over
+       floodlights. */
+      rgba(10, 10, 14, 0.88) 28%,
+    rgba(10, 10, 14, 0.56) 44%,
+    rgba(10, 10, 14, 0.4) 100%
+  );
+  ${p =>
+    p.$column === 'left' &&
+    css`
+      --bleed-dir: 270deg;
+    `}
+
   &::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(
-      55% 60% at 50% 50%,
-      rgba(255, 255, 255, 0.07),
-      transparent 70%
-    );
+    background: ${p =>
+      p.$backdrop
+        ? css`
+            var(--bleed-wash), url('${p.$backdrop}') center / cover no-repeat
+          `
+        : css`
+            radial-gradient(55% 60% at 50% 50%, rgba(255, 255, 255, 0.07), transparent 70%)
+          `};
     pointer-events: none;
   }
 
@@ -2874,8 +3157,38 @@ const PhoneStage = styled(motion.div)`
     width: auto;
     right: 0;
     bottom: 50%;
+    padding-right: 0;
+    --bleed-wash: linear-gradient(rgba(10, 10, 14, 0.36), rgba(10, 10, 14, 0.36));
   }
 `;
+
+/* The mark in the OPENED detail. It keeps the SIZE the panel gave it — no growing to display
+   size, which is what made the mark and its own sky read as two different pictures — and it
+   TRAVELS: from the point it occupies in the resting panel to the middle of the media column,
+   at the rate the box widens. The panel's right edge is the frame's, so the growth is all
+   leftward, and the mark rides it rather than being uncovered in a new place.
+
+   The start is the measurement the click took (see PanelFrom), not a rule, because the panel
+   under the pointer is a widened one — where the mark sits is a fact about that moment. The end
+   is the centre of the media column, which is the RIGHT 63% here, the copy having taken the
+   left (see DetailCaption).
+
+   Vertically it does not move: the panel and the frame are the same height, so the place the
+   mark already holds is the place it keeps. */
+const TILE_X_END = 1 - parseFloat(SPLIT_SHOTS) / 100 / 2;
+/* The side-by-side layout's floor, as a media query can ask for it: one px past the breakpoint
+   every `max-width: md` rule in this file stops at. Spelled from the theme so the two cannot
+   drift — see the tile measurement in Panel's onClick, the one place JS has to know which of
+   the two detail layouts it is looking at. */
+const MD_MIN = `${parseFloat(theme.breakpoints.md) + 1}px`;
+
+const StagedTile = motion(styled(AppTile)`
+  && {
+    position: absolute;
+  }
+  top: calc(var(--tile-y) * 100%);
+  transform: translate(-50%, -50%);
+`);
 
 const PhoneFrame = styled.div`
   /* The one number. Capped so the device does not become the whole composition on a tall
@@ -2930,14 +3243,18 @@ const PhoneIsland = styled.span`
    beside it — the two-shot split, or the phone — it takes the narrow right-hand column and
    centres in it; with nothing at all (a project that supplies neither) there is no column to
    sit beside, so it keeps the old full-width perch at the frame's lower-left. */
-const DetailCaption = styled(motion.div)<{ $aside: boolean }>`
+const DetailCaption = styled(motion.div)<{ $aside: boolean; $left?: boolean }>`
   position: absolute;
   z-index: 1;
   ${p =>
     p.$aside
       ? css`
-          left: ${SPLIT_SHOTS};
-          right: 0;
+          /* Mirrored where the picture bleeds across the whole frame (see MediaStage): with no
+             column left over, the copy takes the darkest end of the wash instead, which is the
+             left one — the object it is captioning is centred on the frame, so the two ends are
+             not interchangeable and the ramp decides which. Same width either way. */
+          left: ${p.$left ? '0' : SPLIT_SHOTS};
+          right: ${p.$left ? SPLIT_SHOTS : '0'};
           top: 0;
           bottom: 0;
           padding: ${PANEL_PAD};
@@ -2947,6 +3264,7 @@ const DetailCaption = styled(motion.div)<{ $aside: boolean }>`
 
           @media (max-width: ${p.theme.breakpoints.md}) {
             left: 0;
+            right: 0;
             top: 50%;
             /* Centring is a desktop luxury. In half of a phone-width frame the paragraph is
                taller than the box it sits in, and centred overflow spills BOTH ways — upward
@@ -2989,6 +3307,57 @@ const DetailText = styled.p`
   text-wrap: pretty;
 `;
 
+/* Where the project actually lives, in the detail only. NOT on the resting panel: that panel is
+   a button, and an anchor inside a button is invalid and unreachable — the browser gives the
+   click to whichever it resolves first and the keyboard gets a control it cannot use.
+
+   It wears the chrome idiom the rest of the page's links do (mono, tracked, uppercased by the
+   label rather than by CSS, so the URL keeps its own case), and it takes the panel's light ink
+   like CloseButton for the same reason: it sits on the deep fill, where the page's own muted
+   ink would disappear. */
+const DetailLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1.5rem;
+  align-self: flex-start;
+  font-family: ${p => p.theme.font.mono};
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.62);
+  text-decoration: none;
+  /* The rule under it is the hover, drawn rather than underlined so it can grow from the left
+     like PanelRule and the readme's own terms do. */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  padding-bottom: 2px;
+  transition:
+    color ${PANEL_S} ease,
+    border-color ${PANEL_S} ease;
+
+  &:hover,
+  &:focus-visible {
+    color: #fff;
+    border-bottom-color: ${p => p.theme.accent.base};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${p => p.theme.accent.base};
+    outline-offset: 4px;
+  }
+
+  svg {
+    /* Optical, not metric: the arrow's ink sits high in its box, so matching the cap height
+       leaves it floating above the baseline of the text beside it. */
+    width: 0.85em;
+    height: 0.85em;
+    margin-bottom: 1px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
 const CloseButton = styled(motion.button)`
   position: absolute;
   top: 1.25rem;
@@ -3016,12 +3385,20 @@ const CloseButton = styled(motion.button)`
   }
 `;
 
+/* The link's visible text, from the URL itself (see `url` on Project). Host plus path, with the
+   parts nobody reads dropped: the scheme, a leading www, and a trailing slash. Left long rather
+   than truncated — the one address here that runs past the host is the plugin's, and its path is
+   the half that says what it is. */
+const linkLabel = (url: string) =>
+  url.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '');
+
 const Detail: React.FC<{
   project: Project;
   index: number;
   reduced: boolean;
+  from: PanelFrom | null;
   onClose: () => void;
-}> = ({ project, index, reduced, onClose }) => {
+}> = ({ project, index, reduced, from, onClose }) => {
   const closeRef = useRef<HTMLButtonElement>(null);
 
   /* Not a modal, and deliberately not described as one: the detail fills the section's own
@@ -3063,10 +3440,20 @@ const Detail: React.FC<{
   const heroIn = { duration: 0.55, ease, delay: EXPAND_DELAY };
   /* After the hero has essentially finished growing. */
   const captionIn = { duration: 0.35, ease, delay: EXPAND_DELAY + 0.5 };
-  /* The pictures lead the caption slightly, so they have settled by the time the copy beside
-     them arrives — one hand-off, not two. See DetailSplit for why they are a separate layer
-     rather than the hero's own background. */
-  const photoIn = { duration: 0.4, ease, delay: EXPAND_DELAY + 0.42 };
+  /* The pictures rise WITH the last of the hero's growth, not after it. They used to wait
+     +0.42 into a 0.55 flight and take 0.4s over it, which measured as the hero landing at
+     752ms and the shots still at 27% opacity at 837 — a beat where the box was fully open and
+     empty, and the pictures then arrived as a separate event on a box that had stopped moving.
+
+     Started here the box is ~94% grown, so what is left to cover is ~70px of width at almost
+     no opacity, and they finish just after it lands. Not earlier: this layer is at its FINAL
+     size from the first frame — it is a sibling of the hero, not a child, so nothing scales it
+     — and any opacity it carries while the hero is still small is picture hanging outside the
+     box it is supposed to be inside.
+
+     They still lead the caption, so the copy beside them arrives last. One hand-off, not two.
+     See DetailSplit for why they are a separate layer rather than the hero's own background. */
+  const photoIn = { duration: 0.36, ease, delay: EXPAND_DELAY + 0.22 };
 
   /* What the detail SHOWS, decided by what the project carries rather than by a mode on it.
      Three outcomes, in this order of preference.
@@ -3078,10 +3465,18 @@ const Detail: React.FC<{
      second because a project with a desktop capture pair has a desktop story to tell; only one
      of the two can have the column, and nothing so far wants both.
 
-     A project with neither still gets its `image` on the resting panel; its detail opens as the
-     flat hero, which is the case this started as. */
+     Then the tile, last because it is the least: a mark rather than a look at the thing
+     working, and only the right answer where there is no thing to look at (see Project).
+
+     A project with none of the three still gets its `image` on the resting panel; its detail
+     opens as the flat hero, which is the case this started as. */
   const split = !!(project.imageWide && project.imageTall);
   const phone = !split && !!(project.videoWebm && project.videoMp4);
+  const tile = !split && !phone && !!project.tile;
+  /* A tile that also carries a picture: the mark is the subject, the picture is the frame it
+     hangs in, so the picture takes the whole frame and the copy moves to the other side of the
+     wash (see MediaStage and DetailCaption). A tile without one keeps the old staged column. */
+  const bleed = tile && bleeds(project);
 
   /* Where the diagonal sits, as a percentage of the picture side. Held in state and spent as
      a CSS variable: the elements that read it never change class, so a drag costs a variable
@@ -3146,8 +3541,25 @@ const Detail: React.FC<{
         <DetailSplit
           data-shot-drag={dragging || undefined}
           style={{ '--shot-split': `${shotSplit}%` } as React.CSSProperties}
-          initial={reduced ? false : { opacity: 0 }}
-          animate={{ opacity: 1, transition: reduced ? { duration: 0 } : photoIn }}
+          /* UNCOVERED, not faded up. The resting panel is already a window onto this exact
+             picture at this exact size and position (see PanelShot's $window), so there is
+             nothing to cross to: opening only has to widen the window. The clip starts on the
+             panel's own two edges and opens to the full column, which is a paint operation and
+             leaves the picture untouched — the same reason the losing panels clip themselves
+             away rather than sliding.
+
+             Timed to heroIn exactly, so the picture is uncovered at the rate the box behind it
+             grows. It used to fade in on its own schedule after the hero had landed, which is
+             what read as the frame opening dark and the screenshots arriving afterwards.
+
+             Falls back to the old fade when `from` is missing — a detail opened by any route
+             that did not come through a panel's click has no edges to start from. */
+          initial={reduced || !from ? false : { clipPath: revealClip(from) }}
+          animate={{
+            clipPath: OPEN_CLIP,
+            opacity: 1,
+            transition: reduced ? { duration: 0 } : from ? heroIn : photoIn,
+          }}
           exit={reduced ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
         >
           <ShotWide $image={project.imageWide!} />
@@ -3174,10 +3586,43 @@ const Detail: React.FC<{
            already invisible to a screen reader, and this is the same thing — the detail's
            readable content is the caption. A looping muted clip with no controls is decoration
            over the top of it, not a second account of the project. */
-        <PhoneStage
+        <MediaStage
           aria-hidden
-          initial={reduced ? false : { opacity: 0 }}
-          animate={{ opacity: 1, transition: reduced ? { duration: 0 } : photoIn }}
+          $backdrop={project.backdrop}
+          /* Only a stage with a scene in it bleeds; without one there is nothing to run to the
+             frame's edges and the pool of light belongs in the column it lights. */
+          $bleed={!!project.backdrop}
+          /* The phone keeps the LEFT column; the copy has the right, so the wash ramps from
+             there (see MediaStage). */
+          $column="left"
+          /* Uncovered on the hero's own clock, exactly as the split beside it is (see
+             DetailSplit for the full reasoning). It used to fade up on photoIn's later, shorter
+             flight, which is what read as the frame opening as a dark box and the scene and the
+             phone arriving afterwards as a second event. Clipped from the panel's edges instead,
+             the stage is already there in the first frame — the box widening is what reveals it.
+
+             The FRAME shares, not the column ones, because the stage is now the frame's width —
+             see PanelFrom. Still the fade where `from` is missing: with no edges to open from
+             there is no window to widen, and a hard cut would be worse than the old late fade. */
+          initial={
+            reduced
+              ? false
+              : from
+              ? {
+                  clipPath: revealClip(
+                    project.backdrop
+                      ? { left: from.frameLeft, right: from.frameRight }
+                      : from,
+                  ),
+                  opacity: 1,
+                }
+              : { opacity: 0 }
+          }
+          animate={{
+            clipPath: OPEN_CLIP,
+            opacity: 1,
+            transition: reduced ? { duration: 0 } : from ? heroIn : photoIn,
+          }}
           exit={reduced ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
         >
           <PhoneFrame>
@@ -3202,11 +3647,71 @@ const Detail: React.FC<{
               )}
             </PhoneScreen>
           </PhoneFrame>
-        </PhoneStage>
+        </MediaStage>
+      )}
+
+      {tile && (
+        <MediaStage
+          aria-hidden
+          $backdrop={bleed ? project.image : undefined}
+          $bleed={bleed}
+          /* The mirror of the phone's: the mark has the right column, the copy the left, so the
+             wash ramps from the left (MediaStage's default). */
+          $column="right"
+          /* Uncovered on the hero's clock like everything else the detail stages (see
+             DetailSplit), so the sky is already there as the box widens rather than fading up
+             onto a dark rectangle afterwards. The clip is measured in THIS element's own
+             percentages, which is why a bleeding stage takes the panel's FRAME shares rather
+             than its column ones — see PanelFrom. */
+          initial={
+            reduced
+              ? false
+              : from
+              ? { clipPath: revealClip(bleed ? { left: from.frameLeft, right: from.frameRight } : from), opacity: 1 }
+              : { opacity: 0 }
+          }
+          animate={{
+            clipPath: OPEN_CLIP,
+            opacity: 1,
+            transition: reduced ? { duration: 0 } : from ? heroIn : photoIn,
+          }}
+          exit={reduced ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
+        >
+          {from?.tile ? (
+            /* Carried, not restaged — see StagedTile. On the hero's own timing, so the mark
+               crosses the frame exactly as fast as the frame grows under it. */
+            <StagedTile
+              style={
+                {
+                  '--tile': `${from.tile.size}px`,
+                  '--tile-y': from.tile.y,
+                } as React.CSSProperties
+              }
+              initial={
+                reduced ? false : { left: `${(from.tile.x * 100).toFixed(3)}%` }
+              }
+              animate={{
+                left: `${(TILE_X_END * 100).toFixed(3)}%`,
+                transition: reduced ? { duration: 0 } : heroIn,
+              }}
+            >
+              <Bookmark strokeWidth={1.6} fill="currentColor" />
+            </StagedTile>
+          ) : (
+            /* Nothing was measured — a detail opened by some route other than a panel's click.
+               With no place to hold the mark in, it goes back to being staged: centred in the
+               column at display size, because an icon shown at icon size in a space this large
+               reads as a favicon someone forgot to replace. */
+            <AppTile style={{ '--tile': 'min(268px, 46cqh)' } as React.CSSProperties}>
+              <Bookmark strokeWidth={1.6} fill="currentColor" />
+            </AppTile>
+          )}
+        </MediaStage>
       )}
 
       <DetailCaption
-        $aside={split || phone}
+        $aside={split || phone || tile}
+        $left={bleed}
         initial={reduced ? false : { opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0, transition: reduced ? { duration: 0 } : captionIn }}
         exit={reduced ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
@@ -3216,6 +3721,24 @@ const Detail: React.FC<{
         </PanelEyebrow>
         <DetailName>{project.name}</DetailName>
         <DetailText>{project.detail ?? project.blurb}</DetailText>
+        {project.url && (
+          <DetailLink
+            href={project.url}
+            target="_blank"
+            /* noreferrer as well as noopener: the opener hole is closed by default in current
+               browsers, but the referrer leaks either way, and nothing here needs the
+               destination to know where the visit came from. */
+            rel="noopener noreferrer"
+            /* The arrow says "this leaves the page" to the eye; the label says it to everyone
+               else. On the anchor rather than in a visually-hidden span because that is one
+               element and one string instead of a new component this file has no other use
+               for — and it keeps the glyph purely decorative. */
+            aria-label={`${linkLabel(project.url)} (opens in a new tab)`}
+          >
+            {linkLabel(project.url)}
+            <ArrowUpRight aria-hidden strokeWidth={2} />
+          </DetailLink>
+        )}
       </DetailCaption>
 
       <CloseButton
@@ -3237,6 +3760,18 @@ const Projects: React.FC<{
 }> = ({ reduced, closerRef }) => {
   const [open, setOpen] = useState<number | null>(null);
   const triggers = useRef<(HTMLButtonElement | null)[]>([]);
+  const rowRef = useRef<HTMLDivElement>(null);
+  /* Where the clicked panel's window sat, as a share of the picture column it is about to
+     become — the two edges the detail's shots open FROM (see Detail's reveal). Captured on the
+     click, because by the time the detail mounts the panel is unmounted and the row has already
+     been handed to the hero.
+
+     State rather than a ref even though it is written once and read once: it is read DURING the
+     render that opens the detail, and a ref read there is exactly what react-hooks/refs forbids.
+     It costs nothing — it is set in the same handler as `open`, so React batches the two. */
+  const [openFrom, setOpenFrom] = useState<PanelFrom | null>(
+    null,
+  );
 
   /* Focus went into the overlay on open, so it has to come back to the panel that sent it
      there — otherwise closing drops it on <body> and the keyboard loses its place.
@@ -3297,7 +3832,7 @@ const Projects: React.FC<{
         </RestCue>
       </SectionLabel>
       <RowFrame>
-      <PanelRow>
+      <PanelRow ref={rowRef}>
         {PROJECTS.map((p, i) =>
           /* The open panel leaves the row entirely rather than hiding: its layoutId has to
              belong to exactly one mounted element, or framer cross-fades a pair instead of
@@ -3340,7 +3875,49 @@ const Projects: React.FC<{
                  panels behind it started dropping while it was still visibly in flight. At 0.4
                  the same curve puts it home in ~230ms, and the exit chain can follow it. */
               transition={{ duration: 0.4, ease }}
-              onClick={() => setOpen(i)}
+              onClick={() => {
+                const row = rowRef.current?.getBoundingClientRect();
+                const el = triggers.current[i]?.getBoundingClientRect();
+                if (row && el) {
+                  const shots = row.width * (parseFloat(SPLIT_SHOTS) / 100);
+                  const left = (el.left - row.left) / shots;
+                  /* The same edges twice, because the layers that open from them do not share a
+                     box: the split and the staged column are the picture column's width, a
+                     bleeding stage is the frame's. Measured against each rather than scaled from
+                     one to the other — the column shares are CLAMPED (the last panel starts
+                     beyond the column entirely, at left > 1), and scaling a clamped pair gives a
+                     window with no width, which opens as nothing at all. */
+                  const frameLeft = (el.left - row.left) / row.width;
+                  /* And where the mark is, if this panel carries one: the detail keeps it at
+                     the size and place it already has rather than restaging it (see Detail).
+                     MEASURED rather than recomputed from the panel's index, because the panel
+                     under the pointer is the widened one — the accordion has moved both the
+                     panel and the mark inside it, and only the DOM knows by how much. */
+                  /* Desktop only, on the layout's own breakpoint: below it the detail stacks —
+                     picture above, copy below (see DetailCaption) — and a mark placed at a
+                     point measured in a side-by-side frame lands nowhere in particular. The
+                     stacked detail keeps the staged tile instead. */
+                  const t = window.matchMedia(`(min-width: ${MD_MIN})`).matches
+                    ? triggers.current[i]
+                        ?.querySelector('[data-tile]')
+                        ?.getBoundingClientRect()
+                    : undefined;
+                  setOpenFrom({
+                    left: Math.max(0, left),
+                    right: Math.max(0, 1 - left - el.width / shots),
+                    frameLeft: Math.max(0, frameLeft),
+                    frameRight: Math.max(0, 1 - frameLeft - el.width / row.width),
+                    tile: t
+                      ? {
+                          x: (t.left + t.width / 2 - row.left) / row.width,
+                          y: (t.top + t.height / 2 - row.top) / row.height,
+                          size: t.width,
+                        }
+                      : undefined,
+                  });
+                } else setOpenFrom(null);
+                setOpen(i);
+              }}
               aria-expanded={false}
               /* clip-path is a PAINT operation. A clipped panel is invisible and drops out of
                  hit-testing, so the mouse cannot reach it — but it keeps its place in the tab
@@ -3354,8 +3931,27 @@ const Projects: React.FC<{
             >
               {/* Three layers under the copy, in this order: the tilted plate, the scrim that
                   lifts on hover, and the shim that does not. See PanelShim. */}
-              {p.image && (
-                <PanelShot $image={p.image} $light={p.lightCapture} aria-hidden />
+              {/* The wide capture when there is one, so the resting panel is a window onto the
+                  same picture the opened detail shows (see PanelShot's $window). Falls back to
+                  the portrait `image` and its fitted crop for everything else. */}
+              {(p.imageWide || p.image) && (
+                <PanelShot
+                  $image={(p.imageWide ?? p.image)!}
+                  $light={p.lightCapture}
+                  $window={!!p.imageWide}
+                  $bleed={bleeds(p)}
+                  aria-hidden
+                />
+              )}
+              {/* No longer only where there is no picture: the plugin now carries a sky as well
+                  as a mark, and the mark belongs ON it — the two together are what the detail
+                  opens onto. */}
+              {p.tile && (
+                /* Tagged so the click can measure it — the detail stages the mark at exactly
+                   the size and place the panel had it (see Detail's tile branch). */
+                <PanelTile data-tile aria-hidden>
+                  <Bookmark strokeWidth={1.6} fill="currentColor" />
+                </PanelTile>
               )}
               <PanelVeil aria-hidden />
               {p.image && <PanelShim aria-hidden />}
@@ -3375,6 +3971,7 @@ const Projects: React.FC<{
             <Detail
               key="detail"
               project={PROJECTS[open]}
+              from={openFrom}
               index={open}
               reduced={reduced}
               onClose={close}
