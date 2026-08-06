@@ -1916,7 +1916,7 @@ const PROJECTS: Project[] = [
        it does the same job in both places: the resting panel's picture, which the detail then
        opens onto. Carrying it here rather than as a second backdrop key is what makes the two
        states continuous: the panel is already showing this sky when it is clicked. */
-    image: '/xbookmarksync-bg@2x.webp',
+    image: '/xbookmarksync-bg2@2x.webp',
   },
 ];
 
@@ -3877,6 +3877,13 @@ const Detail: React.FC<{
           /* The mirror of the phone's: the mark has the right column, the copy the left, so the
              wash ramps from the left (MediaStage's default). */
           $column="right"
+          /* Lighter past the copy than the default, to close a gap against the RESTING panel.
+             Both of the panel's dark layers are bottom ramps and both are transparent by 72%,
+             so the top of the plate carries no damp at all — hovered, it is the picture at full
+             strength. The default 0.4 put the same pixels behind a flat 40% scrim the moment the
+             box opened, so the reveal read as the scene getting darker. This is the closest the
+             one available stop gets to that panel's brightness. */
+          style={{ '--bleed-far': 0.2 } as React.CSSProperties}
           /* Uncovered on the hero's clock like everything else the detail stages (see
              DetailSplit), so the sky is already there as the box widens rather than fading up
              onto a dark rectangle afterwards. The clip is measured in THIS element's own
