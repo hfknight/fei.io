@@ -185,6 +185,27 @@ const GROUND_OUT_DELAY = '0.18s';
    as lag. */
 const RAIL_LEAD = 260;
 
+/* The page's standard ease-out-expo, up here rather than beside the component because the
+   rail's variants are module-level too and would read it before it was assigned. */
+const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
+
+/* The colour window's geometry, declared on Page rather than on Peek because ContactRail
+   reads it too: the links hang off this box's right edge and share its floor, and a second
+   copy of the numbers there is a second place for them to drift. Height and bottom inset are
+   the dials; --peek-y is DERIVED from them, because the window is anchored to the bottom of
+   the column but its background compensation needs a top offset (see Peek). */
+/* In JS because framer animates the window open to it (see the JSX) and a keyframe cannot
+   read a custom property. */
+const PEEK_W = 44;
+
+const PEEK_GEO = `
+  --peek-x: 48px;
+  --peek-w: ${PEEK_W}px;
+  --peek-h: 216px;
+  --peek-b: 92px;
+  --peek-y: calc(100dvh - var(--peek-b) - var(--peek-h));
+`;
+
 const Page = styled.div`
   position: relative;
   /* Slides the shared portrait horizontally for BOTH the column and the cut-out letters. */
@@ -196,6 +217,8 @@ const Page = styled.div`
   --word-h: 96px;
   --word-drop: 8px;
   --img-margin: 20px;
+  /* The colour window and the contact links share one box (see PEEK_GEO). */
+  ${PEEK_GEO}
   /* The portrait column's width and Content's inline padding, declared once: the projects
      box cancels the pad to set its own insets, and cancels the RAIL too once the column has
      left (see --rail-out and ProjectsSection), so a literal in either place would silently
@@ -588,21 +611,15 @@ const Portrait = styled.aside`
   }
 `;
 
-/* A small colour window in the b&w column: a sibling of Portrait (so it escapes the
+/* A tall colour window low in the b&w column: a sibling of Portrait (so it escapes the
    grayscale filter) carrying the same fixed image — no frost, the sharp original picture
-   in colour behind a thin light outline. Position/size are the dials. Desktop-only, like
-   the rest of the composition. */
+   in colour behind a thin light outline. Desktop-only, like the rest of the composition. */
 const Peek = styled(motion.div)`
   position: absolute;
-  /* Aimed at the image's most vivid band (the orange glow) — the photo is motion-blurred
-     nearly everywhere, so parked on a dark patch the colour reveal reads as a smear.
-     Declared as vars because the background compensation below must subtract them. */
-  --peek-x: 34px;
-  --peek-y: 294px;
   left: var(--peek-x);
   top: var(--peek-y);
-  width: 180px;
-  height: 40px;
+  width: var(--peek-w);
+  height: var(--peek-h);
   z-index: 4;
   pointer-events: none;
   outline: 1px solid rgba(255, 255, 255, 0.75);
@@ -614,6 +631,80 @@ const Peek = styled(motion.div)`
     display: none;
   }
 `;
+
+/* Where to reach me, set beside the colour window rather than anywhere in the prose: the
+   column is the one part of this page that holds still, and the readme's last screen is the
+   ascii mark, which is no place to put an address.
+
+   BOTTOM-aligned with the window, not top: the stack grows upward from a shared floor, so
+   adding or dropping a link moves the list's head and never its foot — the two objects stay
+   locked to one line at the bottom of the column whatever the list holds.
+
+   Unlike the rest of the composition this survives every width. The window, the wordmark and
+   the cut are staging; an address is content, and a reader on a phone needs it more than a
+   reader with the whole poster in front of them. */
+const ContactRail = styled(motion.nav)`
+  position: absolute;
+  left: calc(var(--peek-x) + var(--peek-w) + 18px);
+  bottom: var(--peek-b);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+
+  /* Below here the window it hangs off is gone (see Peek), so the links take its left edge
+     rather than sitting in the space where it used to be. */
+  @media (max-width: 1220px) {
+    left: var(--peek-x);
+  }
+
+  /* The column is 42vh of photo here, not a full-height poster, so the deep floor the desktop
+     inset buys would push the stack up into the middle of the picture. */
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    left: ${p => p.theme.space[3]};
+    bottom: ${p => p.theme.space[3]};
+  }
+
+  a {
+    font-family: ${p => p.theme.font.mono};
+    font-size: 0.68rem;
+    font-weight: 400;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    text-decoration: none;
+    /* Literal white, not an ink token: this sits on the column's dark frost, which does not
+       follow the page's surface — the light page around it would resolve the token to near
+       black and lose the links against the picture. */
+    color: rgba(255, 255, 255, 0.72);
+    transition: color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  a:hover,
+  a:focus-visible {
+    color: rgba(255, 255, 255, 1);
+  }
+`;
+
+const CONTACT_LINKS = [
+  { label: 'X', href: 'https://x.com/Parn_Fe' },
+  { label: 'Email', href: 'mailto:fei.hu@fei.io' },
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/feihu/' },
+];
+
+/* The rail's entrance, staggered. The stack is vertical but each link arrives from the LEFT,
+   along the same axis the whole column just travelled in on — so the three read as the tail of
+   that one movement rather than as a separate drop-in crossing it. The parent paints nothing;
+   it exists to hold the stagger, which is why `hidden` is empty. */
+const railVariants = {
+  hidden: {},
+  shown: { transition: { delayChildren: 0.95, staggerChildren: 0.09 } },
+};
+
+const linkVariants = {
+  hidden: { opacity: 0, x: -16 },
+  shown: { opacity: 1, x: 0, transition: { duration: 0.5, ease } },
+};
 
 /* The entrance object: column and wordmark slide in from the left as ONE piece.
    Safe to transform because every background inside is element-anchored — each layer
@@ -4140,8 +4231,6 @@ const Projects: React.FC<{
   );
 };
 
-const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
-
 const About: React.FC = () => {
   const reduced = useReducedMotion();
   const pageRef = useRef<HTMLDivElement>(null);
@@ -4419,14 +4508,36 @@ const About: React.FC = () => {
             transition={{ duration: 1.2, ease, delay: 0.35 }}
           />
         </Portrait>
-        {/* Opens once frame and image have landed. Width grows from the left edge, and the
-            background is anchored to that edge, so the window wipes across a still picture. */}
+        {/* Opens once frame and image have landed. WIDTH grows from the left edge, which `left`
+            holds still and the background is anchored to, so the window wipes ACROSS a picture
+            that never moves — the same axis the links below it arrive on. */}
         <Peek
           aria-hidden
           initial={reduced ? false : { width: 0, opacity: 0 }}
-          animate={{ width: 180, opacity: 1 }}
+          animate={{ width: PEEK_W, opacity: 1 }}
           transition={{ duration: 0.6, ease, delay: 0.6, opacity: { duration: 0.1, delay: 0.6 } }}
         />
+        {/* Last of the column to arrive, after the window it hangs off. */}
+        <ContactRail
+          aria-label="Contact"
+          variants={railVariants}
+          initial={reduced ? false : 'hidden'}
+          animate="shown"
+        >
+          {CONTACT_LINKS.map(({ label, href }) => (
+            <motion.a
+              key={label}
+              variants={linkVariants}
+              href={href}
+              /* The address opens a mail client, not a page — a new tab for it is a blank one
+                 left behind. */
+              target={href.startsWith('mailto:') ? undefined : '_blank'}
+              rel="noreferrer"
+            >
+              {label}
+            </motion.a>
+          ))}
+        </ContactRail>
         <Masthead aria-hidden>
           <span className="bw" />
           {/* The letterform stencil. userSpaceOnUse = the Masthead div's own pixel grid:
