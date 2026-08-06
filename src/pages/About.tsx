@@ -1219,6 +1219,10 @@ const RANK_ROLL = Array.from(
 const RankTerm = styled.span`
   font-family: ${p => p.theme.font.mono};
   font-size: 0.9em;
+  /* One term, so it breaks as one. The space below is a real space and the measure is free to
+     wrap at it — which left "top" ending a line and the rolling number starting the next, an
+     odometer with nothing to read it against. */
+  white-space: nowrap;
   /* Mono's fixed space glyph is ~2x an Inter space, so "top 10" gapped wider than the
      surrounding words. word-spacing pulls only that one space back to the body's width. */
   word-spacing: -0.29em;
@@ -1435,7 +1439,7 @@ const PARAGRAPHS: React.ReactNode[] = [
     <Architected />
   </>,
   <>
-    I've spent over a decade building brand-defining websites and complex SaaS
+    I've spent over a decade building brand-defining websites and business-critical SaaS
     platforms, including work for Am Law 100 <RankClimb /> firms. Clean code, built to last, delivered on time.
   </>,
   <>
