@@ -9,8 +9,9 @@ const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
  * Glass is driven by GLASS_K in tokens.ts, mirroring the design source's applyPill().
  * The tint follows the surface, so this reads as white over video and as ink on paper.
  *
- * One recipe, two consumers: a link wears it transiently on hover, and the active link
- * wears it at rest. Keeping them in one block is what stops the two from drifting.
+ * One consumer now: a link on the LANDING wears it transiently on hover. The active link
+ * used to wear it at rest on every dark route; that is the ink ring's job everywhere but
+ * the landing (see below), so the nav keeps one character across the whole site.
  */
 const glassPill = css`
   /* The gradient is stacked twice: the reference frost is denser than GLASS_K's thin pill,
@@ -35,17 +36,26 @@ const glassPill = css`
     0 8px 18px -6px ${p => p.theme.glass.shadow},
     0 10px 18px -8px ${p => p.theme.glass.hi};
 
-  /* On paper the recipe above degenerates: the ink fill composites to a flat grey slab, the
-     white speculars vanish on a near-white ground, and the backdrop blur has nothing behind
-     it but flat paper. So the light surface drops the glass entirely and wears an outline —
-     a single ink ring. 40% chrome ink, not the glass rim's 0.096 alpha: a ring that is the
-     whole pill needs to read on its own. The dark surface above is untouched. */
-  :root[data-surface='default'] & {
-    background: none;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, ${p => p.theme.chrome.ink} 40%, transparent);
-  }
+`;
+
+/**
+ * The hover affordance everywhere EXCEPT the landing: a single ink ring instead of the
+ * glass above. It began as a light-surface fallback — on paper the glass recipe
+ * degenerates, since the ink fill composites to a flat grey slab, the white speculars
+ * vanish on a near-white ground, and the backdrop blur has nothing behind it but flat
+ * paper. It now applies on the interior dark pages too, so the chrome reads the same
+ * everywhere the site has a page under it. 40% chrome ink, not the glass rim's 0.096
+ * alpha: a ring that is the whole pill has to carry on its own. `chrome.ink` follows the
+ * surface, so this is a dark ring on paper and a light one on the deep pages.
+ *
+ * The landing keeps the glass, and should: there the chrome floats over video with no page
+ * behind it, which is the one place the backdrop blur has something to work with.
+ */
+const inkRing = css`
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, ${p => p.theme.chrome.ink} 40%, transparent);
 `;
 
 const Bar = styled.header`
@@ -105,7 +115,7 @@ const Label = styled.span`
   z-index: 1;
 `;
 
-const NavLink = styled(Link)<{ $active?: boolean }>`
+const NavLink = styled(Link)<{ $active?: boolean; $landing?: boolean }>`
   position: relative;
   /* An inline <a> paints its vertical padding but contributes none of it to layout height, so
      the track collapsed onto a line box and the pill sat 2px from the rim instead of the 4.8px
@@ -131,21 +141,24 @@ const NavLink = styled(Link)<{ $active?: boolean }>`
     backdrop-filter 0.4s ${p => p.theme.ease.glass};
   outline: none;
 
-  /* The active link already carries the pill, so hovering it must not paint a second one. */
+  /* The active link may already carry a mark, so hovering it must not paint a second one.
+     The landing wears the glass; every page under it wears the ring. */
   &:hover,
   &:focus-visible {
     opacity: 1;
-    ${p => !p.$active && glassPill}
+    ${p => !p.$active && (p.$landing ? glassPill : inkRing)}
   }
 
-  /* On paper, current and hover part ways: hover wears the ink ring (glassPill's light
-     override), and the CURRENT link instead RGB-splits its label — the same chromatic
-     aberration the landing's lenses cast, red fringing one way, cyan the other. The split
-     rides text-shadow so the core glyph stays full-contrast ink; sub-pixel offsets keep it
-     a shimmer, not a misprint. Dark surfaces (home, lab entries, admin) keep the glass
-     pill for the current link — over video and deep grounds the fringe would vanish. */
+  /* Current and hover part ways on every page but the landing: hover wears the ink ring,
+     and the CURRENT link instead RGB-splits its label — the same chromatic aberration the
+     landing's lenses cast, red fringing one way, cyan the other. The split rides text-shadow
+     so the core glyph stays full-contrast ink; sub-pixel offsets keep it a shimmer, not a
+     misprint. This used to be paper-only, with the deep pages keeping a glass pill for the
+     current link; it is now the one treatment across every route with a page behind it, so
+     the nav does not change character as you move between /readme and a lab entry. The
+     landing marks nothing current, so it never reaches this. */
   ${p => p.$active && css`
-    :root[data-surface='default'] & ${Label} {
+    & ${Label} {
       text-shadow:
         -1.2px 0 0 oklch(0.62 0.24 25 / 0.55),
         1.2px 0 0 oklch(0.7 0.13 230 / 0.55);
@@ -162,26 +175,18 @@ const NavLink = styled(Link)<{ $active?: boolean }>`
   }
 `;
 
-// transitions.dev "tabs sliding" (16), adapted to the router-driven nav: one pill that
-// slides between links via framer's shared-layout animation, rather than each link
-// tweening its own. On dark surfaces the pill is the same glass the links wear on hover —
-// the active route simply keeps it. On paper the pill paints NOTHING (override below wins
-// over glassPill's ring by declaration order): the current link is marked by its label's
-// chromatic aberration instead, and the ring stays a hover-only affordance. The invisible
-// box still slides between links, so the layout animation is a no-op there, not a glitch.
+// transitions.dev "tabs sliding" (16), adapted to the router-driven nav: one box that
+// slides between links via framer's shared-layout animation, rather than each link tweening
+// its own. It now paints NOTHING on every route — the current link is marked by its label's
+// chromatic aberration, and the ring is a hover-only affordance. It used to wear the glass
+// on dark surfaces; that was the last place the nav changed character between pages. The
+// invisible box still slides between links, so the layout animation is a no-op, not a
+// glitch, and the mechanism stays here if the pill is ever wanted back.
 const Pill = styled(motion.span)`
   position: absolute;
   inset: 0;
   border-radius: ${p => p.theme.radius.pill};
   pointer-events: none;
-  ${glassPill}
-
-  :root[data-surface='default'] & {
-    background: none;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    box-shadow: none;
-  }
 `;
 
 
@@ -217,32 +222,38 @@ const ActivePill: React.FC<{ show: boolean }> = ({ show }) => {
 const Header: React.FC = () => {
   const { pathname } = useLocation();
 
+  // The landing is the one route with no page behind the chrome — just video — so it keeps
+  // the glass hover. Everywhere else wears the ring, so the nav reads the same from /readme
+  // through to a lab entry.
+  const isLanding = pathname === '/';
   const isReadme = pathname === '/readme';
   const isLab = pathname === '/lab' || pathname.startsWith('/lab/');
   const isWriting = pathname === '/writing' || pathname.startsWith('/writing/');
 
   return (
     <Bar>
-      <NavLinks>
+      {/* A stable hook for routes that float the nav over arbitrary media and need to give
+          it a ground of its own (see /lab/cursor-tracked-video). Nothing styles it here. */}
+      <NavLinks data-nav-track>
         {/* Home renders on every route, the landing included, but never wears the pill and is
             never marked current — it is a way back, not a destination. So on the landing no
             link is active, which also keeps the pill out of the three header copies the lens
             clones into its refraction worlds. */}
         <NavItem>
-          <IconLink to="/" $active={false} aria-label="Home">
+          <IconLink to="/" $active={false} $landing={isLanding} aria-label="Home">
             <Label><House size={15} strokeWidth={1.75} aria-hidden="true" /></Label>
           </IconLink>
         </NavItem>
         {/* aria-current is the accessible half of the pill: the pill draws where you are,
             this announces it. Without it the active route is conveyed by colour alone. */}
         <NavItem>
-          <NavLink to="/readme" $active={isReadme} aria-current={isReadme ? 'page' : undefined}><ActivePill show={isReadme} /><Label>Readme</Label></NavLink>
+          <NavLink to="/readme" $active={isReadme} $landing={isLanding} aria-current={isReadme ? 'page' : undefined}><ActivePill show={isReadme} /><Label>Readme</Label></NavLink>
         </NavItem>
         <NavItem>
-          <NavLink to="/lab" $active={isLab} aria-current={isLab ? 'page' : undefined}><ActivePill show={isLab} /><Label>Lab</Label></NavLink>
+          <NavLink to="/lab" $active={isLab} $landing={isLanding} aria-current={isLab ? 'page' : undefined}><ActivePill show={isLab} /><Label>Lab</Label></NavLink>
         </NavItem>
         <NavItem>
-          <NavLink to="/writing" $active={isWriting} aria-current={isWriting ? 'page' : undefined}><ActivePill show={isWriting} /><Label>Writing</Label></NavLink>
+          <NavLink to="/writing" $active={isWriting} $landing={isLanding} aria-current={isWriting ? 'page' : undefined}><ActivePill show={isWriting} /><Label>Writing</Label></NavLink>
         </NavItem>
       </NavLinks>
     </Bar>
