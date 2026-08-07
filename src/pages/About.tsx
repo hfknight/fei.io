@@ -623,6 +623,21 @@ const Peek = styled(motion.div)`
   z-index: 4;
   pointer-events: none;
   outline: 1px solid rgba(255, 255, 255, 0.75);
+  /* The same chromatic aberration the header's current link wears, red fringing one way and
+     cyan the other — but a photograph has no text-shadow to split, so the split is a real
+     channel misregistration (see the filter in the JSX below). It lands on the window and
+     nothing else: the rest of the column is grayscale, so this is the only place on the page
+     where an RGB split has channels to pull apart. The white outline is inside the filter's
+     input, so the frame fringes too — which is where the effect is most legible, the picture
+     being soft and dark through most of the window. */
+  filter: url(#readme-aberration);
+
+  /* An aberration is a lens artefact, i.e. decoration. It also cannot be read as movement —
+     it is static — so this is a taste call rather than a safety one: the reduced-motion
+     reader gets the clean window. */
+  @media (prefers-reduced-motion: reduce) {
+    filter: none;
+  }
   ${sharpImage}
   /* The element's page offset, subtracted so the window continues the column's picture. */
   background-position: calc(var(--portrait-x) - var(--peek-x)) calc(-1 * var(--peek-y));
@@ -651,7 +666,7 @@ const ContactRail = styled(motion.nav)`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: 0.3rem;
 
   /* Below here the window it hangs off is gone (see Peek), so the links take its left edge
      rather than sitting in the space where it used to be. */
@@ -689,6 +704,7 @@ const ContactRail = styled(motion.nav)`
 const CONTACT_LINKS = [
   { label: 'X', href: 'https://x.com/Parn_Fe' },
   { label: 'Email', href: 'mailto:fei.hu@fei.io' },
+  { label: 'GitHub', href: 'https://github.com/hfknight' },
   { label: 'LinkedIn', href: 'https://www.linkedin.com/in/feihu/' },
 ];
 
@@ -4519,6 +4535,50 @@ const About: React.FC = () => {
             transition={{ duration: 1.2, ease, delay: 0.35 }}
           />
         </Portrait>
+        {/* The window's aberration (see Peek). Channel misregistration, the image form of the
+            header's text-shadow split: R goes up and left, G+B go down and right, and `screen`
+            puts them back together — so the interior, where both copies overlap, is the
+            untouched picture, and only the edges carry a red or cyan sliver.
+
+            Under the header's ±1.2px, and sub-pixel on both axes. The header splits 11px type,
+            where the fringe has to clear the glyph's own stem to register at all; here it runs
+            along a 100×216px window's edges, which are long, straight and unbroken, so the
+            same offset reads as a printing fault rather than a lens. The split is also
+            diagonal where the header's is horizontal — a vertical offset on type just fattens
+            the glyph, but this window has real horizontal edges (the frame's top and bottom,
+            the picture's own tonal bands) that a purely horizontal split leaves clean.
+
+            color-interpolation-filters="sRGB" is required: SVG filters default to linearRGB,
+            which would relight the photograph on its way through a filter meant only to
+            displace it. Its own <svg> rather than the Masthead one below, so the filter does
+            not live inside a subtree that goes display: none at 1220px. */}
+        <svg width="0" height="0" focusable="false" aria-hidden>
+          <defs>
+            <filter id="readme-aberration" colorInterpolationFilters="sRGB">
+              <feColorMatrix
+                in="SourceGraphic"
+                type="matrix"
+                values="1 0 0 0 0
+                        0 0 0 0 0
+                        0 0 0 0 0
+                        0 0 0 1 0"
+                result="r"
+              />
+              <feColorMatrix
+                in="SourceGraphic"
+                type="matrix"
+                values="0 0 0 0 0
+                        0 1 0 0 0
+                        0 0 1 0 0
+                        0 0 0 1 0"
+                result="gb"
+              />
+              <feOffset in="r" dx="-0.8" dy="-0.6" result="rOff" />
+              <feOffset in="gb" dx="0.8" dy="0.6" result="gbOff" />
+              <feBlend in="rOff" in2="gbOff" mode="screen" />
+            </filter>
+          </defs>
+        </svg>
         {/* Opens once frame and image have landed. WIDTH grows from the left edge, which `left`
             holds still and the background is anchored to, so the window wipes ACROSS a picture
             that never moves — the same axis the links below it arrive on. */}
