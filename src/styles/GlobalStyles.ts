@@ -29,7 +29,13 @@ export const GlobalStyles = createGlobalStyle`
     font-size: 1rem;
     line-height: 1.6;
     color: var(--color-ink);
-    background-color: var(--color-surface);
+    /* --page-ground is set by Layout from the route (see styles/surface.ts) and is what
+       shows while a lazy route has nothing mounted — Suspense falls back to null, so on a
+       cold chunk the body IS the page for a moment. It differs from --color-surface only
+       where a route grounds itself off-surface: lab entries sit on --n-11, and painting
+       the deep indigo under them read as a blackout before the lighter page arrived.
+       Falls back to the surface for anything rendered before Layout's first effect. */
+    background-color: var(--page-ground, var(--color-surface));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
