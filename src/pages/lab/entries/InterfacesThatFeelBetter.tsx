@@ -8,6 +8,7 @@ import cssLang from 'highlight.js/lib/languages/css';
 import javascript from 'highlight.js/lib/languages/javascript';
 import xml from 'highlight.js/lib/languages/xml';
 import PageTransition from '../../../components/PageTransition';
+import { hljsTokens, CODE_ISLAND, CODE_ISLAND_RIM } from '../../../styles/codeTheme';
 
 hljs.registerLanguage('css', cssLang);
 hljs.registerLanguage('javascript', javascript);
@@ -1545,9 +1546,16 @@ const OuterBox = styled.div`
   display: flex;
 `;
 
+/* Literal, like OuterBox above it, and for the same reason: this is a swatch in a
+   border-radius demo, not chrome. It used to read `linear-gradient(150deg, var(--accent),
+   #f0a73c)` — half following the surface and half not, so a flip would have swung one stop
+   to the light accent's olive-bronze and left the other amber. It never bit, because lab
+   entries are always inverted, but the fix is to decide what it is: decoration, whose warm
+   fill is its own and does not belong to the accent. The values are what the pair already
+   rendered as — the inverted accent's #fcd34d and #f0a73c. */
 const InnerBox = styled.div`
   flex: 1;
-  background: linear-gradient(150deg, var(--accent), #f0a73c);
+  background: linear-gradient(150deg, oklch(0.879 0.1534 91.61), oklch(0.780 0.145 72));
   opacity: 0.92;
 `;
 
@@ -1992,8 +2000,10 @@ const Code = styled.pre`
   margin: 0.6rem 0 0;
   padding: 1.4rem 1.5rem;
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.28);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  /* Shared with the blog — see styles/codeTheme.ts. The rim is a box-shadow rather than
+     the blog's border on purpose: this one must not take part in layout. */
+  background: ${CODE_ISLAND};
+  box-shadow: 0 0 0 1px ${CODE_ISLAND_RIM};
   overflow-x: auto;
 
   & > code {
@@ -2004,40 +2014,6 @@ const Code = styled.pre`
     white-space: pre;
   }
 
-  /* highlight.js tokens — same palette as the blog (src/components/Blog/PostBody.tsx) */
-  .hljs-comment,
-  .hljs-quote {
-    color: #6b7280;
-    font-style: italic;
-  }
-  .hljs-keyword,
-  .hljs-selector-tag,
-  .hljs-selector-class,
-  .hljs-selector-id,
-  .hljs-selector-pseudo,
-  .hljs-built_in,
-  .hljs-meta {
-    color: #c4b5fd;
-  }
-  .hljs-string,
-  .hljs-attr {
-    color: #86efac;
-  }
-  .hljs-number,
-  .hljs-literal {
-    color: #fca5a5;
-  }
-  .hljs-attribute,
-  .hljs-property,
-  .hljs-type {
-    color: #93c5fd;
-  }
-  .hljs-title,
-  .hljs-section {
-    color: var(--accent);
-  }
-  .hljs-tag,
-  .hljs-name {
-    color: #f9a8d4;
-  }
+  /* highlight.js tokens — shared with the blog, see styles/codeTheme.ts */
+  ${hljsTokens}
 `;

@@ -3,6 +3,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeSanitize from 'rehype-sanitize';
 import styled from 'styled-components';
+import { hljsTokens, CODE_ISLAND, CODE_ISLAND_RIM } from '../../styles/codeTheme';
 
 // Sanitize BEFORE highlight: highlight then decorates the already-clean tree with
 // hljs / token classNames, so sanitize never strips them (and the default schema
@@ -116,13 +117,15 @@ const Prose = styled.div`
     padding: 0.12em 0.38em;
     border-radius: 4px;
   }
-  /* The island. Its own background and rim stay literal — they are darker than any
-     surface in the ramp. It carries data-surface="inverted" (see components.pre), and
-     re-declares colour because CSS inherits Prose's *computed* ink, so the attribute
-     flip alone would leave dark text on a near-black block. */
+  /* The island. Its ground is a tint of whatever the page already is, shared with the lab
+     entries (styles/codeTheme.ts) — it used to be a literal #0c0a1f here, which turned out
+     to be this exact tint over this exact surface, written out by hand. It carries
+     data-surface="inverted" (see components.pre), and re-declares colour because CSS
+     inherits Prose's *computed* ink, so the attribute flip alone would leave dark text on
+     a near-black block. */
   pre {
-    background: #0c0a1f;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: ${CODE_ISLAND};
+    border: 1px solid ${CODE_ISLAND_RIM};
     color: ${p => p.theme.color.ink};
     border-radius: 10px;
     padding: 1.1rem 1.25rem;
@@ -131,12 +134,6 @@ const Prose = styled.div`
   }
   pre code { background: none; padding: 0; }
 
-  /* highlight.js tokens, tuned to the dark palette */
-  .hljs-comment, .hljs-quote { color: #6b7280; font-style: italic; }
-  .hljs-keyword, .hljs-selector-tag, .hljs-built_in { color: #c4b5fd; }
-  .hljs-string, .hljs-attr { color: #86efac; }
-  .hljs-number, .hljs-literal { color: #fca5a5; }
-  .hljs-title, .hljs-section, .hljs-function .hljs-title { color: var(--accent); }
-  .hljs-type, .hljs-class .hljs-title { color: #93c5fd; }
-  .hljs-tag, .hljs-name { color: #f9a8d4; }
+  /* highlight.js tokens — shared with the lab entries, see styles/codeTheme.ts */
+  ${hljsTokens}
 `;
