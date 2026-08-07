@@ -223,6 +223,32 @@ describe('tokens: the accent is surface-aware', () => {
   });
 
   /**
+   * The mark is text, so 4.5 is the bar on every ground it can land on. On the deep side
+   * that means --n-11 as well as the deep surface: lab entries ground themselves on the
+   * plate grey, and it is the lighter of the two, so it binds.
+   */
+  it('the mark clears AA on every ground it can sit on', () => {
+    const lightBg = parse(lightVars['--color-surface']).rgb;
+    const deepBg = parse(SURFACE_DEEP).rgb;
+    const plateBg = parse(staticVars['--n-11']).rgb;
+    expect(contrast(rgbY(lightBg), luminance(lightVars['--color-mark'], lightBg))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(rgbY(deepBg), luminance(invertedVars['--color-mark'], deepBg))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(rgbY(plateBg), luminance(invertedVars['--color-mark'], plateBg))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  /**
+   * The raw #f04d22 the mark descends from — /readme's Aesthetic shimmer, sampled from the
+   * portrait — is why the token exists rather than the hex being reused. If this ever
+   * fails, the source orange became usable as chrome and the derivation can be revisited.
+   */
+  it('proves the source orange could not have been used directly', () => {
+    const lightBg = parse(lightVars['--color-surface']).rgb;
+    // #f04d22 as oklch, for the parser: same colour, ~[240,77,34]
+    const raw = 'oklch(0.6266 0.2178 33.16)';
+    expect(contrast(rgbY(lightBg), luminance(raw, lightBg))).toBeLessThan(4.5);
+  });
+
+  /**
    * The reason the accent cannot be one value: the dark accent is unreadable on the light
    * surface. If this ever passes, someone has flattened the accent and broken light pages.
    */

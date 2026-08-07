@@ -145,6 +145,18 @@ export const lightVars: Record<string, string> = {
   '--accent': 'oklch(0.50 0.111 92)',
   // white on that accent measures 6.00:1
   '--accent-ink': 'oklch(1 0 0)',
+  // The MARK — the warm highlight, currently the /lab index's link hover.
+  //
+  // Its origin is /readme's Aesthetic clause, whose shimmer band is #f04d22/#f15b24,
+  // sampled from the portrait's own vivid strip so the colour reads as the page's rather
+  // than an import. The raw orange cannot be reused directly: it measures 2.80:1 on this
+  // surface and 3.75:1 on --n-11, failing AA as text on both. Hue and chroma are kept and
+  // lightness moved per surface, the same bargain --accent already makes above. Darkened
+  // here to 4.55:1, which at this hue necessarily reads rust rather than hot orange.
+  //
+  // Distinct from --accent on purpose: the yellow is the system's link colour, this is a
+  // warmer mark borrowed from the portrait. Do not collapse them.
+  '--color-mark': 'oklch(0.525 0.19 35)',
   ...glassVars(ink, white),
 };
 
@@ -164,6 +176,12 @@ export const invertedVars: Record<string, string> = {
   '--accent': 'oklch(0.879 0.1534 91.61)',
   // dark ink on the yellow fill, as the admin buttons already do — 12.85:1
   '--accent-ink': SURFACE_DEEP,
+  // The mark on the deep side. Lifted rather than darkened, and tuned against --n-11
+  // (4.69:1) rather than the deep surface (6.39:1): --n-11 is the lighter of the two dark
+  // grounds, so it binds. Lands within a few points of the source #f04d22, which the
+  // light side cannot manage. Declared for both surfaces even though today's only use is
+  // a light page — a token that exists on one surface is a trap for the next caller.
+  '--color-mark': 'oklch(0.70 0.19 35)',
   // fill === specular === white here, so this is the original single-tint recipe, unchanged.
   ...glassVars(white, white),
 };

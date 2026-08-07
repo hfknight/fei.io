@@ -101,8 +101,10 @@ const EntryLink = styled(Link)`
   text-decoration: none;
   padding: 1.6rem 0;
 
+  /* The warm mark rather than the system yellow — the tone /readme's Aesthetic clause
+     carries, derived per-surface so it clears AA at this type size (see tokens.ts). */
   &:hover h2 {
-    color: var(--accent);
+    color: ${p => p.theme.color.mark};
   }
 `;
 

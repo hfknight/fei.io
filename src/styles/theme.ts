@@ -13,6 +13,8 @@ export const theme = {
     ink: 'var(--color-ink)',
     inkMuted: 'var(--color-ink-muted)',
     border: 'var(--color-border)',
+    /** "You are here" — the nav's current link. Per-surface; see tokens.ts. */
+    mark: 'var(--color-mark)',
   },
   chrome: {
     ink: 'var(--chrome-ink)',
