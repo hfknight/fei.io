@@ -1673,7 +1673,7 @@ const Popover = styled(motion.div)<{ $trigger: boolean }>`
   width: 150px;
   padding: 0.35rem;
   border-radius: 10px;
-  background: #0c0a1f;
+  background: ${p => p.theme.color.well};
   box-shadow: ${CARD_SHADOW};
   transform-origin: ${(p) => (p.$trigger ? 'top left' : 'center')};
 `;
@@ -1862,7 +1862,7 @@ const Tip = styled.span`
   transform: translateX(-50%) translateY(4px) scale(0.98);
   transform-origin: bottom center;
   white-space: nowrap;
-  background: #0c0a1f;
+  background: ${p => p.theme.color.well};
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
   border-radius: 6px;
   padding: 0.4rem 0.6rem;

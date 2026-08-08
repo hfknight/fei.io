@@ -15,6 +15,8 @@ export const theme = {
     border: 'var(--color-border)',
     /** "You are here" — the nav's current link. Per-surface; see tokens.ts. */
     mark: 'var(--color-mark)',
+    /** A void behind media or under floating chrome. NOT per-surface; see tokens.ts. */
+    well: 'var(--color-well)',
   },
   chrome: {
     ink: 'var(--chrome-ink)',

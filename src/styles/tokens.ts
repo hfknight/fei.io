@@ -132,6 +132,17 @@ export const lightVars: Record<string, string> = {
   // 0.92 surface it falls to 1.13:1 — fainter than the inverted surface's own border — and
   // hairlines vanish. n-5 restores the separation at 1.44:1. Decorative, so no test asserts it.
   '--color-border': 'var(--n-5)',
+  // The WELL — a void, not a surface. Two things sit in one: the letterbox behind a post's
+  // hero media, and the floating chrome on a lab entry (popovers, tooltips). Both want a
+  // ground deeper than any page they can land on.
+  //
+  // Deliberately NOT surface-aware, and declared only here so the inverted surface simply
+  // inherits it: a letterbox that followed the surface would go pale on a light post and
+  // stop being a void, which is exactly what VideoForward's "stays dark on any page" note
+  // is asking for. Exact conversion of the #0c0a1f these three used to hardcode
+  // independently — same hue as SURFACE_DEEP (284), just darker, so it reads as the deep
+  // end of the same family rather than a fourth black from outside the system.
+  '--color-well': 'oklch(0.1595 0.043 284.5)',
   '--chrome-ink': 'var(--n-11)',
   // n-8 was picked for near-white paper and gives only 3.83:1 here. n-9 gives 5.87:1, which
   // makes this identical to --color-ink-muted — exactly as the inverted surface already has it.

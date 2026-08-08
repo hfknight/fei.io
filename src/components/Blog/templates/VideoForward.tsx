@@ -31,8 +31,9 @@ const Hero = styled.div`
   margin: 0 auto 2.4rem;
   border-radius: 12px;
   overflow: hidden;
-  /* A well behind the media, not a surface. Letterboxing stays dark on any page. */
-  background: #0c0a1f;
+  /* A well behind the media, not a surface. Letterboxing stays dark on any page — which
+     is why the token it uses is the one colour deliberately outside the surface system. */
+  background: ${p => p.theme.color.well};
 
   video,
   img {

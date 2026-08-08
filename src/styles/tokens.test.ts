@@ -140,6 +140,23 @@ describe('tokens: drift guard', () => {
     const { rgb } = parse(SURFACE_DEEP);
     expect(rgb.map(Math.round)).toEqual([18, 16, 42]);
   });
+
+  it('keeps the well an exact conversion of the legacy #0c0a1f', () => {
+    const { rgb } = parse(lightVars['--color-well']);
+    expect(rgb.map(Math.round)).toEqual([12, 10, 31]);
+  });
+
+  /**
+   * The well is a void, so it must NOT follow the surface: a letterbox behind a post's
+   * hero has to stay dark on a light page. Declaring it once means inverted inherits it —
+   * if someone ever adds an override, this fails and they have to justify it.
+   */
+  it('gives the well one value on both surfaces', () => {
+    expect(invertedVars).not.toHaveProperty('--color-well');
+    expect(parse(lightVars['--color-well']).rgb.map(Math.round)).not.toEqual(
+      parse(lightVars['--color-surface']).rgb.map(Math.round),
+    );
+  });
 });
 
 describe('tokens: contrast', () => {
