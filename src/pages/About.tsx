@@ -4499,6 +4499,11 @@ const About: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
+    // jsdom implements neither the font-loading API nor canvas 2d, so an unguarded call
+    // throws on mount under test — the stencil simply keeps its Anton-approximating
+    // defaults there, which is all a render test could observe anyway. This page has no
+    // test today; /lab, which runs the same measurement, does and caught it.
+    if (!document.fonts?.load) return;
     document.fonts.load('100px Anton').then(() => {
       const ctx = document.createElement('canvas').getContext('2d');
       if (cancelled || !ctx) return;
