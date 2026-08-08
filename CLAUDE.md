@@ -42,9 +42,13 @@ Loaded via Google Fonts in `index.html`:
 - **JetBrains Mono** (400–500) — chrome and labels. `--font-mono`
 - **Big Shoulders Display** (800) — `LoadingScreen` only, in CSS and in a canvas `ctx.font`.
   Deliberately outside the token system: a canvas cannot read a CSS custom property.
-- **Anton** (400, its only weight) — the `/readme` cut-out wordmark only, referenced inside
-  an SVG `<clipPath>` stencil in `About.tsx`. Outside the token system like Big Shoulders:
-  SVG presentation attributes take a literal family name.
+- **Anton** (400, its only weight) — the cut-out wordmarks, referenced inside SVG
+  `<clipPath>` stencils in `About.tsx` (`readme`) and `Lab.tsx` (`lab`). Outside the token
+  system like Big Shoulders: SVG presentation attributes take a literal family name.
+  The two stencils differ deliberately: `/readme` stretches its six letters to the column
+  width via `textLength` + `lengthAdjust`, which at that count lands near Anton's natural
+  density; `lab` solves for cap height only and lets the word end where it ends, because
+  three letters given the same stretch become a caricature.
 
 The three system faces have exactly one definition each, in `tokens.ts`. Author
 `${p => p.theme.font.body}` — never a raw stack. Changing a face is a one-line change there.
@@ -59,7 +63,7 @@ its own palette.
 | `/` | `Landing` | Split-stage pet-video hero with draggable lens reveals |
 | `/readme` | `About` | Personal statement, dark editorial layout |
 | `/changelog` | `Day` | **Retired.** Route kept, no nav link. |
-| `/lab` | `Lab` | Lab index |
+| `/lab` | `Lab` | Lab index — `/readme`'s split, mirrored: list left, pinned picture right |
 | `/lab/:slug` | `LabEntryRoute` | A lab entry |
 | `/writing` | `Writing` | Blog index (published posts) |
 | `/writing/:slug` | `WritingPost` | A post, rendered in its template |
