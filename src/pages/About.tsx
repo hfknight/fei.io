@@ -3,6 +3,14 @@ import styled, { createGlobalStyle, css, keyframes } from 'styled-components';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowDown, ArrowUpRight, Bookmark } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
+import {
+  ASCII_FLAT,
+  ASCII_LEVELS,
+  fitMark,
+  levelAt,
+  rasterise,
+  splitIntoChars,
+} from './lab/entries/asciiSample';
 import { theme } from '../styles/theme';
 /* Plain import = the file URL (svgr components need ?react); the ascii sampler rasterises it.
    The feather, because it IS the site's mark — the loader and the home lockup both draw this
@@ -1492,14 +1500,6 @@ const PARAGRAPHS: React.ReactNode[] = [
  * orange fills are discarded. (An inverted treatment — light mark on a dark panel — was tried
  * and dropped: the panel read as a foreign card dropped onto the paper.)
  */
-/* Ink ladder. Index 0 is the field around the mark, present but only just. Nine steps because
-   the reveal is coarse — one sample per character — and the gradation does the work the
-   resolution cannot. */
-const ASCII_LEVELS = [7, 15, 25, 36, 48, 61, 75, 88, 100];
-/* Where every character starts, before the mark surfaces: one flat value across the whole
-   block, so the clone arrives as an undifferentiated field of type and the feather has
-   somewhere to emerge FROM. */
-const ASCII_FLAT = 62;
 /* Resolution of the offscreen feather the characters are sampled against. Generous — it costs
    one canvas at mount, and it is sampled at arbitrary sub-character positions. */
 const LOGO_RASTER_H = 660;
@@ -1569,31 +1569,6 @@ const RevealLayer = styled.div`
   })}
 `;
 
-/* Explode every text node into one span per character. Spaces are left as bare text: they are
-   the line-break opportunities, and wrapping them would not change the breaks but would double
-   the node count for nothing. Returns the spans in document order. */
-const splitIntoChars = (root: HTMLElement): HTMLSpanElement[] => {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  const texts: Text[] = [];
-  for (let n = walker.nextNode(); n; n = walker.nextNode()) texts.push(n as Text);
-
-  const spans: HTMLSpanElement[] = [];
-  for (const node of texts) {
-    const frag = document.createDocumentFragment();
-    for (const ch of node.data) {
-      if (ch === ' ' || ch === '\n') {
-        frag.appendChild(document.createTextNode(ch));
-        continue;
-      }
-      const span = document.createElement('span');
-      span.textContent = ch;
-      frag.appendChild(span);
-      spans.push(span);
-    }
-    node.parentNode?.replaceChild(frag, node);
-  }
-  return spans;
-};
 
 const LogoReveal: React.FC<{
   pageRef: React.RefObject<HTMLDivElement | null>;
@@ -1645,32 +1620,22 @@ const LogoReveal: React.FC<{
       clone.removeAttribute('data-merged');
 
       /* The feather, contained in the block and centred — it is much taller than the block is,
-         so the fit is height-bound. */
-      const rasterW = Math.max(1, Math.round(LOGO_RASTER_H * (img.naturalWidth / img.naturalHeight)));
-      const canvas = document.createElement('canvas');
-      canvas.width = rasterW;
-      canvas.height = LOGO_RASTER_H;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, 0, 0, rasterW, LOGO_RASTER_H);
-      const px = ctx.getImageData(0, 0, rasterW, LOGO_RASTER_H).data;
-
-      const markW = box.height * (img.naturalWidth / img.naturalHeight);
-      const markX = box.left + (box.width - markW) / 2;
+         so the fit is height-bound. Both steps live in ./lab/entries/asciiSample, shared with
+         the lab entry that takes this apart; rects go in relative to the block's own origin. */
+      const raster = rasterise(img, LOGO_RASTER_H);
+      if (!raster) return;
+      const mark = fitMark(box.width, box.height, img.naturalWidth / img.naturalHeight);
       const top = ASCII_LEVELS.length - 1;
 
       chars.forEach((span, i) => {
         const r = rects[i];
-        /* Character centre, in the mark's own normalised space. */
-        const u = (r.left + r.width / 2 - markX) / markW;
-        const v = (r.top + r.height / 2 - box.top) / box.height;
-        let level = 0;
-        if (u >= 0 && u < 1 && v >= 0 && v < 1) {
-          const sx = Math.min(rasterW - 1, Math.floor(u * rasterW));
-          const sy = Math.min(LOGO_RASTER_H - 1, Math.floor(v * LOGO_RASTER_H));
-          level = Math.round((px[(sy * rasterW + sx) * 4 + 3] / 255) * top);
-        }
+        const level = levelAt(
+          r.left + r.width / 2 - box.left,
+          r.top + r.height / 2 - box.top,
+          mark,
+          raster,
+          top,
+        );
         span.setAttribute('data-l', String(level));
       });
 

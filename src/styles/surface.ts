@@ -32,8 +32,13 @@ const DARK_PREFIXES = ['/writing/admin', '/lab/'];
  * OPENS on a light video pane. Its dark parts (Ollie's pane, the closing article) hardcode
  * their own grounds, and its nav wears a plate with pinned ink rather than relying on
  * --chrome-ink, so nothing there depends on the route being inverted.
+ *
+ * `/lab/text-into-picture` is light for a reason its own subject supplies: the effect it
+ * documents is dark type on paper, and the inverted version of it was tried on /readme and
+ * dropped — a dark panel in a light page reads as a foreign card dropped onto it. The entry
+ * would be arguing with its own demo.
  */
-const LIGHT_OVERRIDE = new Set(['/lab/cursor-tracked-video']);
+const LIGHT_OVERRIDE = new Set(['/lab/cursor-tracked-video', '/lab/text-into-picture']);
 
 /**
  * Falls through to `inverted`, never to `default`. An unmigrated page still hardcodes
