@@ -1,6 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import React from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { landingHasRevealed } from './Landing/introState';
 import { HOME_CURTAIN_IN } from './HomeCurtains';
 import { groundFor, inkFor } from '../styles/surface';
@@ -12,10 +12,11 @@ const CURTAIN_DURATION = 0.75;
  * Seconds until the curtain fully covers the viewport — the moment it is safe to swap the
  * surface underneath without anyone seeing it.
  *
- * The box is 170vw wide and travels x: 100vw → -70vw, so it covers the viewport for the
- * whole range x ∈ [-70vw, 0]: cover begins the instant its leading edge reaches x = 0,
- * i.e. once the eased progress has consumed 100 of its 170vw of travel (0.588). Under
- * CURTAIN_EASE that lands at ~0.53 of the duration; rounded up for margin.
+ * The box is 170% of the viewport along its axis and travels a full 170% of it, so cover
+ * begins once the eased progress has consumed 100 of those 170 (0.588). Under CURTAIN_EASE
+ * that lands at ~0.53 of the duration; rounded up for margin. Both axes are built to the
+ * same 170/100 proportion precisely so this one number keeps serving both — Layout schedules
+ * its surface flip on it.
  */
 export const CURTAIN_COVER = 0.45;
 /* Ease-in-out, not the house ease-out-expo: expo front-loads so hard the seam crosses
@@ -25,10 +26,10 @@ export const CURTAIN_COVER = 0.45;
 const CURTAIN_EASE = [0.65, 0, 0.35, 1] as [number, number, number, number];
 
 /* The page-change wipe for every destination EXCEPT home (see the exit variants below
-   for the two home cases): sweeps in from the right over the exiting page until it
-   covers the viewport. Its colour is the DESTINATION's, so when the new page mounts
-   (content not yet entered, just its background) it is pixel-identical to the curtain and
-   the hand-off is invisible. No slide-out needed.
+   for the two home cases): slides over the exiting page until it covers the viewport. Its
+   colour is the DESTINATION's, so when the new page mounts (content not yet entered, just
+   its background) it is pixel-identical to the curtain and the hand-off is invisible. No
+   slide-out needed.
 
    It resolves that colour ITSELF, from the destination path, rather than reading whatever
    <html> currently says. data-surface is a plain attribute selector, so the curtain simply
@@ -43,47 +44,48 @@ const CURTAIN_EASE = [0.65, 0, 0.35, 1] as [number, number, number, number];
    as a hovered link jumping from the light surface's olive-bronze accent to the dark
    surface's bright yellow before the curtain ever reached it.
 
-   The sweep must be readable over a background of its own colour, so the box is 70vw
-   wider than the viewport and carries its edge treatment with it: a hairline seam on the
+   The sweep must be readable over a background of its own colour, so the box overruns the
+   viewport by 70% of it and carries its edge treatment with it: a hairline seam on the
    leading edge (the spottable front), backed by an ink shade that eases smoothly to pure
-   surface across 70vw. At full cover the shaded part has slid past the viewport's left
-   edge, keeping the swap seamless. This is a transform, not a clip-path reveal,
+   surface across that overrun. At full cover the shaded part has slid past the viewport's
+   far edge, keeping the swap seamless. This is a transform, not a clip-path reveal,
    deliberately: a clip exposes STATIC paint, so the shading would sit at a fixed spot
    instead of riding the moving edge. The transform is safe here — the curtain is a leaf
-   with no descendants whose backgrounds could re-anchor. */
-const Curtain = styled(motion.div)`
+   with no descendants whose backgrounds could re-anchor.
+
+   Stop positions are PERCENTAGES of the box, not viewport units, so one recipe serves both
+   axes: a gradient line always runs the box's own length along the direction it travels,
+   and 20/42/70 of 170 are the same fractions either way. */
+const curtainSkin = css`
   position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 170vw;
   /* Below the Header/Footer (z 10): the wipe covers page content, not the chrome. */
   z-index: 9;
   pointer-events: none;
   /* Multi-stop so the shade decays like a curve, not one linear band. The ink token
      resolves against the curtain's OWN data-surface (set from the destination), and the
      ground comes in as a custom property so a route whose background differs from its
-     surface still hands off cleanly. */
+     surface still hands off cleanly. --curtain-angle points the gradient at the leading
+     edge, which is the only thing that differs between the two axes. */
   background: linear-gradient(
-    90deg,
+    var(--curtain-angle),
     color-mix(in srgb, var(--curtain-ink, ${p => p.theme.color.ink})12%, var(--curtain-ground, ${p => p.theme.color.surface})) 0,
-    color-mix(in srgb, var(--curtain-ink, ${p => p.theme.color.ink})8%, var(--curtain-ground, ${p => p.theme.color.surface})) 20vw,
-    color-mix(in srgb, var(--curtain-ink, ${p => p.theme.color.ink})4%, var(--curtain-ground, ${p => p.theme.color.surface})) 42vw,
-    var(--curtain-ground, ${p => p.theme.color.surface}) 70vw
+    color-mix(in srgb, var(--curtain-ink, ${p => p.theme.color.ink})8%, var(--curtain-ground, ${p => p.theme.color.surface})) 11.76%,
+    color-mix(in srgb, var(--curtain-ink, ${p => p.theme.color.ink})4%, var(--curtain-ground, ${p => p.theme.color.surface})) 24.71%,
+    var(--curtain-ground, ${p => p.theme.color.surface}) 41.18%
   );
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+  }
 
   /* The leading edge wears the landing seam's treatment — a 1px white hairline fading
      out at both ends over a soft blurred bloom, same recipe as HomeCurtains' seam. */
   &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: -2px;
-    width: 5px;
     filter: blur(3px);
     background: linear-gradient(
-      180deg,
+      var(--seam-angle),
       rgba(255, 255, 255, 0) 0%,
       rgba(255, 255, 255, 0.3) 30%,
       rgba(255, 255, 255, 0.3) 70%,
@@ -92,14 +94,8 @@ const Curtain = styled(motion.div)`
   }
 
   &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 1px;
     background: linear-gradient(
-      180deg,
+      var(--seam-angle),
       rgba(255, 255, 255, 0) 0%,
       rgba(255, 255, 255, 0.55) 30%,
       rgba(255, 255, 255, 0.55) 70%,
@@ -107,6 +103,93 @@ const Curtain = styled(motion.div)`
     );
   }
 `;
+
+/* Right to left — the wipe every destination but /lab gets. Leading edge: its left. */
+const CurtainX = styled(motion.div)`
+  ${curtainSkin}
+  --curtain-angle: 90deg;
+  --seam-angle: 180deg;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 170vw;
+
+  &::before {
+    top: 0;
+    bottom: 0;
+    left: -2px;
+    width: 5px;
+  }
+
+  &::after {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+  }
+`;
+
+/* Top to bottom — /lab's, because /lab answers it with a column rising from the bottom and
+   the two read as one gesture falling and returning. Leading edge: its bottom, so the
+   gradient runs 0deg (bottom-up) and the seam lies across the box's width. */
+const CurtainY = styled(motion.div)`
+  ${curtainSkin}
+  --curtain-angle: 0deg;
+  --seam-angle: 90deg;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 170dvh;
+
+  &::before {
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 5px;
+  }
+
+  &::after {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+  }
+`;
+
+/**
+ * One exit variant for both curtains, resolved from the destination.
+ *
+ * Home is never swept — it brings its own cover (the Loader on a first visit, HomeCurtains
+ * on a return). Everything else is swept by exactly one axis: /lab falls from the top,
+ * because its own entrance is the right column rising from the bottom and a horizontal wipe
+ * across that reads as two transitions for one navigation; every other route keeps the
+ * right-to-left sweep. The axis that is not travelling holds its parked value for 0s, which
+ * framer treats as staying put.
+ *
+ * The colours go on both regardless: they are free to set, and setting them unconditionally
+ * keeps the parked curtain correct if the axis rule ever changes.
+ */
+const sweep = (dest: string, axis: 'x' | 'y') => {
+  const travels = dest !== '/' && (axis === 'y') === (dest === '/lab');
+  /* Written out per axis rather than as a computed key: a [axis] key widens the object to a
+     string index signature, which framer's Target type will not accept. */
+  const offset = axis === 'y'
+    ? { y: travels ? '0%' : '-100%' }
+    : { x: travels ? '-70vw' : '100vw' };
+  return {
+    ...offset,
+    '--curtain-ground': groundFor(dest),
+    '--curtain-ink': inkFor(dest),
+    transition: travels
+      ? {
+          duration: CURTAIN_DURATION,
+          ease: CURTAIN_EASE,
+          '--curtain-ground': { duration: 0 },
+          '--curtain-ink': { duration: 0 },
+        }
+      : { duration: 0 },
+  };
+};
 
 interface Props {
   children: React.ReactNode;
@@ -160,7 +243,12 @@ const PageTransition: React.FC<Props> = ({ children }) => {
       >
         {children}
       </motion.div>
-      <Curtain
+      {/* Both axes are always mounted; only one ever travels. The destination reaches an
+          exiting tree solely through AnimatePresence's `custom`, which feeds variant
+          FUNCTIONS — it cannot pick which component renders — so the choice is made inside
+          the variants and the other curtain simply holds its parked position for 0s. Parked
+          means fully off screen, so the idle one costs nothing but a node. */}
+      <CurtainX
         variants={{
           initial: { x: '100vw' },
           enter: { x: '100vw' },
@@ -168,23 +256,19 @@ const PageTransition: React.FC<Props> = ({ children }) => {
              — `custom` is the only channel that carries the destination into an exiting
              tree, so there is nowhere else to put them. Both snap (duration 0): they are
              colour strings, not values to interpolate, and the curtain is still off
-             screen at x: 100vw when they land. */
-          exit: (dest: string) => {
-            const home = dest === '/';
-            return {
-              x: home ? '100vw' : '-70vw',
-              '--curtain-ground': groundFor(dest),
-              '--curtain-ink': inkFor(dest),
-              transition: home
-                ? { duration: 0 }
-                : {
-                    duration: CURTAIN_DURATION,
-                    ease: CURTAIN_EASE,
-                    '--curtain-ground': { duration: 0 },
-                    '--curtain-ink': { duration: 0 },
-                  },
-            };
-          },
+             screen when they land. */
+          exit: (dest: string) => sweep(dest, 'x'),
+        }}
+      />
+      <CurtainY
+        variants={{
+          /* -100% of a box 170dvh tall: entirely above the viewport, bottom edge on its
+             top edge. It travels that whole 170 to y: 0, covering once 100 of it is spent
+             — the same 100-of-170 the X curtain spends, which is what keeps one
+             CURTAIN_COVER honest for both. */
+          initial: { y: '-100%' },
+          enter: { y: '-100%' },
+          exit: (dest: string) => sweep(dest, 'y'),
         }}
       />
     </motion.div>

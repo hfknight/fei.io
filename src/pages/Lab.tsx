@@ -98,14 +98,6 @@ const Lab: React.FC = () => {
       <UnclipRoot />
       <Page>
         <Content>
-          <Kicker
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-          >
-            fei.hu / lab
-          </Kicker>
-
           {entries.length === 0 && <Status>No entries yet.</Status>}
 
           <List onMouseLeave={() => setBand(null)}>
@@ -127,45 +119,70 @@ const Lab: React.FC = () => {
         </Content>
 
         <Rail ref={railRef}>
-          <Plate
-            $lit={band !== null}
+          {/* This route's page-load transition, picking up where the curtain lands:
+              PageTransition drops /lab's curtain from the top (its CurtainY), and this
+              column rises from the bottom to answer it — one gesture falling and returning,
+              while the list beside it staggers in.
+
+              The slide sits on an inner box, not on Rail itself. Parked a rail-height
+              down it is real page overflow — a scrollbar flash, and on a longer list a
+              stretch of blank page below the fold — so something has to clip it; Rail is
+              that something, and Rail therefore has to stay put while the box inside it
+              moves. (It also has to stay untransformed for lightBand, which measures the
+              band against Rail's live rect.)
+
+              The band's geometry is declared HERE rather than on the plate, because two
+              layers now read it — the plate and the wordmark. Rail-space coordinates, the
+              space lightBand measures in, and both layers subtract their own offset. */}
+          <Slide
+            initial={reduced ? { opacity: 0 } : { y: '100%' }}
+            animate={reduced ? { opacity: 1 } : { y: 0 }}
+            transition={{ duration: reduced ? 0.4 : 1.05, ease }}
             style={
               {
                 '--band-top': `${band?.top ?? 0}px`,
                 '--band-h': `${band?.h ?? 0}px`,
+                '--band-o': band === null ? 0 : 1,
               } as React.CSSProperties
             }
           >
-            <div className="img" />
-            <div className="band">
-              <div className="band-img" />
-            </div>
-          </Plate>
+            <Plate>
+              <div className="img" />
+              <div className="band">
+                <div className="band-img" />
+              </div>
+            </Plate>
 
-          <Masthead ref={mastRef} aria-hidden>
-            <span className="cut" />
-            {/* userSpaceOnUse = the Masthead div's own pixel grid: y=48 doubled by
-                scale(1,2) puts the baseline at 96, the div's bottom edge. x/fontSize/
-                textLength come from the ink measurement above, so the word's painted pixels
-                span exactly the column width. Anton has one weight (400). */}
-            <svg width="0" height="0" focusable="false">
-              <defs>
-                <clipPath id="lab-clip" clipPathUnits="userSpaceOnUse">
-                  <text
-                    x={stencil.x}
-                    y="48"
-                    transform="scale(1,2)"
-                    textLength={stencil.textLength}
-                    lengthAdjust="spacingAndGlyphs"
-                    fontFamily="Anton"
-                    fontSize={stencil.fontSize}
-                  >
-                    {WORDMARK}
-                  </text>
-                </clipPath>
-              </defs>
-            </svg>
-          </Masthead>
+            <Masthead ref={mastRef} aria-hidden>
+              <span className="cut" />
+              {/* The same window, through the letters. Declared after .cut so it paints
+                  over it; both are clipped by the one stencil below. */}
+              <div className="band">
+                <div className="band-img" />
+              </div>
+              {/* userSpaceOnUse = the Masthead div's own pixel grid: y=48 doubled by
+                  scale(1,2) puts the baseline at 96, the div's bottom edge. x/fontSize/
+                  textLength come from the ink measurement above, so the word's painted pixels
+                  span exactly the column width. Anton has one weight (400). */}
+              <svg width="0" height="0" focusable="false">
+                <defs>
+                  <clipPath id="lab-clip" clipPathUnits="userSpaceOnUse">
+                    <text
+                      x={stencil.x}
+                      y="48"
+                      transform="scale(1,2)"
+                      textLength={stencil.textLength}
+                      lengthAdjust="spacingAndGlyphs"
+                      fontFamily="Anton"
+                      fontSize={stencil.fontSize}
+                    >
+                      {WORDMARK}
+                    </text>
+                  </clipPath>
+                </defs>
+              </svg>
+            </Masthead>
+          </Slide>
         </Rail>
       </Page>
     </PageTransition>
@@ -241,6 +258,9 @@ const Page = styled.div`
      the extra span the tail is simply not painted. Only the box grows: the baseline, the
      letter size and the image's cut all stay where they were. */
   --word-desc: 16px;
+  /* Nothing hovered. The band's own top/height are meaningless until lightBand writes
+     them, so this is the switch that keeps the window shut in the meantime. */
+  --band-o: 0;
   /* Where the PHOTOGRAPH begins — the top of the wordmark, not the top of the screen. The
      letters therefore carry the picture's first rows and the plate continues from where
      they end, so the two are one field rather than type sitting on an image. */
@@ -273,11 +293,21 @@ const Column = styled.div`
   width: 100%;
 `;
 
+/* The box that arrives. Rail stays put and clips; this slides up inside it. */
+const Slide = styled(motion.div)`
+  position: absolute;
+  inset: 0;
+`;
+
 const Rail = styled.div`
   position: sticky;
   top: 0;
   height: 100dvh;
   align-self: start;
+  /* Holds the entrance slide inside the column instead of letting it lengthen the page.
+     Safe on the sticky element itself: an element's own overflow has no bearing on where
+     it sticks, only on what it shows. */
+  overflow: hidden;
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     position: relative;
@@ -296,7 +326,7 @@ const Rail = styled.div`
  * glass — its window shows the untreated original — but stays inside the cut, so the paper
  * margin still holds.
  */
-const Plate = styled.div<{ $lit: boolean }>`
+const Plate = styled.div`
   position: absolute;
   top: 0;
   left: 0;
@@ -327,8 +357,12 @@ const Plate = styled.div<{ $lit: boolean }>`
     filter: grayscale(1);
   }
 
-  /* The colour reveal. A window on the picture at the hovered entry's own height, sliding
-     between them rather than blinking — one instrument, not two lamps. ABOVE the frost and
+  /* The colour reveal, plate half. A window on the picture at the hovered entry's own
+     height, sliding between them rather than blinking — one instrument, not two lamps. The
+     wordmark carries the matching half (see Masthead): the plate's picture only exists
+     below the clip at --mast-top + --word-h, so an entry sitting level with the letters —
+     the first one does — would otherwise light a sliver of plate and leave the word it
+     lines up with grey. One window, two layers to cross. ABOVE the frost and
      the grain (z 1 and 2), not under them: the window shows the ORIGINAL pixels — sharp,
      colour, unglazed — the way /readme's Peek escapes its column's treatment entirely. The
      feathered mask below is edge softness on the window, not blur on the picture. */
@@ -340,7 +374,7 @@ const Plate = styled.div<{ $lit: boolean }>`
     height: var(--band-h);
     z-index: 3;
     overflow: hidden;
-    opacity: ${p => (p.$lit ? 1 : 0)};
+    opacity: var(--band-o);
     transition:
       top 0.5s cubic-bezier(0.16, 1, 0.3, 1),
       height 0.5s cubic-bezier(0.16, 1, 0.3, 1),
@@ -485,24 +519,71 @@ const Masthead = styled.div`
     clip-path: url(#lab-clip);
   }
 
+  /* The colour reveal, wordmark half — the plate's .band recipe with one substitution:
+     Masthead's top is --pic-top, not 0, so the band's rail-space position is offset by
+     that much. Everything else (the height, the 9px feather, the travel) is the same
+     window, which is the point — it must not look like a second effect starting where
+     the first stops. */
+  .band {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(var(--band-top) - var(--pic-top));
+    height: var(--band-h);
+    overflow: hidden;
+    opacity: var(--band-o);
+    transition:
+      top 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+      height 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 0.35s ease;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 9px, #000 calc(100% - 9px), transparent 100%);
+    mask-image: linear-gradient(180deg, transparent 0, #000 9px, #000 calc(100% - 9px), transparent 100%);
+  }
+
+  /* Pulled back up by the band's own offset, so this box lands exactly on Masthead's —
+     which is what makes url(#lab-clip) cut the same letters here as it does on .cut. The
+     stencil is userSpaceOnUse, i.e. read in the referencing element's own pixel grid, so
+     coinciding boxes are not a nicety but the whole mechanism. No grayscale: this is the
+     untreated original showing through, exactly as the plate's window is. */
+  .band-img {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(-1 * (var(--band-top) - var(--pic-top)));
+    height: calc(var(--word-h) + var(--word-desc));
+    ${sharpImage}
+    background-position: calc(-1 * var(--img-margin)) 0;
+    -webkit-clip-path: url(#lab-clip);
+    clip-path: url(#lab-clip);
+    transition: top 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     display: none;
+  }
+
+  /* Matches the plate: no cursor, no band, and the letters ship in colour rather than
+     sitting grey behind a mechanic that cannot fire. */
+  @media (hover: none) {
+    .cut {
+      filter: none;
+    }
+    .band {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .band,
+    .band-img {
+      transition: none;
+    }
   }
 `;
 
 /* ------------------------------------------------------------------ */
 /* List                                                                */
 /* ------------------------------------------------------------------ */
-
-const Kicker = styled(motion.span)`
-  display: block;
-  font-family: ${p => p.theme.font.mono};
-  font-size: 0.62rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: ${p => p.theme.color.inkMuted};
-  margin-bottom: 3.5rem;
-`;
 
 const Status = styled.p`
   font-family: ${p => p.theme.font.body};
