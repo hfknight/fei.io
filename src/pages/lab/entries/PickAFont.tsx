@@ -198,7 +198,7 @@ const SpecimenCard: React.FC<CardProps> = ({
   };
 
   return (
-    <Card>
+    <Card $rank={rank}>
       <CardKicker>
         {RANK[rank]} · {QUALITY_NOTE[match.quality]}
       </CardKicker>
@@ -687,18 +687,23 @@ const Cards = styled.main`
 
 /* A tall specimen poster: the paper carries the type, the border only names the sheet's
    edge. Portrait proportions on purpose — a specimen reads as a page, not a banner. */
-const Card = styled.article`
+const Card = styled.article<{ $rank: number }>`
   display: flex;
   flex-direction: column;
   min-height: clamp(520px, 72vh, 660px);
-  border: 1px solid ${p => p.theme.color.border};
+  /* One edge colour for every sheet: a wash of the mark, the same family as the
+     wordmark's slab — the rank ladder is the paper's job (see background below), the
+     edge's job is only to tie the sheets to the lockup. Two pixels so the tint registers
+     as a deliberate edge rather than a rendering artefact. */
+  border: 2px solid color-mix(in srgb, var(--color-mark) 35%, transparent);
   /* Square, like the slab: this page's idiom is a printed specimen sheet, not the site's
      glass — the sheets, chips, and toggle all keep hard corners together. */
   border-radius: 0;
-  /* A step up the ramp from the grey paper (same hue, more light): the card reads as a
-     whiter sheet laid on the desk rather than a panel of another colour. The page grain
-     overlay paints across both, which keeps the two papers one material. */
-  background: var(--n-1);
+  /* Rank as paper: the closest match gets the brightest sheet and each rank steps down
+     the ramp — n-0/n-2/n-4 straddle the desk's 0.913 lightness, so the ladder is legible
+     at a glance while every step stays the same hue, i.e. the same paper family. The page
+     grain overlay paints across all of them, keeping the materials one. */
+  background: ${p => ['var(--n-0)', 'var(--n-2)', 'var(--n-4)'][p.$rank] ?? 'var(--n-2)'};
   padding: 1.7rem 1.6rem 1.5rem;
 `;
 
