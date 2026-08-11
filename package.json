@@ -53,5 +53,9 @@
     "vite-plugin-svgr": "^4.3.0",
     "vitest": "^4.1.9",
     "wrangler": "^4.104.0"
+  },
+  "overrides": {
+    "undici": "^7.29.0",
+    "sharp": "^0.35.0"
   }
 }
