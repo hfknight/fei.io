@@ -38,6 +38,22 @@ describe('Writing index', () => {
     expect(screen.getByRole('link', { name: /First/ })).toHaveAttribute('href', '/writing/a');
   });
 
+  it('shows the post publish year span in the header band', async () => {
+    vi.mocked(blogApi.fetchPublishedPosts).mockResolvedValue([
+      summary({ id: '1', slug: 'a', title: 'First', publishedAt: new Date('2024-06-01').getTime() }),
+      summary({ id: '2', slug: 'b', title: 'Second', publishedAt: new Date('2026-06-01').getTime() }),
+    ]);
+
+    render(
+      <MemoryRouter>
+        <Writing />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('First')).toBeInTheDocument();
+    expect(screen.getByText('2024 — 2026')).toBeInTheDocument();
+  });
+
   it('shows an empty state when there are no posts', async () => {
     vi.mocked(blogApi.fetchPublishedPosts).mockResolvedValue([]);
 
