@@ -4,6 +4,8 @@ export interface Env {
   // Bindings
   DB: D1Database;
   MEDIA: R2Bucket;
+  /** The project's static build output — implicit on every Pages project, no config. */
+  ASSETS: Fetcher;
 
   // Cloudflare Access
   TEAM_DOMAIN: string;

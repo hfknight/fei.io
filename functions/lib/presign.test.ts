@@ -7,6 +7,7 @@ function makeEnv(over: Partial<Env> = {}): Env {
   return {
     DB: {} as D1Database,
     MEDIA: {} as R2Bucket,
+    ASSETS: {} as Fetcher,
     TEAM_DOMAIN: 'https://team.cloudflareaccess.com',
     POLICY_AUD: 'aud',
     R2_ACCOUNT_ID: 'acct123',
