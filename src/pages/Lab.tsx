@@ -4,6 +4,7 @@ import styled, { createGlobalStyle } from 'styled-components';
 import { motion, useReducedMotion } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
 import { labEntriesByDate } from '../data/labEntries';
+import { usePageTitle } from '../hooks/usePageTitle';
 import type { LabKind } from '../types';
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
@@ -40,6 +41,10 @@ const sharpImage = `
 `;
 
 const Lab: React.FC = () => {
+  /* Deliberately topic-free — the shelf keeps gaining pieces, and a title that
+     enumerates subjects goes stale with every new entry. */
+  usePageTitle('Lab — interactive experiments and case studies · Fei Hu');
+
   const reduced = useReducedMotion();
   const entries = labEntriesByDate();
   const railRef = useRef<HTMLDivElement>(null);

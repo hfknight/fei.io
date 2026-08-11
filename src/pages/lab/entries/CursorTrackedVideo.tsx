@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import hljs from 'highlight.js/lib/core';
 import javascript from 'highlight.js/lib/languages/javascript';
 import PageTransition from '../../../components/PageTransition';
+import { usePageTitle } from '../../../hooks/usePageTitle';
 import {
   CLIP_FPS,
   JOJO,
@@ -418,6 +419,8 @@ const Code: React.FC<{ code: string }> = ({ code }) => (
 );
 
 const CursorTrackedVideo: React.FC = () => {
+  usePageTitle('Scrub video with the cursor — mouse-driven video playback in React · Fei Hu');
+
   const mode = useMode();
   const jojoRef = useRef<HTMLElement>(null);
   const ollieRef = useRef<HTMLElement>(null);

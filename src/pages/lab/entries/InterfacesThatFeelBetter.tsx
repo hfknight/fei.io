@@ -8,6 +8,7 @@ import cssLang from 'highlight.js/lib/languages/css';
 import javascript from 'highlight.js/lib/languages/javascript';
 import xml from 'highlight.js/lib/languages/xml';
 import PageTransition from '../../../components/PageTransition';
+import { usePageTitle } from '../../../hooks/usePageTitle';
 import { hljsTokens, CODE_ISLAND, CODE_ISLAND_RIM } from '../../../styles/codeTheme';
 
 hljs.registerLanguage('css', cssLang);
@@ -795,6 +796,10 @@ img { outline: 1px solid rgba(0, 0, 0, 0.1); outline-offset: -1px; }`,
 const SECTION_IDS = [...GROUPS.map((g) => g.title.toLowerCase()), 'references'];
 
 const InterfacesThatFeelBetter: React.FC = () => {
+  usePageTitle(
+    'Micro-interaction best practices — details that make interfaces feel better · Fei Hu',
+  );
+
   const reduced = useReducedMotion();
   const [active, setActive] = useState(0);
   const rise = (delay: number) =>

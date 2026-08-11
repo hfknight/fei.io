@@ -4,6 +4,7 @@ import styled, { css } from 'styled-components';
 import hljs from 'highlight.js/lib/core';
 import javascript from 'highlight.js/lib/languages/javascript';
 import PageTransition from '../../../components/PageTransition';
+import { usePageTitle } from '../../../hooks/usePageTitle';
 import featherUrl from '../../../assets/fei-feather.svg';
 import {
   ASCII_FLAT,
@@ -364,7 +365,10 @@ for (let y = top; y < bottom; y++) {
 }
 return Math.round((sum / (cells * 255)) * steps);`;
 
-const TextIntoPicture: React.FC = () => (
+const TextIntoPicture: React.FC = () => {
+  usePageTitle('Turn text into a picture — an ASCII halftone scroll effect in React · Fei Hu');
+
+  return (
   <PageTransition>
     <Page>
       <Column>
@@ -543,7 +547,8 @@ const TextIntoPicture: React.FC = () => (
       </Column>
     </Page>
   </PageTransition>
-);
+  );
+};
 
 export default TextIntoPicture;
 

@@ -1,22 +1,13 @@
 import type { Env } from '../lib/env';
+import type { PageMeta } from '../lib/stampMeta';
+import { stampMeta } from '../lib/stampMeta';
 
-/* GET /lab/:slug — the SPA's HTML with the route's own <title> and meta stamped in.
- *
- * The client already sets document.title per route (src/hooks/usePageTitle.ts), and Google
- * renders JS — but link unfurlers (Slack, X) and slower crawlers read only the static HTML,
- * which carries the site-wide head. This function fetches that same static HTML from ASSETS
- * (Pages' SPA fallback serves index.html for any /lab/* path) and rewrites the head tags at
- * the edge for routes listed here, so the shared preview matches what the page actually is.
- *
- * Routes not in the map — and non-HTML responses — pass through untouched.
- */
+/* GET /lab/:slug — the SPA's HTML with the route's own <title> and meta stamped in at the
+ * edge (see lib/stampMeta.ts for why). One map entry per route that wants its own face;
+ * unlisted slugs pass through with the site-wide head. Keep each entry's title in step
+ * with the usePageTitle call in its component. */
 
-interface RouteMeta {
-  title: string;
-  description: string;
-}
-
-const LAB_META: Record<string, RouteMeta> = {
+const LAB_META: Record<string, PageMeta> = {
   'pick-a-font': {
     title: 'Find your font pairing by feel — a free font picker · Fei Hu',
     description:
@@ -24,38 +15,33 @@ const LAB_META: Record<string, RouteMeta> = {
       'current, quiet to loud, precise to warm — and get the closest free webfonts with ' +
       'hand-curated pairings, from Google Fonts, Fontshare, and independent foundries.',
   },
+  'text-into-picture': {
+    title: 'Turn text into a picture — an ASCII halftone scroll effect in React · Fei Hu',
+    description:
+      'A scroll effect that condenses a page of prose into an ASCII-halftone image — same ' +
+      'words, every character reshaded. Why cloning the page beats drawing a grid, and how ' +
+      'much picture a page of text can hold.',
+  },
+  'cursor-tracked-video': {
+    title: 'Scrub video with the cursor — mouse-driven video playback in React · Fei Hu',
+    description:
+      'Cursor position drives the video’s playhead — two scroll panes, one light, one ' +
+      'dark. Frame-accurate scrubbing, the buffering strategy behind it, and the tuning ' +
+      'that makes it feel physical.',
+  },
+  'interfaces-that-feel-better': {
+    title: 'Micro-interaction best practices — details that make interfaces feel better · Fei Hu',
+    description:
+      'A reference of micro-interaction patterns with live demos: timing, easing, hover, ' +
+      'focus, loading — the small mechanics that make an interface feel considered rather ' +
+      'than assembled.',
+  },
 };
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env, params }) => {
   const asset = await env.ASSETS.fetch(request);
-
   const slug = typeof params.slug === 'string' ? params.slug : '';
   const meta = LAB_META[slug];
-  if (!meta || !asset.headers.get('content-type')?.includes('text/html')) return asset;
-
-  const canonical = `https://fei.io/lab/${slug}`;
-  const setContent = (value: string) => ({
-    element(el: Element) {
-      el.setAttribute('content', value);
-    },
-  });
-
-  return new HTMLRewriter()
-    .on('title', {
-      element(el) {
-        el.setInnerContent(meta.title);
-      },
-    })
-    .on('link[rel="canonical"]', {
-      element(el) {
-        el.setAttribute('href', canonical);
-      },
-    })
-    .on('meta[name="description"]', setContent(meta.description))
-    .on('meta[property="og:title"]', setContent(meta.title))
-    .on('meta[property="og:description"]', setContent(meta.description))
-    .on('meta[property="og:url"]', setContent(canonical))
-    .on('meta[name="twitter:title"]', setContent(meta.title))
-    .on('meta[name="twitter:description"]', setContent(meta.description))
-    .transform(asset);
+  if (!meta) return asset;
+  return stampMeta(asset, meta, `https://fei.io/lab/${slug}`);
 };
