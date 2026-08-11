@@ -18,7 +18,10 @@
 #root {
   min-height: 100dvh;
   max-width: 100dvw;
-  overflow-x: hidden;
+  /* clip, not hidden: hidden turns #root into a scroll container, which re-anchors every
+     descendant position: sticky to #root's (never-moving) scrollport and silently disables
+     it. clip clips identically but leaves the window as the scrolling box. */
+  overflow-x: clip;
 }
 
 body {
