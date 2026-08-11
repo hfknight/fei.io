@@ -104,7 +104,8 @@ const curtainSkin = css`
   }
 `;
 
-/* Right to left — the wipe every destination but /lab gets. Leading edge: its left. */
+/* Right to left — the wipe for every destination that has no axis of its own (see
+   axisFor). Leading edge: its left. */
 const CurtainX = styled(motion.div)`
   ${curtainSkin}
   --curtain-angle: 90deg;
@@ -125,6 +126,35 @@ const CurtainX = styled(motion.div)`
     top: 0;
     bottom: 0;
     left: 0;
+    width: 1px;
+  }
+`;
+
+/* Left to right — the writing pages', so entering that territory reads as one gesture:
+   the curtain arrives from the left, the side the index anchors with its wordmark and
+   hero. CurtainX mirrored: leading edge is its RIGHT, so the shade gradient points left
+   (270deg) and the seam pseudos pin to the right edge. Parked at x:-100% of its own
+   170vw box — entirely off the left edge. */
+const CurtainXL = styled(motion.div)`
+  ${curtainSkin}
+  --curtain-angle: 270deg;
+  --seam-angle: 180deg;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 170vw;
+
+  &::before {
+    top: 0;
+    bottom: 0;
+    right: -2px;
+    width: 5px;
+  }
+
+  &::after {
+    top: 0;
+    bottom: 0;
+    right: 0;
     width: 1px;
   }
 `;
@@ -160,22 +190,38 @@ const CurtainY = styled(motion.div)`
  * One exit variant for both curtains, resolved from the destination.
  *
  * Home is never swept — it brings its own cover (the Loader on a first visit, HomeCurtains
- * on a return). Everything else is swept by exactly one axis: /lab falls from the top,
- * because its own entrance is the right column rising from the bottom and a horizontal wipe
- * across that reads as two transitions for one navigation; every other route keeps the
- * right-to-left sweep. The axis that is not travelling holds its parked value for 0s, which
- * framer treats as staying put.
+ * on a return). Everything else is swept by exactly one curtain, chosen by axisFor: /lab
+ * falls from the top, because its own entrance is the right column rising from the bottom
+ * and a horizontal wipe across that reads as two transitions for one navigation; the
+ * writing pages arrive from the left; every other route keeps the right-to-left sweep.
+ * The curtains that are not travelling hold their parked value for 0s, which framer
+ * treats as staying put.
  *
  * The colours go on both regardless: they are free to set, and setting them unconditionally
  * keeps the parked curtain correct if the axis rule ever changes.
  */
-const sweep = (dest: string, axis: 'x' | 'y') => {
-  const travels = dest !== '/' && (axis === 'y') === (dest === '/lab');
+/* Which curtain a destination sends: home none, /lab its falling Y, the writing pages
+   (index, posts, and admin alike — one territory, one gesture) the from-left XL,
+   everything else the default from-right X. */
+const axisFor = (dest: string): 'x' | 'xl' | 'y' | null => {
+  if (dest === '/') return null;
+  if (dest === '/lab') return 'y';
+  if (dest === '/writing' || dest.startsWith('/writing/')) return 'xl';
+  return 'x';
+};
+
+const sweep = (dest: string, axis: 'x' | 'xl' | 'y') => {
+  const travels = axisFor(dest) === axis;
   /* Written out per axis rather than as a computed key: a [axis] key widens the object to a
-     string index signature, which framer's Target type will not accept. */
+     string index signature, which framer's Target type will not accept.
+
+     XL's travel is -100% → 0% of its own 170vw box: it spends the same 100-of-170 before
+     cover as the other two, so CURTAIN_COVER keeps serving all three. */
   const offset = axis === 'y'
     ? { y: travels ? '0%' : '-100%' }
-    : { x: travels ? '-70vw' : '100vw' };
+    : axis === 'xl'
+      ? { x: travels ? '0%' : '-100%' }
+      : { x: travels ? '-70vw' : '100vw' };
   return {
     ...offset,
     '--curtain-ground': groundFor(dest),
@@ -243,7 +289,7 @@ const PageTransition: React.FC<Props> = ({ children }) => {
       >
         {children}
       </motion.div>
-      {/* Both axes are always mounted; only one ever travels. The destination reaches an
+      {/* All three curtains are always mounted; only one ever travels. The destination reaches an
           exiting tree solely through AnimatePresence's `custom`, which feeds variant
           FUNCTIONS — it cannot pick which component renders — so the choice is made inside
           the variants and the other curtain simply holds its parked position for 0s. Parked
@@ -258,6 +304,13 @@ const PageTransition: React.FC<Props> = ({ children }) => {
              colour strings, not values to interpolate, and the curtain is still off
              screen when they land. */
           exit: (dest: string) => sweep(dest, 'x'),
+        }}
+      />
+      <CurtainXL
+        variants={{
+          initial: { x: '-100%' },
+          enter: { x: '-100%' },
+          exit: (dest: string) => sweep(dest, 'xl'),
         }}
       />
       <CurtainY

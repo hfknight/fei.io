@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
 import ShimmerText from '../components/ShimmerText';
 import { fetchPublishedPosts } from '../lib/blogApi';
+import { WRITING_GROUND } from '../styles/surface';
 import type { BlogPostSummary } from '../types';
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
@@ -13,12 +14,12 @@ const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
    own wordmarks — see the stencil effect below for the measurement. */
 const WORDMARK = 'writing';
 
-/* PLACEHOLDER hero fill — the one line to change once Fei picks a photograph (e.g.
-   `url('/writing-hero.webp')`, sized the way /readme's and /lab's portraits are). A neutral
-   gradient off the site's own oklch ramp (hue 265) stands in until then. The wordmark and
-   the hero image share this exact value, sized to the same virtual canvas (see HeroBlock),
-   so the cut-out letters read as a window onto the same sheet the picture below them is. */
-const HERO_FILL = 'linear-gradient(165deg, var(--n-5) 0%, var(--n-7) 55%, var(--n-9) 100%)';
+/* The hero: Ollie and a tabby in a rose window, pre-cropped to the shared canvas's exact
+   300:471 ratio so neither layer stretches it. The wordmark and the hero image share this
+   value, sized to the same virtual canvas (see HeroBlock), so the cut-out letters read as
+   a window onto the same sheet the picture below them is. */
+const HERO_SRC = '/writing-hero.webp';
+const HERO_FILL = `url('${HERO_SRC}')`;
 
 interface State {
   loading: boolean;
@@ -98,6 +99,20 @@ const Writing: React.FC = () => {
     };
   }, []);
 
+  /* The hero (and the wordmark windowing onto it) holds off until its pixels exist —
+     otherwise the entrance plays over a blank rectangle and the picture pops in after.
+     Both layers ride one motion wrapper so the seam never shears mid-animation. In jsdom
+     Image never fires load; the block simply stays at its initial state there. */
+  const [heroReady, setHeroReady] = useState(false);
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => setHeroReady(true);
+    img.src = HERO_SRC;
+    return () => {
+      img.onload = null;
+    };
+  }, []);
+
   const years = yearSpan(state.posts);
 
   return (
@@ -113,7 +128,17 @@ const Writing: React.FC = () => {
                 enough to stretch seven letters across. */}
             <Heading>writing</Heading>
 
-            <HeroBlock>
+            <HeroBlock
+              initial={reduced ? { opacity: 0 } : { opacity: 0, y: 14, filter: 'blur(8px)' }}
+              animate={
+                heroReady
+                  ? reduced
+                    ? { opacity: 1 }
+                    : { opacity: 1, y: 0, filter: 'blur(0px)' }
+                  : undefined
+              }
+              transition={{ duration: reduced ? 0.4 : 1.0, ease }}
+            >
               {/* The letterforms are windows onto the hero image directly beneath them —
                   aria-hidden, purely decorative. */}
               <Masthead ref={mastRef} aria-hidden>
@@ -197,7 +222,9 @@ export default Writing;
 
 const Page = styled.div`
   min-height: 100dvh;
-  background: ${(p) => p.theme.color.surface};
+  /* The writing pages' sunlit paper — shared with WritingPost and the transition curtain
+     via surface.ts, so the curtain hand-off stays pixel-identical. */
+  background: ${WRITING_GROUND};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -274,7 +301,7 @@ const Heading = styled.h1`
 /* The wordmark and the hero image share one virtual canvas — --word-h tall for the
    letters, then --hero-h more for the picture — so a single background-position offset
    per layer is enough to make the two read as one continuous sheet. */
-const HeroBlock = styled.div`
+const HeroBlock = styled(motion.div)`
   position: relative;
   --hero-h: calc(var(--rail) * 5 / 4);
 `;
@@ -286,9 +313,25 @@ const Masthead = styled.div`
   height: var(--word-h);
   pointer-events: none;
 
-  background-image: ${HERO_FILL};
-  background-size: 100% calc(var(--word-h) + var(--hero-h));
+  /* An accent scrim over the letters, heaviest at the cap line and gone by the baseline:
+     the image's top strip is pale wall and paler roses, near the paper's own value, so
+     unshaded letterforms barely read. The accent (the light surface's olive-bronze, the
+     link colour everywhere on light pages) multiplied over the watercolor deepens it the
+     way pigment would — the roses' own yellow, darkened — and fading it out toward the
+     seam keeps the word growing out of the picture instead of sitting on a tinted pane. */
+  background-image:
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--accent) 85%, transparent),
+      color-mix(in srgb, var(--accent) 40%, transparent) 70%,
+      transparent
+    ),
+    ${HERO_FILL};
+  background-size:
+    100% 100%,
+    100% calc(var(--word-h) + var(--hero-h));
   background-position: 0 0;
+  background-blend-mode: multiply, normal;
   clip-path: url(#writing-clip);
   -webkit-clip-path: url(#writing-clip);
 
@@ -309,8 +352,8 @@ const HeroImage = styled.div`
   background-size: 100% calc(var(--word-h) + var(--hero-h));
   background-position: 0 calc(-1 * var(--word-h));
 
-  /* Subtle grain, reusing the landing's frost texture at low opacity, so the placeholder
-     reads as paper rather than a flat swatch. */
+  /* Subtle grain, reusing the landing's frost texture at low opacity — the same finish
+     /readme's and /lab's pictures wear. */
   &::after {
     content: '';
     position: absolute;
@@ -324,9 +367,10 @@ const HeroImage = styled.div`
   @media (max-width: ${(p) => p.theme.breakpoints.lg}) {
     aspect-ratio: 2 / 1;
     /* No wordmark to align to below the wordmark breakpoint, so the shared canvas sizing
-       is dropped in favour of the box's own fit. */
-    background-size: 100% 100%;
-    background-position: 0 0;
+       is dropped; cover keeps the portrait image undistorted in the wide banner, centred
+       on the window and its occupants. */
+    background-size: cover;
+    background-position: center;
   }
 `;
 

@@ -77,8 +77,22 @@ export const surfaceFor = (pathname: string): 'default' | 'inverted' => {
  * side of the transition. `var(--n-11)` is safe because the neutral ramp is static —
  * it does not vary by surface.
  */
+/**
+ * The writing pages' ground: the shared paper with ~4% of the light accent washed in,
+ * sunlit like their hero's wall. Defined here, beside groundFor, because the curtain and
+ * the pages must paint the SAME value for the hand-off to stay invisible — Writing and
+ * WritingPost import it rather than re-mixing their own. Built from lightVars literals,
+ * not surface-following tokens, for the same reason groundFor's values are.
+ */
+export const WRITING_GROUND = `color-mix(in srgb, ${lightVars['--color-surface']} 96%, ${lightVars['--accent']})`;
+
+const isWritingLight = (pathname: string) =>
+  pathname === '/writing' || pathname.startsWith('/writing/');
+
 export const groundFor = (pathname: string): string => {
-  if (surfaceFor(pathname) === 'default') return lightVars['--color-surface'];
+  if (surfaceFor(pathname) === 'default') {
+    return isWritingLight(pathname) ? WRITING_GROUND : lightVars['--color-surface'];
+  }
   return pathname.startsWith('/lab/') ? 'var(--n-11)' : invertedVars['--color-surface'];
 };
 

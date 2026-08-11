@@ -5,6 +5,7 @@ import PageTransition from '../components/PageTransition';
 import ShimmerText from '../components/ShimmerText';
 import { RenderedPost } from '../components/Blog/RenderedPost';
 import { fetchPost } from '../lib/blogApi';
+import { WRITING_GROUND } from '../styles/surface';
 import type { BlogPost } from '../types';
 
 type State =
@@ -66,7 +67,9 @@ export default WritingPost;
 
 const Page = styled.div`
   min-height: 100dvh;
-  background: ${p => p.theme.color.surface};
+  /* The writing pages' sunlit paper — shared with the index and the transition curtain
+     via surface.ts, so the curtain hand-off stays pixel-identical. */
+  background: ${WRITING_GROUND};
   padding: 6.5rem 0 5rem;
 `;
 
