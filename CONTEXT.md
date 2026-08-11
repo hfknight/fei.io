@@ -78,3 +78,34 @@ The lockup stepping back — shrinking toward its own centre — while a lens is
 dragged, making room for the travel path around it. Held, not latched: it relaxes the
 moment the drag ends. A drag, not a click: a press that never travels doesn't trigger it.
 _Avoid_: shrink mode, minimized lockup
+
+### Font picker (`/lab/pick-a-font`)
+
+**Role**:
+What a font is *for* on a page — display, body, or mono. A filter chosen before taste, not
+a taste axis. Every font in the dataset has exactly one role.
+_Avoid_: category, type, class
+
+**Axis**:
+One of the four felt qualities a font is placed on: tone (serious ↔ playful), era
+(timeless ↔ current), voice (quiet ↔ loud), warmth (precise ↔ warm). Axis endpoints are
+felt qualities; type-classification jargon lives only in dataset tags, never in the UI.
+_Avoid_: dimension, parameter, characteristic
+
+**Match**:
+A font returned by nearest-distance search in axis space, within the chosen role. Up to
+three, always at least one, ranked by distance — never an empty result.
+
+**Stretch**:
+A match honest about its distance: shown, but visibly ranked as far from what was asked.
+_Avoid_: weak match, fallback
+
+**Companion**:
+A curated cross-role partner for a font — the answer to "what do I set the rest of the
+page in?" Curated per font in the dataset, never computed by rule. A font may have none.
+_Avoid_: pair, pairing, complement
+
+**Specimen**:
+The live rendered sample proving a match: a mini page with the match as heading and its
+companion as body, in real webfont text, editable in place.
+_Avoid_: preview, sample, demo

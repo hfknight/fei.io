@@ -80,6 +80,10 @@ describe('tokens: the system faces have exactly one definition', () => {
     const src = join(process.cwd(), 'src') + '/';
     const offenders = walk(src)
       .filter(file => !file.endsWith(join('styles', 'tokens.ts')))
+      /* The font picker's dataset names the system faces as CATALOGUE DATA — Inter,
+         Archivo, and JetBrains Mono are entries in its curated font list, not style
+         declarations. The guard is about components authoring their own stacks. */
+      .filter(file => !file.endsWith(join('entries', 'pickAFontData.ts')))
       .flatMap(file => {
         const text = readFileSync(file, 'utf8');
         return FACES.filter(face => text.includes(face)).map(face => `${file.slice(src.length)} → ${face}`);

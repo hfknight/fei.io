@@ -37,8 +37,16 @@ const DARK_PREFIXES = ['/writing/admin', '/lab/'];
  * documents is dark type on paper, and the inverted version of it was tried on /readme and
  * dropped — a dark panel in a light page reads as a foreign card dropped onto it. The entry
  * would be arguing with its own demo.
+ *
+ * `/lab/pick-a-font` is light because paper is the native habitat for evaluating type:
+ * the page exists to judge letterforms, and subtle serif detail reads truest as dark ink
+ * on a light ground.
  */
-const LIGHT_OVERRIDE = new Set(['/lab/cursor-tracked-video', '/lab/text-into-picture']);
+const LIGHT_OVERRIDE = new Set([
+  '/lab/cursor-tracked-video',
+  '/lab/text-into-picture',
+  '/lab/pick-a-font',
+]);
 
 /**
  * Falls through to `inverted`, never to `default`. An unmigrated page still hardcodes
