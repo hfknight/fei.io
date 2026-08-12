@@ -34,6 +34,21 @@ const WORDMARK = 'laboratory';
  * as cut FROM the image. An explicit shared size makes the whole composition one photograph
  * that several windows look through; each window then only has to subtract its own offset.
  */
+/* The band's edge softness, shared by its plate and wordmark halves — one window, one
+   feather. 24px, eased: a short linear ramp reads as a hard line against the picture's
+   detail, and a linear one at any width shows mach bands where the ramp meets the flats,
+   so the stops approximate smoothstep. */
+const bandFeather = `
+  -webkit-mask-image: linear-gradient(180deg,
+    transparent 0, rgba(0, 0, 0, 0.15) 7px, rgba(0, 0, 0, 0.5) 12px, rgba(0, 0, 0, 0.85) 17px, #000 24px,
+    #000 calc(100% - 24px), rgba(0, 0, 0, 0.85) calc(100% - 17px), rgba(0, 0, 0, 0.5) calc(100% - 12px),
+    rgba(0, 0, 0, 0.15) calc(100% - 7px), transparent 100%);
+  mask-image: linear-gradient(180deg,
+    transparent 0, rgba(0, 0, 0, 0.15) 7px, rgba(0, 0, 0, 0.5) 12px, rgba(0, 0, 0, 0.85) 17px, #000 24px,
+    #000 calc(100% - 24px), rgba(0, 0, 0, 0.85) calc(100% - 17px), rgba(0, 0, 0, 0.5) calc(100% - 12px),
+    rgba(0, 0, 0, 0.15) calc(100% - 7px), transparent 100%);
+`;
+
 const sharpImage = `
   background-image: url('${IMG_SRC}');
   background-size: var(--rail) auto;
@@ -387,8 +402,7 @@ const Plate = styled.div`
     /* Feathered top and bottom. A hard edge on a band that slides strobes against the
        picture's own detail; a ramp reads as light falling across it. The mask is fixed
        relative to the band's own box, so it travels with it for free. */
-    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 9px, #000 calc(100% - 9px), transparent 100%);
-    mask-image: linear-gradient(180deg, transparent 0, #000 9px, #000 calc(100% - 9px), transparent 100%);
+    ${bandFeather}
   }
 
   /* Counteracts the band's own offset so the picture inside it continues the one behind —
@@ -415,12 +429,13 @@ const Plate = styled.div`
     position: absolute;
     inset: 0;
     z-index: 1;
-    /* 7px, not the token's 11. The graduated horizontal mask this replaced ran the glass
+    /* 5px, not the token's 11. The graduated horizontal mask this replaced ran the glass
        from full strength down to 40%, so most of the plate was never seeing 11 — dropping
        it and keeping 11 put the WHOLE picture under the densest setting and turned the
-       miniature to mush. 7 is about what the old average resolved to. */
-    backdrop-filter: blur(7px) saturate(172%) brightness(1.04);
-    -webkit-backdrop-filter: blur(7px) saturate(172%) brightness(1.04);
+       miniature to mush. Started at 7 (about what the old average resolved to), eased to 5
+       so more of the picture survives the glass. */
+    backdrop-filter: blur(5px) saturate(172%) brightness(1.04);
+    -webkit-backdrop-filter: blur(5px) saturate(172%) brightness(1.04);
     background: linear-gradient(235deg, rgba(255, 255, 255, 0.18), rgba(30, 31, 36, 0.26) 50%, rgba(8, 9, 12, 0.46));
     -webkit-mask-image: linear-gradient(
       180deg,
@@ -461,7 +476,7 @@ const Plate = styled.div`
     }
     /* Much lighter here. On the desktop column the glass separates a picture from the
        prose beside it; on a phone the picture IS the page's opening and nothing sits over
-       it but the nav, which carries its own plate. At the desktop's 7px the hero read as
+       it but the nav, which carries its own plate. At desktop strength the hero read as
        mush — cover already downscales the source hard before any blur lands on it.
        The vertical mask goes too: it exists to clear the wordmark's dip zone, and there is
        no wordmark below md. */
@@ -526,7 +541,7 @@ const Masthead = styled.div`
 
   /* The colour reveal, wordmark half — the plate's .band recipe with one substitution:
      Masthead's top is --pic-top, not 0, so the band's rail-space position is offset by
-     that much. Everything else (the height, the 9px feather, the travel) is the same
+     that much. Everything else (the height, the shared feather, the travel) is the same
      window, which is the point — it must not look like a second effect starting where
      the first stops. */
   .band {
@@ -541,8 +556,7 @@ const Masthead = styled.div`
       top 0.5s cubic-bezier(0.16, 1, 0.3, 1),
       height 0.5s cubic-bezier(0.16, 1, 0.3, 1),
       opacity 0.35s ease;
-    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 9px, #000 calc(100% - 9px), transparent 100%);
-    mask-image: linear-gradient(180deg, transparent 0, #000 9px, #000 calc(100% - 9px), transparent 100%);
+    ${bandFeather}
   }
 
   /* Pulled back up by the band's own offset, so this box lands exactly on Masthead's —
