@@ -5,10 +5,12 @@ import { formatDate, isVideoUrl } from './types';
 /* The hero glyph: the title's first letterform, blown up past its frame the way an
    editorial spread crops a numeral — form first, letter second. First alphanumeric
    so quotes/emoji don't become the monument; a title with none falls back to its
-   first character. */
+   first character. Always uppercased: the monument is a display form, not a
+   quotation — lowercase letters like f or l reduce to a bare stem once the rule
+   shears their right side, and read as a 1. */
 function heroGlyph(title: string): string {
   const m = title.match(/[A-Za-z0-9]/);
-  return m ? m[0] : title.trim().charAt(0) || 'f';
+  return (m ? m[0] : title.trim().charAt(0) || 'f').toUpperCase();
 }
 
 // Standard article: the writing index's split, carried into the post — the title's
