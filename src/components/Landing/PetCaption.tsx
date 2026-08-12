@@ -53,8 +53,8 @@ const PetCaption: React.FC<Props> = ({ pet }) =>
     >
       <Name style={{ color: 'oklch(0.42 0.008 265 / 0.85)' }}>Jojo</Name>
       <Blurb style={{ color: 'oklch(0.45 0.006 265 / 0.8)' }}>
-        Remarkably patient, endlessly tolerant — zen enough to sunbathe belly-up while the whole stack reloads.
-        Unbothered poise, a sharp eye: refined taste and a quiet command of the craft.
+        Remarkably patient, endlessly tolerant, zen enough to sunbathe belly-up while the whole stack reloads.
+        A sharp eye, refined taste, and a quiet command of the craft.
       </Blurb>
       <svg
         viewBox="0 0 34 34"
@@ -84,8 +84,8 @@ const PetCaption: React.FC<Props> = ({ pet }) =>
     >
       <Name style={{ color: 'oklch(0.96 0.004 265 / 0.85)' }}>Ollie</Name>
       <Blurb style={{ color: 'oklch(0.94 0.004 265 / 0.8)' }}>
-        All warmth and soul, happiest bounding after whatever moves — a rabbit, or the next idea worth building.
-        Loyal company, headstrong when it counts, with instincts it trusts enough to ship.
+        All warmth and soul, happiest bounding after whatever moves, be it a rabbit or the next idea worth building.
+        Loyal company, headstrong when it counts, with instincts she trusts enough to ship.
       </Blurb>
       <svg
         viewBox="0 0 34 34"
