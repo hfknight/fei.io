@@ -6,7 +6,7 @@
 // from centre that drifts as a percentage across viewport widths. Nesting keeps the row dead-centre
 // under the text at every width. Gated with the lenses (desktop only) — no lens, nothing to reveal.
 //
-// Two instances mirror the two roles: FRONTEND_STACK under "Sr. Frontend Engineer" on the light
+// Two instances mirror the two roles: FRONTEND_STACK under "Full-Stack Engineer" on the light
 // half, AI_STACK under "AI Product Engineer" on the dark half. The `surface` prop flips the chip
 // between light glass / dark ink (light half, like the Dallas map) and dark glass / light ink (dark
 // half, like MoodClock).

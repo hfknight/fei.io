@@ -198,7 +198,7 @@ const Loader: React.FC = () => (
         }}
       >
         <span style={{ textAlign: 'right', whiteSpace: 'nowrap', ...gradientText('linear-gradient(90deg,oklch(0.70 0.006 265) 0%,oklch(0.88 0.004 265) 100%)') }}>
-          Sr. Frontend Engineer
+          Full-Stack Engineer
         </span>
         <span style={{ textAlign: 'left', whiteSpace: 'nowrap', ...gradientText('linear-gradient(90deg,oklch(0.90 0.004 265) 0%,oklch(0.985 0.002 265) 100%)') }}>
           AI Product Engineer

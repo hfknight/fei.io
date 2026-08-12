@@ -160,7 +160,7 @@ Shanghai maps joined by a dashed two-tone route, terminating at the Dallas pin i
 lower-left light half — everything but Dallas hides below the `xl` breakpoint, all-or-nothing,
 via CSS media query so the gate also works inside the clones), `MoodClock`
 (Dallas time + mood-of-the-day, upper-right dark half), and `StackReveal` (tech-stack chips) ride
-this. `StackReveal` renders once per role (`role="frontend"` under "Sr. Frontend Engineer",
+this. `StackReveal` renders once per role (`role="frontend"` under "Full-Stack Engineer",
 `role="ai"` under "AI Product Engineer") and is nested *inside* that role's `<span>` in `Lockup`
 rather than positioned at a page percentage — the role text is a fixed 14px, so its centre is a
 fixed pixel offset from centre that drifts as a percentage; nesting keeps the chip row centred
