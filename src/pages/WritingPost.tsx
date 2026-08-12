@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import PageTransition from '../components/PageTransition';
 import ShimmerText from '../components/ShimmerText';
@@ -42,8 +42,6 @@ const PostView: React.FC<{ slug: string }> = ({ slug }) => {
     <PageTransition>
       <Page>
         <Inner>
-          <BackLink to="/writing">← writing</BackLink>
-
           {state.kind === 'loading' && <Status><ShimmerText>Loading…</ShimmerText></Status>}
           {state.kind === 'notfound' && <Status>Post not found.</Status>}
           {state.kind === 'error' && <Status>Something went wrong.</Status>}
@@ -74,25 +72,12 @@ const Page = styled.div`
 `;
 
 const Inner = styled.div`
-  max-width: 720px;
+  /* Wide enough for StandardArticle's rail + reading column; the other templates
+     center their own <=680px columns inside it, so their measure is unchanged. */
+  max-width: 960px;
   width: 100%;
   margin: 0 auto;
   padding: 0 1.5rem;
-`;
-
-const BackLink = styled(Link)`
-  display: inline-block;
-  font-family: ${p => p.theme.font.mono};
-  font-size: 0.62rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: ${p => p.theme.color.inkMuted};
-  text-decoration: none;
-  margin-bottom: 3rem;
-
-  &:hover {
-    color: ${p => p.theme.color.ink};
-  }
 `;
 
 const Status = styled.p`
