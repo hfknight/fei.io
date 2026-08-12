@@ -12,13 +12,17 @@ const brkPop = keyframes`
 // [data-hair] start hidden (opacity:0); [data-logo] is the feather mark. Both are
 // engine-controlled hooks wired by later tasks (Task 3/4/5), so their initial inline
 // styles are kept verbatim here rather than folded into the styled-components below.
-const Wrapper = styled.div`
+const Wrapper = styled.div<{ $interactive: boolean }>`
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%) scale(var(--lockup-scale, 1));
   z-index: 8;
-  pointer-events: none;
+  /* Interactive path only: the box itself becomes hoverable so the drag hint below can
+     fire. Safe for the scrub/frost — the engine listens on window, not on what's under
+     the cursor. Static path keeps none, matching "nothing here responds". */
+  pointer-events: ${p => (p.$interactive ? 'auto' : 'none')};
+  cursor: ${p => (p.$interactive ? 'default' : 'auto')};
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -48,6 +52,42 @@ const Wrapper = styled.div`
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     padding: 16px 20px;
+  }
+`;
+
+/* The drag-a-lens hint. Parked just under the bracket frame, popped out by hovering the
+   lockup box — scale + rise on the lens dialect's springy bezier (the overshoot IS the
+   pop; the page's "never bounce" easing rule doesn't govern the lens apparatus). Hidden
+   the moment a lens is actually picked up: the hint's job is done, and the recede is
+   already moving the box it hangs from. The recede rule repeats Wrapper for
+   specificity — it must outrank the :hover rule below. */
+const Hint = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  white-space: nowrap;
+  font-family: ${p => p.theme.font.mono};
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translate(-50%, -6px) scale(0.5);
+  /* The fade is deliberately much shorter than the spring: the hint reaches full ink
+     while the scale is still climbing toward its overshoot, so the pop is seen solid
+     rather than translucent — an opaque spring reads; a fading one is just an entrance. */
+  transition:
+    opacity 0.12s ease,
+    transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1);
+
+  ${Wrapper}:hover & {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+
+  html[data-lockup-recede] ${Wrapper} & {
+    opacity: 0;
+    transform: translate(-50%, -6px) scale(0.5);
   }
 `;
 
@@ -120,7 +160,7 @@ const gradientText = (background: string): React.CSSProperties => ({
 });
 
 const Lockup: React.FC<{ interactive?: boolean }> = ({ interactive = false }) => (
-  <Wrapper>
+  <Wrapper $interactive={interactive}>
     <div data-brk-frame style={{ position: 'absolute', inset: 0, opacity: 0 }}>
       {/* DOM order is load-bearing: landingEngine.ts indexes these four [data-hair]
           elements by position (i === 0 || i === 2 are the two LEFT-side brackets) to
@@ -192,6 +232,21 @@ const Lockup: React.FC<{ interactive?: boolean }> = ({ interactive = false }) =>
         {interactive && <StackReveal role="ai" />}
       </span>
     </Roles>
+
+    {interactive && (
+      <Hint
+        aria-hidden
+        style={gradientText(
+          /* A gentler fade-to-seam than the tagline's: the seam-side stops stay at real
+             contrast (0.38 dark / 0.88 light) because the letters nearest the middle —
+             the "s" in "lens" — are the ones a fading ramp sacrifices, and a hint has to
+             be readable in the half-second it's looked at. */
+          'linear-gradient(90deg,oklch(0.24 0.010 265) 0%,oklch(0.38 0.009 265) 49.6%,oklch(0.88 0.004 265) 50.4%,oklch(0.97 0.002 265) 100%)'
+        )}
+      >
+        Drag a lens to play
+      </Hint>
+    )}
   </Wrapper>
 );
 
