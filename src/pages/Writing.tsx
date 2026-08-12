@@ -10,6 +10,12 @@ import type { BlogPostSummary } from '../types';
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
+/* Seconds of flat paper before the entrance choreography begins. The page mounts only
+   after the curtain has fully swept (AnimatePresence mode="wait"), then PageTransition
+   fades it in over 0.3s — starting the rules at t=0 buries the stroke's start in that
+   fade. A beat of stillness first, the way /readme holds ~0.95s before its own cascade. */
+const LEAD = 0.35;
+
 /* The seven letters stretched to the rail's width, the way /readme and /lab stretch their
    own wordmarks — see the stencil effect below for the measurement. */
 const WORDMARK = 'writing';
@@ -119,26 +125,27 @@ const Writing: React.FC = () => {
     <PageTransition>
       <Page>
         <Block>
-          <LeftCol
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.7, ease: 'easeOut' }}
-          >
+          <LeftCol>
+            {/* The column rule, drawn top-to-bottom a beat after the header rule starts —
+                the two borders it replaces can't animate directionally. */}
+            <ColRule
+              initial={reduced ? { opacity: 0 } : { scaleY: 0 }}
+              animate={reduced ? { opacity: 1 } : { scaleY: 1 }}
+              transition={{ duration: reduced ? 0.4 : 0.55, delay: reduced ? 0 : LEAD + 0.18, ease }}
+            />
+
             {/* Mobile-only stand-in for the cut-out mark below, which needs a rail wide
                 enough to stretch seven letters across. */}
             <Heading>writing</Heading>
 
-            <HeroBlock
-              initial={reduced ? { opacity: 0 } : { opacity: 0, y: 14, filter: 'blur(8px)' }}
-              animate={
-                heroReady
-                  ? reduced
-                    ? { opacity: 1 }
-                    : { opacity: 1, y: 0, filter: 'blur(0px)' }
-                  : undefined
-              }
-              transition={{ duration: reduced ? 0.4 : 1.0, ease }}
-            >
+            {/* The whole sheet — wordmark and picture — slides out of the column rule as
+                one, so the seam between the two layers never shears mid-entrance. */}
+            <HeroClip>
+              <HeroBlock
+                initial={reduced ? { opacity: 0 } : { x: '100%' }}
+                animate={heroReady ? (reduced ? { opacity: 1 } : { x: 0 }) : undefined}
+                transition={{ duration: reduced ? 0.4 : 0.85, delay: reduced ? 0 : LEAD + 0.35, ease }}
+              >
               {/* The letterforms are windows onto the hero image directly beneath them —
                   aria-hidden, purely decorative. */}
               <Masthead ref={mastRef} aria-hidden>
@@ -163,18 +170,31 @@ const Writing: React.FC = () => {
                   </defs>
                 </svg>
               </Masthead>
-              <HeroImage />
-            </HeroBlock>
+                <HeroImage />
+              </HeroBlock>
+            </HeroClip>
 
             {/* Stub copy — Fei will supply the final line. */}
-            <Intro>
+            <Intro
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: reduced ? 0 : LEAD + 0.45, ease: 'easeOut' }}
+            >
               Notes on building things for the web — engineering, design, and the seams
               between them.
             </Intro>
           </LeftCol>
 
           <RightCol>
-            <RightHeader>{years && <YearBand>{years}</YearBand>}</RightHeader>
+            <RightHeader>
+              {years && <YearBand>{years}</YearBand>}
+              {/* Drawn right-to-left first; the column rule follows. */}
+              <HeaderRule
+                initial={reduced ? { opacity: 0 } : { scaleX: 0 }}
+                animate={reduced ? { opacity: 1 } : { scaleX: 1 }}
+                transition={{ duration: reduced ? 0.4 : 0.55, delay: reduced ? 0 : LEAD, ease }}
+              />
+            </RightHeader>
 
             {state.loading && <Status><ShimmerText>Loading…</ShimmerText></Status>}
             {state.error && <Status>Couldn’t load posts.</Status>}
@@ -188,9 +208,13 @@ const Writing: React.FC = () => {
                 return (
                   <Item
                     key={post.id}
-                    initial={reduced ? { opacity: 0 } : { opacity: 0, y: 18, filter: 'blur(6px)' }}
-                    animate={reduced ? { opacity: 1 } : { opacity: 1, y: 0, filter: 'blur(0px)' }}
-                    transition={{ duration: reduced ? 0.4 : 0.9, delay: 0.15 + i * 0.08, ease }}
+                    initial={reduced ? { opacity: 0 } : { opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: reduced ? 0.4 : 0.45,
+                      delay: reduced ? 0 : LEAD + 0.5 + i * 0.06,
+                      ease,
+                    }}
                   >
                     <EntryLink to={`/writing/${post.slug}`}>
                       {parts && (
@@ -252,17 +276,30 @@ const Block = styled.div`
   }
 `;
 
-const LeftCol = styled(motion.div)`
+const LeftCol = styled.div`
   position: sticky;
   top: calc(${(p) => p.theme.barHeight} + 3rem);
   align-self: start;
   padding-right: 2rem;
-  border-right: 1px solid ${(p) => p.theme.color.border};
 
   @media (max-width: ${(p) => p.theme.breakpoints.lg}) {
     position: static;
     padding-right: 0;
-    border-right: none;
+  }
+`;
+
+/* LeftCol's old border-right as a drawable element: scaleY 0→1 from the top. */
+const ColRule = styled(motion.span)`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 1px;
+  background: ${(p) => p.theme.color.border};
+  transform-origin: top center;
+
+  @media (max-width: ${(p) => p.theme.breakpoints.lg}) {
+    display: none;
   }
 `;
 
@@ -301,6 +338,12 @@ const Heading = styled.h1`
 /* The wordmark and the hero image share one virtual canvas — --word-h tall for the
    letters, then --hero-h more for the picture — so a single background-position offset
    per layer is enough to make the two read as one continuous sheet. */
+/* Overflow gate for the hero's entrance: the block starts translated fully to the right
+   (at the column rule) and slides left into view, clipped so it emerges from the line. */
+const HeroClip = styled.div`
+  overflow: hidden;
+`;
+
 const HeroBlock = styled(motion.div)`
   position: relative;
   --hero-h: calc(var(--rail) * 5 / 4);
@@ -374,7 +417,7 @@ const HeroImage = styled.div`
   }
 `;
 
-const Intro = styled.p`
+const Intro = styled(motion.p)`
   font-family: ${(p) => p.theme.font.body};
   font-weight: 200;
   line-height: 1.6;
@@ -397,10 +440,21 @@ const RightCol = styled.div`
 const RightHeader = styled.div`
   /* Kept even while the band's text is absent (loading/empty), so the list still opens
      under a rule rather than the header vanishing and reappearing once posts arrive. */
+  position: relative;
   min-height: 0.68rem;
   padding-bottom: 1.1rem;
   margin-bottom: 0.5rem;
-  border-bottom: 1px solid ${(p) => p.theme.color.border};
+`;
+
+/* RightHeader's old border-bottom as a drawable element: scaleX 0→1 from the right. */
+const HeaderRule = styled(motion.span)`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: ${(p) => p.theme.color.border};
+  transform-origin: right center;
 `;
 
 const YearBand = styled.span`
