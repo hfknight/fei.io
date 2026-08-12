@@ -15,7 +15,7 @@ const KIND_LABEL: Record<LabKind, string> = {
   experiment: 'Experiment',
 };
 
-const IMG_SRC = '/lab-keyboard@2x.webp';
+const IMG_SRC = '/lab-hand@2x.webp';
 
 /* Ten letters stretched to the column width, the way /readme stretches its six. Anton is
    already condensed, so this lands tighter than the readme mark (~42px per letter against
