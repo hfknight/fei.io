@@ -140,7 +140,7 @@ The portfolio is structured as a **day-journey visualization** — five time-of-
     route-transition layer
   - `LoadingScreen.tsx` — standalone animated loading overlay, served at `/loading`
 - `src/components/DayJourney/TimeSection/` — one subdirectory per time period; each owns its own visuals and animations
-- `src/components/DayJourney/TimeSection/Midnight/Constellation/` — animated constellation component featuring pets (Chinchilla, TabbyCat, Samoyed)
+- `src/components/DayJourney/TimeSection/Midnight/Constellation/` — animated constellation component featuring pets (TabbyCat, Samoyed)
 - `src/styles/tokens.ts` — the single source of truth: neutral oklch ramp at hue 265, type/space/radius/motion primitives, and the glass recipe driven by `GLASS_K`.
 - `src/styles/tokens.css.ts` — emits the tokens as `:root` (light) and `[data-surface="inverted"]` (dark).
 - `src/styles/theme.ts` — typed accessor over the tokens, returning `var(--x)` strings; `breakpoints` returns literal px strings (`sm` 640 / `md` 768 / `lg` 1024 / `xl` 1280)
