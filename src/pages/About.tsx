@@ -1866,12 +1866,16 @@ const PROJECTS: Project[] = [
     blurb:
       'Plans your FIFA World Cup 2026 matchday, hotel to kickoff, in about thirty seconds.',
     detail:
-      "You're flying into a host city for a FIFA World Cup 2026 match and the answers are " +
-      "scattered — a stadium site, a transit PDF, FIFA's own bag rules. When do I leave? Is " +
-      'the train running on a Sunday? Will it be 100°F? Tell it your hotel and your match and ' +
-      'it answers all of it on one page: your leave-by time, the route with live driving and ' +
-      'transit ETAs, what you can carry through the gate, the weather, where to eat. English ' +
-      'or Spanish, all 11 US host stadiums, all 78 matches.',
+      'A matchday planner for World Cup 2026. Tell it your hotel and your match, and it ' +
+      'gives you a door-to-door plan: when to leave, which train, whether your backpack ' +
+      "clears FIFA's bag rules, whether it'll be 100°F at kickoff. Eleven US host stadiums, " +
+      "78 matches, English and Spanish, all running on Cloudflare's edge. Every plan is " +
+      'written by an LLM against a per-stadium knowledge base I curated: 242 entries ' +
+      'covering transit, parking, bag policy, weather, and food. Plans are generated and ' +
+      'cached on a coarse key (stadium, match, origin area, language), then personalized at ' +
+      'render time: your hotel goes into the cached prose, and a live strip fetches real ' +
+      'driving and transit ETAs from your actual coordinates. One paid generation serves a ' +
+      'whole neighborhood of hotels; every fan still sees times from their own doorstep.',
     year: '2026',
     kind: 'World Cup 2026 planner',
     url: 'https://fanmatchday.com',
