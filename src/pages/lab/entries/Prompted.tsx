@@ -389,25 +389,34 @@ const Scrim = styled(motion.div)`
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: rgba(6, 7, 9, 0.94);
+  /* 0.98, not 0.94: a bright tile at 6% bleed-through still reads on a black ground and
+     crowded the close button with ghosted nav links. */
+  background: rgba(6, 7, 9, 0.98);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem;
 `;
 
+/* The frame never scrolls; a definite height (100% of the scrim's padded box, capped at
+   90vh) is what lets minmax(0, 1fr) actually shrink the rows, so the media sizes to its
+   pane and ONLY the prompt panel scrolls. With overflow on the frame instead, a long
+   prompt scrolled the whole modal and took the picture with it. */
 const Frame = styled(motion.div)`
   position: relative;
   width: 100%;
   max-width: 1100px;
+  height: 100%;
   max-height: 90vh;
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   gap: 1.5rem;
-  overflow: auto;
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
+    /* Stacked: the picture takes a bit over half, the prompt scrolls in the rest. */
+    grid-template-rows: minmax(0, 1.15fr) minmax(0, 1fr);
   }
 `;
 
@@ -420,7 +429,8 @@ const Media = styled.div`
   img,
   video {
     max-width: 100%;
-    max-height: 80vh;
+    /* Bounded by the pane, not the viewport: the row is already viewport-capped. */
+    max-height: 100%;
     border-radius: 8px;
   }
 `;
@@ -430,7 +440,11 @@ const Info = styled.div`
   flex-direction: column;
   gap: 0.9rem;
   color: rgba(255, 255, 255, 0.85);
-  align-self: start;
+  /* The one scrolling region of the lightbox (see Frame). min-height lets the grid
+     shrink it below its content. */
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.4rem;
 `;
 
 const InfoHead = styled.div`
