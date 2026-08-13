@@ -1,5 +1,5 @@
 import styled, { css } from 'styled-components';
-import { motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { House } from 'lucide-react';
 
@@ -221,6 +221,7 @@ const ActivePill: React.FC<{ show: boolean }> = ({ show }) => {
 
 const Header: React.FC = () => {
   const { pathname } = useLocation();
+  const reduced = useReducedMotion();
 
   // The landing is the one route with no page behind the chrome — just video — so it keeps
   // the glass hover. Everywhere else wears the ring, so the nav reads the same from /readme
@@ -235,15 +236,28 @@ const Header: React.FC = () => {
       {/* A stable hook for routes that float the nav over arbitrary media and need to give
           it a ground of its own (see /lab/cursor-tracked-video). Nothing styles it here. */}
       <NavLinks data-nav-track>
-        {/* Home renders on every route, the landing included, but never wears the pill and is
-            never marked current — it is a way back, not a destination. So on the landing no
-            link is active, which also keeps the pill out of the three header copies the lens
-            clones into its refraction worlds. */}
-        <NavItem>
-          <IconLink to="/" $active={false} $landing={isLanding} aria-label="Home">
-            <Label><House size={15} strokeWidth={1.75} aria-hidden="true" /></Label>
-          </IconLink>
-        </NavItem>
+        {/* Home is a way back, not a destination — never the pill, never marked current, and
+            not rendered on the landing at all, where it would be a live link to the page under
+            it. Leftmost item in a right-aligned bar, so its exit shifts nothing; a short fade
+            covers the pop, since the bar rides ABOVE the curtain sweep (z 10 over 9). Off the
+            landing it also keeps the icon out of the header copies the lens clones into its
+            refraction worlds. */}
+        <AnimatePresence initial={false}>
+          {!isLanding && (
+            <NavItem
+              as={motion.li}
+              key="home"
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.6 }}
+              transition={{ duration: reduced ? 0 : 0.25, ease }}
+            >
+              <IconLink to="/" $active={false} $landing={false} aria-label="Home">
+                <Label><House size={15} strokeWidth={1.75} aria-hidden="true" /></Label>
+              </IconLink>
+            </NavItem>
+          )}
+        </AnimatePresence>
         {/* aria-current is the accessible half of the pill: the pill draws where you are,
             this announces it. Without it the active route is conveyed by colour alone. */}
         <NavItem>

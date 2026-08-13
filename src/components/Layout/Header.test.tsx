@@ -43,13 +43,17 @@ describe('Header nav', () => {
     expect(navOrder()).not.toContain('Changelog');
   });
 
-  it('renders Home on every route, the landing included', () => {
-    for (const path of ['/', '/lab', '/readme', '/writing/some-post']) {
+  it('renders Home on every route except the landing, where it would link to itself', () => {
+    for (const path of ['/lab', '/readme', '/writing/some-post']) {
       const { unmount } = renderHeader(path);
       expect(navNames(), path).toContain('Home');
       expect(navNames(), path).toHaveLength(4);
       unmount();
     }
+
+    renderHeader('/');
+    expect(navNames()).not.toContain('Home');
+    expect(navNames()).toHaveLength(3);
   });
 
   /**
@@ -136,11 +140,10 @@ describe('Header active route is announced', () => {
     expect(current().map((a) => a.textContent)).toEqual(['Writing']);
   });
 
-  it('marks nothing on the landing, since Home is never current', () => {
+  it('marks nothing on the landing, where no destination is current', () => {
     renderHeader('/');
 
     expect(current()).toHaveLength(0);
-    expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current');
   });
 
   it('never sets aria-current on an inactive link, Home included', () => {
