@@ -27,12 +27,13 @@ const WORDMARK = 'laboratory';
  * One picture, one scale, shared by every layer that shows a piece of it — the plate, the
  * colour band, and the wordmark's letterforms.
  *
- * Sized to the COLUMN WIDTH rather than by height or `cover`. Each layer has a different
- * box (the letters sit in a 420×112 strip, the plate fills the column), and `cover` would
- * solve a different scale for each, so the letters would show the picture at one
- * magnification and the plate at another — which is exactly what stops a cut-out reading
- * as cut FROM the image. An explicit shared size makes the whole composition one photograph
- * that several windows look through; each window then only has to subtract its own offset.
+ * Sized to ONE SHARED WIDTH (--img-w, see Page) rather than `cover`. Each layer has a
+ * different box (the letters sit in a 420×112 strip, the plate fills the column), and
+ * `cover` would solve a different scale for each, so the letters would show the picture at
+ * one magnification and the plate at another — which is exactly what stops a cut-out
+ * reading as cut FROM the image. An explicit shared size makes the whole composition one
+ * photograph that several windows look through; each window then only has to subtract its
+ * own offset (--img-x carries the shared horizontal crop).
  */
 /* The band's edge softness, shared by its plate and wordmark halves — one window, one
    feather. 24px, eased: a short linear ramp reads as a hard line against the picture's
@@ -51,7 +52,7 @@ const bandFeather = `
 
 const sharpImage = `
   background-image: url('${IMG_SRC}');
-  background-size: var(--rail) auto;
+  background-size: var(--img-w) auto;
   background-repeat: no-repeat;
 `;
 
@@ -285,6 +286,15 @@ const Page = styled.div`
      letters therefore carry the picture's first rows and the plate continues from where
      they end, so the two are one field rather than type sitting on an image. */
   --pic-top: calc(var(--mast-top) + var(--word-drop));
+  /* The one drawn size every layer samples (see sharpImage). Rail width at minimum — but
+     like /readme's poster, the photograph must always reach the bottom margin, so on
+     viewports tall enough that a rail-wide image falls short, the drawn width grows to
+     whatever makes the picture span --pic-top → bottom margin. 941/1672 is the source's
+     pixel aspect (width per height) — re-derive it if the asset changes. */
+  --img-w: max(var(--rail), calc((100dvh - var(--pic-top) - var(--img-margin)) * 941 / 1672));
+  /* When the image is drawn wider than the rail, centre the horizontal crop — the hand
+     sits mid-frame (the mobile cover crop centres too). Never positive by construction. */
+  --img-x: calc((var(--rail) - var(--img-w)) / 2);
 
   min-height: 100dvh;
   background: ${p => p.theme.color.surface};
@@ -324,6 +334,11 @@ const Rail = styled.div`
   top: 0;
   height: 100dvh;
   align-self: start;
+  /* Above the page-wide paper grain (body::after, z 1): the photograph carries its own
+     frost noise and the paper texture on top of it read as dirt. Only where the rail
+     PAINTS escapes — the clip-path's cut-away margins stay transparent, so the paper
+     (and its grain) still shows through them. Under the Header's 10. */
+  z-index: 2;
   /* Holds the entrance slide inside the column instead of letting it lengthen the page.
      Safe on the sticky element itself: an element's own overflow has no bearing on where
      it sticks, only on what it shows. */
@@ -351,14 +366,10 @@ const Plate = styled.div`
   top: 0;
   left: 0;
   right: 0;
-  /* The poster ends where the photograph does. Width-sizing draws the image
-     460 × (1672/941) ≈ 817px tall from --pic-top, so on a viewport taller than ~950px an
-     inset: 0 plate would show bare paper between the picture's foot and the bottom margin
-     — an accidental extra-deep margin that reads as a bug. Capping the box at the image's
-     own end puts the 20px paper margin directly under the picture at any screen height;
-     on short viewports the min() hands back 100% and the picture crops as before.
-     1672/941 is the source's pixel aspect — re-derive it if the asset changes. */
-  height: min(100%, calc(var(--pic-top) + var(--rail) * 1672 / 941 + var(--img-margin)));
+  /* Full height: --img-w guarantees the photograph itself reaches the bottom margin at any
+     viewport height (it used to be width-sized, and this box was capped at the picture's
+     foot so tall screens didn't show bare paper inside the plate). */
+  height: 100%;
   overflow: hidden;
 
   /* Cut the image rather than covering it with paper rectangles, so the cut-away area is
@@ -373,7 +384,7 @@ const Plate = styled.div`
     z-index: 0;
     ${sharpImage}
     /* The picture's own origin, so the plate continues the rows the letters started. */
-    background-position: 0 var(--pic-top);
+    background-position: var(--img-x) var(--pic-top);
     filter: grayscale(1);
   }
 
@@ -414,7 +425,7 @@ const Plate = styled.div`
     top: calc(-1 * var(--band-top));
     height: 100dvh;
     ${sharpImage}
-    background-position: 0 var(--pic-top);
+    background-position: var(--img-x) var(--pic-top);
     transition: top 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -524,10 +535,11 @@ const Masthead = styled.div`
     position: absolute;
     inset: 0;
     ${sharpImage}
-    /* Only this box's own offset is subtracted. Its top IS --pic-top, so vertically the
-       letters start at the photograph's first row; horizontally they sit --img-margin in
-       from the column, so the picture slides back by the same amount. */
-    background-position: calc(-1 * var(--img-margin)) 0;
+    /* Only this box's own offset is subtracted (plus the shared --img-x crop). Its top IS
+       --pic-top, so vertically the letters start at the photograph's first row;
+       horizontally they sit --img-margin in from the column, so the picture slides back by
+       the same amount. */
+    background-position: calc(var(--img-x) - var(--img-margin)) 0;
     /* Grayscale ONLY — no blur. The letters are the photograph at its sharpest; the plate
        below eases into the frost instead (see the frost's mask), so where the letter
        bottoms dip into the picture, sharp meets sharp and the word grows out of the image
@@ -571,7 +583,7 @@ const Masthead = styled.div`
     top: calc(-1 * (var(--band-top) - var(--pic-top)));
     height: calc(var(--word-h) + var(--word-desc));
     ${sharpImage}
-    background-position: calc(-1 * var(--img-margin)) 0;
+    background-position: calc(var(--img-x) - var(--img-margin)) 0;
     -webkit-clip-path: url(#lab-clip);
     clip-path: url(#lab-clip);
     transition: top 0.5s cubic-bezier(0.16, 1, 0.3, 1);
