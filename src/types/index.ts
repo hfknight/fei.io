@@ -70,7 +70,7 @@ export interface BlogPost extends BlogPostSummary {
 
 // --- Lab ---
 
-export type LabKind = 'learning' | 'case-study' | 'experiment';
+export type LabKind = 'learning' | 'case-study' | 'experiment' | 'gallery';
 
 // Each Lab entry is a bespoke, hand-coded page (no shared template). The registry
 // in src/data/labEntries.ts is the single source of truth for both the index list

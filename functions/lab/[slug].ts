@@ -8,6 +8,11 @@ import { stampMeta } from '../lib/stampMeta';
  * with the usePageTitle call in its component. */
 
 const LAB_META: Record<string, PageMeta> = {
+  prompted: {
+    title: 'everything here was prompted — an AI gallery · Fei Hu',
+    description:
+      'A gallery of AI-generated images and video, each published with its full verbatim prompt.',
+  },
   'pick-a-font': {
     title: 'Find your font pairing by feel — a free font picker · Fei Hu',
     description:

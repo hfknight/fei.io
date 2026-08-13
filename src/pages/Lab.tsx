@@ -13,6 +13,7 @@ const KIND_LABEL: Record<LabKind, string> = {
   learning: 'Learning',
   'case-study': 'Case study',
   experiment: 'Experiment',
+  gallery: 'Gallery',
 };
 
 const IMG_SRC = '/lab-hand@2x.webp';
