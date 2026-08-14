@@ -67,7 +67,7 @@ const Page = styled.div`
   padding: 5rem 1.5rem;
   max-width: 820px;
   margin: 0 auto;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
 `;
 
 const Bar = styled.div`
@@ -89,8 +89,8 @@ const NewLink = styled(Link)`
   font-size: 0.72rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #12102a;
-  background: #fcd34d;
+  color: var(--accent-ink);
+  background: var(--accent);
   padding: 0.55rem 0.95rem;
   border-radius: 6px;
   text-decoration: none;
@@ -127,7 +127,7 @@ const RowTitle = styled(Link)`
   margin-bottom: 0.45rem;
 
   &:hover {
-    color: #fcd34d;
+    color: var(--accent);
   }
 `;
 
@@ -149,8 +149,8 @@ const Badge = styled.span`
     background: rgba(134, 239, 172, 0.12);
   }
   &[data-status='draft'] {
-    color: #fcd34d;
-    background: rgba(252, 211, 77, 0.12);
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
   }
 `;
 

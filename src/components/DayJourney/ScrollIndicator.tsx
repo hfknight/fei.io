@@ -29,7 +29,7 @@ const PulseLine = styled.div`
 `;
 
 const Arrow = styled.span`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.7rem;
   letter-spacing: 0.1em;
   color: rgba(255, 255, 255, 0.5);

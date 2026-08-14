@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { render } from '../../../test/renderWithTheme';
 import { getTemplate } from './index';
 import StandardArticle from './StandardArticle';
 import PhotoEssay from './PhotoEssay';
@@ -38,5 +39,30 @@ describe('templates', () => {
       </VideoForward>,
     );
     expect(container.querySelector('video')).toBeInTheDocument();
+  });
+
+  /**
+   * The title and date are shared between the cover overlay and the no-cover header. Over a
+   * photo they sit on a dark scrim, so the overlay flips the surface and the same ink tokens
+   * resolve to white. Without the attribute they would render dark-on-dark.
+   */
+  it('photo-essay flips the cover overlay to the inverted surface', () => {
+    const { container } = render(
+      <PhotoEssay title="P" coverImageUrl="https://example.com/c.jpg" publishedAt={1700000000000}>
+        <p>b</p>
+      </PhotoEssay>,
+    );
+    const overlay = container.querySelector('[data-surface="inverted"]');
+    expect(overlay).toBeInTheDocument();
+    expect(overlay).toContainElement(screen.getByRole('heading', { name: 'P' }));
+  });
+
+  it('photo-essay does not flip the surface when there is no cover', () => {
+    const { container } = render(
+      <PhotoEssay title="P" coverImageUrl={null} publishedAt={1700000000000}>
+        <p>b</p>
+      </PhotoEssay>,
+    );
+    expect(container.querySelector('[data-surface]')).toBeNull();
   });
 });

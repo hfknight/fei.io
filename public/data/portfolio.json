@@ -1,7 +1,4 @@
 {
-  "about": {
-    "content": ["I build interfaces people remember — where every interaction feels intentional, the code reads like prose, and the engineering behind it holds up under pressure. Over a decade of shipping brand-defining websites, enterprise dashboards, and SaaS platforms with business logic dense enough to need its own map. On time. Every time.", "These days I'm deep in AI. Orchestrating multiple models, building RAG pipelines, wiring up agentic systems that handle real workflows autonomously. I still care about every pixel. Now there's intelligence behind it."]
-  },
   "sections": [
     {
       "id": "dawn",
@@ -47,9 +44,21 @@
   "contact": {
     "text": "",
     "links": [
-      { "name": "GitHub", "link": "https://github.com/hfknight/", "icon": "github" },
-      { "name": "LinkedIn", "link": "https://www.linkedin.com/in/feihu/", "icon": "linkedin" },
-      { "name": "Email", "link": "mailto:fei.hu@fei.io", "icon": "email" }
+      {
+        "name": "GitHub",
+        "link": "https://github.com/hfknight/",
+        "icon": "github"
+      },
+      {
+        "name": "LinkedIn",
+        "link": "https://www.linkedin.com/in/feihu/",
+        "icon": "linkedin"
+      },
+      {
+        "name": "Email",
+        "link": "mailto:fei.hu@fei.io",
+        "icon": "email"
+      }
     ]
   }
 }

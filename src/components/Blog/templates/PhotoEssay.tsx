@@ -15,7 +15,10 @@ export default function PhotoEssay({
       {coverImageUrl ? (
         <FullBleed $contained={contained}>
           <CoverImg src={coverImageUrl} alt="" />
-          <Overlay>
+          {/* DateLabel and Title are shared with the no-cover Header below, where they sit
+              on the page. Here they sit on a dark scrim over the photo, so the overlay
+              flips the surface and the same tokens resolve to white. */}
+          <Overlay data-surface="inverted">
             {publishedAt ? <DateLabel>{formatDate(publishedAt)}</DateLabel> : null}
             <Title>{title}</Title>
           </Overlay>
@@ -63,8 +66,13 @@ const Overlay = styled.div`
   right: 0;
   bottom: 0;
   padding: 3rem 2rem;
+  /* The scrim is cast over a photograph, so it stays the deep surface on any page. */
   background: linear-gradient(transparent, rgba(18, 16, 42, 0.92));
   text-align: center;
+
+  @media (max-width: ${(p) => p.theme.breakpoints.md}) {
+    padding: 1.5rem 1rem;
+  }
 `;
 
 const Header = styled.div`
@@ -75,22 +83,26 @@ const Header = styled.div`
 
 const DateLabel = styled.span`
   display: block;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.62rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
+  color: ${p => p.theme.color.inkMuted};
   margin-bottom: 0.9rem;
 `;
 
 const Title = styled.h1`
-  color: #fff;
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  color: ${p => p.theme.color.ink};
+  font-family: ${p => p.theme.font.display};
   font-size: clamp(2.8rem, 7vw, 4.4rem);
   font-weight: 400;
   line-height: 1.04;
   letter-spacing: -0.02em;
   margin: 0;
+
+  @media (max-width: ${(p) => p.theme.breakpoints.md}) {
+    font-size: clamp(1.9rem, 8vw, 2.8rem);
+  }
 `;
 
 const Body = styled.div`

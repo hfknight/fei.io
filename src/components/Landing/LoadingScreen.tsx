@@ -54,7 +54,7 @@ const LoadingLabel = styled.div`
   display: flex;
   align-items: center;
   gap: 3px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.62rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { lazy } from 'react';
 import type { LabEntry } from '../types';
-import { labEntries, sortByDateDesc, findLabEntry } from './labEntries';
+import { labEntries, sortByDateDesc, orderForIndex, findLabEntry } from './labEntries';
 
 const stubComponent = (): LabEntry['Component'] =>
   lazy(async () => ({ default: () => null }));
@@ -32,6 +32,17 @@ describe('sortByDateDesc', () => {
     ];
     sortByDateDesc(input);
     expect(input.map((e) => e.slug)).toEqual(['a', 'b']);
+  });
+});
+
+describe('orderForIndex', () => {
+  it('sinks galleries below dated work, both halves newest-first', () => {
+    const ordered = orderForIndex([
+      entry({ slug: 'shelf', kind: 'gallery', date: '2026-08-13' }),
+      entry({ slug: 'old-piece', date: '2025-01-01' }),
+      entry({ slug: 'new-piece', date: '2026-06-01' }),
+    ]);
+    expect(ordered.map((e) => e.slug)).toEqual(['new-piece', 'old-piece', 'shelf']);
   });
 });
 

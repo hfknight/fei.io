@@ -29,8 +29,8 @@ dist-ssr
 
 # skills
 .superpowers
-docs/superpowers/*
 .claude
 .agents
 .impeccable
 skills-lock.json
+*.code-workspace

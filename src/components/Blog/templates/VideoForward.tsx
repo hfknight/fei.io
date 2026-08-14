@@ -31,7 +31,9 @@ const Hero = styled.div`
   margin: 0 auto 2.4rem;
   border-radius: 12px;
   overflow: hidden;
-  background: #0c0a1f;
+  /* A well behind the media, not a surface. Letterboxing stays dark on any page — which
+     is why the token it uses is the one colour deliberately outside the surface system. */
+  background: ${p => p.theme.color.well};
 
   video,
   img {
@@ -48,17 +50,17 @@ const Column = styled.div`
 
 const DateLabel = styled.span`
   display: block;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.62rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: ${p => p.theme.color.inkMuted};
   margin-bottom: 1.2rem;
 `;
 
 const Title = styled.h1`
-  color: #fff;
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  color: ${p => p.theme.color.ink};
+  font-family: ${p => p.theme.font.display};
   font-size: clamp(2.3rem, 5.5vw, 3.4rem);
   font-weight: 400;
   line-height: 1.1;

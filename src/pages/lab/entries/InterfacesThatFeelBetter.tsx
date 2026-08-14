@@ -8,6 +8,8 @@ import cssLang from 'highlight.js/lib/languages/css';
 import javascript from 'highlight.js/lib/languages/javascript';
 import xml from 'highlight.js/lib/languages/xml';
 import PageTransition from '../../../components/PageTransition';
+import { usePageTitle } from '../../../hooks/usePageTitle';
+import { hljsTokens, CODE_ISLAND, CODE_ISLAND_RIM } from '../../../styles/codeTheme';
 
 hljs.registerLanguage('css', cssLang);
 hljs.registerLanguage('javascript', javascript);
@@ -794,6 +796,10 @@ img { outline: 1px solid rgba(0, 0, 0, 0.1); outline-offset: -1px; }`,
 const SECTION_IDS = [...GROUPS.map((g) => g.title.toLowerCase()), 'references'];
 
 const InterfacesThatFeelBetter: React.FC = () => {
+  usePageTitle(
+    'Micro-interaction best practices — details that make interfaces feel better · Fei Hu',
+  );
+
   const reduced = useReducedMotion();
   const [active, setActive] = useState(0);
   const rise = (delay: number) =>
@@ -1024,7 +1030,8 @@ export default InterfacesThatFeelBetter;
 /* ------------------------------------------------------------------ */
 
 const chipStyle: React.CSSProperties = {
-  fontFamily: "'JetBrains Mono', monospace",
+  // An inline style object, so it reads the custom property directly rather than the theme.
+  fontFamily: 'var(--font-mono)',
   fontSize: '0.72rem',
   letterSpacing: '0.04em',
   color: 'rgba(255,255,255,0.75)',
@@ -1039,9 +1046,12 @@ const chipStyle: React.CSSProperties = {
 /* Styled — page                                                       */
 /* ------------------------------------------------------------------ */
 
+// The neutral grey of the landing's right plate. Every card, well and rim below was
+// composed on the old near-black indigo; the ground is 4x brighter now, which makes the
+// low-alpha white fills read *more* strongly, not less, since contrast carries a floor.
 const Page = styled.div`
   min-height: 100dvh;
-  background: #12102a;
+  background: var(--n-11);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -1085,7 +1095,7 @@ const SideInner = styled.div``;
 
 const SideLabel = styled.span`
   display: block;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.58rem;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -1112,10 +1122,10 @@ const SideItem = styled.button<{ $active: boolean }>`
   border: none;
   padding: 0;
   cursor: pointer;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.92rem;
   font-weight: 300;
-  color: ${(p) => (p.$active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)')};
+  color: ${(p) => (p.$active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.5)')};
   transition: color 0.25s ease;
 
   &:hover {
@@ -1126,17 +1136,17 @@ const SideItem = styled.button<{ $active: boolean }>`
     outline: none;
   }
   &:focus-visible {
-    outline: 2px solid rgba(252, 211, 77, 0.5);
+    outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
     outline-offset: 3px;
     border-radius: 4px;
   }
 `;
 
 const SideIdx = styled.span<{ $active: boolean }>`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-variant-numeric: tabular-nums;
   font-size: 0.62rem;
-  color: ${(p) => (p.$active ? 'rgba(252,211,77,0.9)' : 'rgba(255,255,255,0.3)')};
+  color: ${(p) => (p.$active ? 'color-mix(in srgb, var(--accent) 90%, transparent)' : 'rgba(255,255,255,0.3)')};
   transition: color 0.25s ease;
 `;
 
@@ -1158,7 +1168,7 @@ const Crumb = styled(Link)`
     outline: none;
   }
   &:focus-visible {
-    outline: 2px solid rgba(252, 211, 77, 0.5);
+    outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
     outline-offset: 3px;
     border-radius: 3px;
   }
@@ -1166,7 +1176,7 @@ const Crumb = styled(Link)`
 
 const Kicker = styled(motion.span)`
   display: block;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.62rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1175,7 +1185,7 @@ const Kicker = styled(motion.span)`
 `;
 
 const Title = styled(motion.h1)`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: clamp(2.2rem, 5vw, 3.2rem);
   font-weight: 300;
   line-height: 1.1;
@@ -1185,7 +1195,7 @@ const Title = styled(motion.h1)`
 `;
 
 const Lede = styled(motion.p)`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: clamp(1.1rem, 2.2vw, 1.3rem);
   line-height: 1.8;
   text-wrap: pretty;
@@ -1195,7 +1205,7 @@ const Lede = styled(motion.p)`
 `;
 
 const Credit = styled(motion.p)`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.92rem;
   line-height: 1.7;
   color: rgba(255, 255, 255, 0.5);
@@ -1210,8 +1220,8 @@ const A = styled.a`
   transition: color 0.25s ease, border-color 0.25s ease;
 
   &:hover {
-    color: #fcd34d;
-    border-color: rgba(252, 211, 77, 0.6);
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 60%, transparent);
   }
 `;
 
@@ -1257,11 +1267,11 @@ const GroupTitleRow = styled.div`
 `;
 
 const GroupBlurb = styled.p`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.9rem;
   line-height: 1.5;
   text-wrap: pretty;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.5);
   font-weight: 200;
   margin: 0.7rem 0 0;
 `;
@@ -1307,13 +1317,13 @@ const RefLine = styled.div`
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.2rem 0.7rem;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 1rem;
 `;
 
 const RefMeta = styled.span`
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.5);
   font-weight: 200;
 `;
 
@@ -1323,7 +1333,7 @@ const RefInstall = styled.code`
   max-width: 100%;
   overflow-x: auto;
   white-space: nowrap;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.76rem;
   color: rgba(255, 255, 255, 0.82);
   background: rgba(0, 0, 0, 0.28);
@@ -1351,15 +1361,15 @@ const DemoCol = styled.div`
 `;
 
 const Idx = styled.span`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-variant-numeric: tabular-nums;
   font-size: 0.7rem;
   letter-spacing: 0.1em;
-  color: rgba(252, 211, 77, 0.7);
+  color: color-mix(in srgb, var(--accent) 70%, transparent);
 `;
 
 const GroupTitle = styled.h2`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: clamp(1.5rem, 3vw, 2rem);
   font-weight: 300;
   text-wrap: balance;
@@ -1388,7 +1398,7 @@ const TipItem = styled.li`
 `;
 
 const TipName = styled.h3`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 1.05rem;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.88);
@@ -1396,7 +1406,7 @@ const TipName = styled.h3`
 `;
 
 const TipBody = styled.p`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.98rem;
   line-height: 1.7;
   text-wrap: pretty;
@@ -1413,12 +1423,12 @@ const KeyTags = styled.div`
 `;
 
 const KeyTag = styled.code`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.7rem;
   line-height: 1.55;
-  color: rgba(252, 211, 77, 0.9);
-  background: rgba(252, 211, 77, 0.07);
-  border: 1px solid rgba(252, 211, 77, 0.2);
+  color: color-mix(in srgb, var(--accent) 90%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 5px;
   padding: 0.16rem 0.46rem;
 `;
@@ -1436,7 +1446,7 @@ const DemoCard = styled.div`
 `;
 
 const DemoCaption = styled.p`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.82rem;
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.5);
@@ -1454,7 +1464,7 @@ const PressButton = styled(motion.button)<{ $on: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.72rem;
   letter-spacing: 0.04em;
   cursor: pointer;
@@ -1462,12 +1472,12 @@ const PressButton = styled(motion.button)<{ $on: boolean }>`
   border-radius: 8px;
   /* Specific transitions only — never "all". */
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-  color: ${(p) => (p.$on ? '#1a1733' : 'rgba(255,255,255,0.8)')};
-  background: ${(p) => (p.$on ? '#fcd34d' : 'rgba(255,255,255,0.05)')};
-  border: 1px solid ${(p) => (p.$on ? 'rgba(252,211,77,0.7)' : 'rgba(255,255,255,0.14)')};
+  color: ${(p) => (p.$on ? 'var(--accent-ink)' : 'rgba(255,255,255,0.8)')};
+  background: ${(p) => (p.$on ? 'var(--accent)' : 'rgba(255,255,255,0.05)')};
+  border: 1px solid ${(p) => (p.$on ? 'color-mix(in srgb, var(--accent) 70%, transparent)' : 'rgba(255,255,255,0.14)')};
 
   &:hover {
-    border-color: ${(p) => (p.$on ? 'rgba(252,211,77,0.9)' : 'rgba(255,255,255,0.3)')};
+    border-color: ${(p) => (p.$on ? 'color-mix(in srgb, var(--accent) 90%, transparent)' : 'rgba(255,255,255,0.3)')};
   }
 `;
 
@@ -1495,7 +1505,7 @@ const NumRow = styled.div`
 `;
 
 const NumValue = styled.span<{ $tabular: boolean }>`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-variant-numeric: ${(p) => (p.$tabular ? 'tabular-nums' : 'normal')};
   font-size: 2rem;
   font-weight: 300;
@@ -1506,15 +1516,15 @@ const NumValue = styled.span<{ $tabular: boolean }>`
 `;
 
 const NumUnit = styled.span`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.7rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.5);
 `;
 
 const SampleHeading = styled.p<{ $balance: boolean }>`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 1.25rem;
   font-weight: 300;
   line-height: 1.3;
@@ -1531,16 +1541,26 @@ const RadiusStage = styled.div`
   padding: 1.5rem 0 1.8rem;
 `;
 
+// The indigo this replaced measured 1.33:1 against the old ground; against the grey it
+// collapses to 1.02:1 and the box disappears. A dark neutral plate restores exactly that
+// separation (1.328:1) and no longer fights the ground's hue.
 const OuterBox = styled.div`
   width: 190px;
   height: 130px;
-  background: linear-gradient(150deg, #2b2654, #211d44);
+  background: linear-gradient(150deg, oklch(0.20 0.010 265), oklch(0.16 0.010 265));
   display: flex;
 `;
 
+/* Literal, like OuterBox above it, and for the same reason: this is a swatch in a
+   border-radius demo, not chrome. It used to read `linear-gradient(150deg, var(--accent),
+   #f0a73c)` — half following the surface and half not, so a flip would have swung one stop
+   to the light accent's olive-bronze and left the other amber. It never bit, because lab
+   entries are always inverted, but the fix is to decide what it is: decoration, whose warm
+   fill is its own and does not belong to the accent. The values are what the pair already
+   rendered as — the inverted accent's #fcd34d and #f0a73c. */
 const InnerBox = styled.div`
   flex: 1;
-  background: linear-gradient(150deg, #fcd34d, #f0a73c);
+  background: linear-gradient(150deg, oklch(0.879 0.1534 91.61), oklch(0.780 0.145 72));
   opacity: 0.92;
 `;
 
@@ -1552,7 +1572,7 @@ const SliderRow = styled.label`
 `;
 
 const SliderLabel = styled.span`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.7rem;
   letter-spacing: 0.05em;
   color: rgba(255, 255, 255, 0.6);
@@ -1562,12 +1582,12 @@ const SliderLabel = styled.span`
 
 const Range = styled.input`
   flex: 1;
-  accent-color: #fcd34d;
+  accent-color: var(--accent);
   cursor: pointer;
 `;
 
 const Readout = styled.p`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.72rem;
   letter-spacing: 0.05em;
   color: rgba(255, 255, 255, 0.7);
@@ -1590,7 +1610,7 @@ const StaggerStage = styled.div`
 `;
 
 const StaggerLine = styled.span<{ $title: boolean }>`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: ${(p) => (p.$title ? '1.15rem' : '0.92rem')};
   font-weight: ${(p) => (p.$title ? 400 : 200)};
   color: ${(p) => (p.$title ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)')};
@@ -1599,11 +1619,11 @@ const StaggerLine = styled.span<{ $title: boolean }>`
 const FakeButton = styled.span`
   display: inline-flex;
   align-self: flex-start;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.72rem;
   letter-spacing: 0.04em;
-  color: #1a1733;
-  background: #fcd34d;
+  color: var(--accent-ink);
+  background: var(--accent);
   border-radius: 8px;
   padding: 0.45rem 0.85rem;
 `;
@@ -1634,7 +1654,7 @@ const PopCard = styled(motion.div)`
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.8);
 `;
@@ -1658,7 +1678,7 @@ const Popover = styled(motion.div)<{ $trigger: boolean }>`
   width: 150px;
   padding: 0.35rem;
   border-radius: 10px;
-  background: #0c0a1f;
+  background: ${p => p.theme.color.well};
   box-shadow: ${CARD_SHADOW};
   transform-origin: ${(p) => (p.$trigger ? 'top left' : 'center')};
 `;
@@ -1666,7 +1686,7 @@ const Popover = styled(motion.div)<{ $trigger: boolean }>`
 const PopItem = styled.div`
   padding: 0.45rem 0.6rem;
   border-radius: 6px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.7rem;
   color: rgba(255, 255, 255, 0.78);
 
@@ -1704,12 +1724,12 @@ const HitButton = styled.button<{ $reveal: boolean }>`
     transform: translate(-50%, -50%);
     border-radius: 8px;
     transition: background-color 0.2s ease, outline-color 0.2s ease;
-    outline: 1px dashed ${(p) => (p.$reveal ? 'rgba(252,211,77,0.7)' : 'transparent')};
-    background: ${(p) => (p.$reveal ? 'rgba(252,211,77,0.12)' : 'transparent')};
+    outline: 1px dashed ${(p) => (p.$reveal ? 'color-mix(in srgb, var(--accent) 70%, transparent)' : 'transparent')};
+    background: ${(p) => (p.$reveal ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent')};
   }
 
   &:hover::before {
-    background: ${(p) => (p.$reveal ? 'rgba(252,211,77,0.2)' : 'rgba(255,255,255,0.06)')};
+    background: ${(p) => (p.$reveal ? 'color-mix(in srgb, var(--accent) 20%, transparent)' : 'rgba(255,255,255,0.06)')};
   }
 `;
 
@@ -1721,7 +1741,7 @@ const CompareRow = styled.div`
 `;
 
 const AllBtn = styled.button`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.8);
   background: rgba(255, 255, 255, 0.06);
@@ -1734,13 +1754,13 @@ const AllBtn = styled.button`
 
   &:hover {
     padding: 0.5rem 1.8rem;
-    background: rgba(252, 211, 77, 0.18);
-    color: #fcd34d;
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    color: var(--accent);
   }
 `;
 
 const SpecificBtn = styled.button`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.8);
   background: rgba(255, 255, 255, 0.06);
@@ -1778,7 +1798,7 @@ const TabBtn = styled.button<{ $active: boolean }>`
   cursor: pointer;
   padding: 0.45rem 0.95rem;
   border-radius: 7px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.85rem;
   color: ${(p) => (p.$active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.5)')};
   transition: color 0.2s ease;
@@ -1807,13 +1827,13 @@ const AccHeader = styled.button`
   border-radius: 8px;
   padding: 0.8rem 1rem;
   cursor: pointer;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.92rem;
   color: rgba(255, 255, 255, 0.85);
 `;
 
 const Chevron = styled.span<{ $open: boolean }>`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 1rem;
   line-height: 1;
   transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
@@ -1832,7 +1852,7 @@ const AccClip = styled.div`
 `;
 
 const AccBody = styled.p`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.88rem;
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.6);
@@ -1847,11 +1867,11 @@ const Tip = styled.span`
   transform: translateX(-50%) translateY(4px) scale(0.98);
   transform-origin: bottom center;
   white-space: nowrap;
-  background: #0c0a1f;
+  background: ${p => p.theme.color.well};
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
   border-radius: 6px;
   padding: 0.4rem 0.6rem;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.66rem;
   color: rgba(255, 255, 255, 0.8);
   opacity: 0;
@@ -1873,7 +1893,7 @@ const TipWrap = styled.span`
 const TipTarget = styled.span`
   display: inline-block;
   cursor: default;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.8);
   background: rgba(255, 255, 255, 0.06);
@@ -1896,7 +1916,7 @@ const ShakeInput = styled.input<{ $shaking: boolean; $error: boolean }>`
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
   color: rgba(255, 255, 255, 0.9);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-size: 0.85rem;
   outline: none;
   transition: border-color 0.2s ease;
@@ -1930,9 +1950,9 @@ const Badge = styled(motion.span)`
   height: 16px;
   padding: 0 4px;
   border-radius: 999px;
-  background: #fcd34d;
-  color: #1a1733;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.6rem;
   font-weight: 600;
   display: inline-flex;
@@ -1942,7 +1962,7 @@ const Badge = styled(motion.span)`
 
 const PopRow = styled.div`
   display: inline-flex;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-variant-numeric: tabular-nums;
   font-size: 2rem;
   font-weight: 300;
@@ -1956,11 +1976,11 @@ const Digit = styled(motion.span)`
 
 /* Collapsible code */
 const DiscBtn = styled.button`
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
   font-size: 0.68rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.5);
   background: none;
   border: none;
   padding: 0.4rem 0;
@@ -1975,7 +1995,7 @@ const DiscBtn = styled.button`
     outline: none;
   }
   &:focus-visible {
-    outline: 2px solid rgba(252, 211, 77, 0.5);
+    outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -1985,52 +2005,20 @@ const Code = styled.pre`
   margin: 0.6rem 0 0;
   padding: 1.4rem 1.5rem;
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.28);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  /* Shared with the blog — see styles/codeTheme.ts. The rim is a box-shadow rather than
+     the blog's border on purpose: this one must not take part in layout. */
+  background: ${CODE_ISLAND};
+  box-shadow: 0 0 0 1px ${CODE_ISLAND_RIM};
   overflow-x: auto;
 
   & > code {
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-family: ${p => p.theme.font.mono};
     font-size: 0.78rem;
     line-height: 1.75;
     color: rgba(255, 255, 255, 0.78);
     white-space: pre;
   }
 
-  /* highlight.js tokens — same palette as the blog (src/components/Blog/PostBody.tsx) */
-  .hljs-comment,
-  .hljs-quote {
-    color: #6b7280;
-    font-style: italic;
-  }
-  .hljs-keyword,
-  .hljs-selector-tag,
-  .hljs-selector-class,
-  .hljs-selector-id,
-  .hljs-selector-pseudo,
-  .hljs-built_in,
-  .hljs-meta {
-    color: #c4b5fd;
-  }
-  .hljs-string,
-  .hljs-attr {
-    color: #86efac;
-  }
-  .hljs-number,
-  .hljs-literal {
-    color: #fca5a5;
-  }
-  .hljs-attribute,
-  .hljs-property,
-  .hljs-type {
-    color: #93c5fd;
-  }
-  .hljs-title,
-  .hljs-section {
-    color: #fcd34d;
-  }
-  .hljs-tag,
-  .hljs-name {
-    color: #f9a8d4;
-  }
+  /* highlight.js tokens — shared with the blog, see styles/codeTheme.ts */
+  ${hljsTokens}
 `;

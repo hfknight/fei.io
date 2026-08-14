@@ -11,12 +11,12 @@
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://fei.io/changelog</loc>
+    <loc>https://fei.io/lab</loc>
     <priority>0.8</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://fei.io/contact</loc>
+    <loc>https://fei.io/writing</loc>
     <priority>0.8</priority>
     <changefreq>yearly</changefreq>
   </url>

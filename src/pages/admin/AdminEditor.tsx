@@ -196,7 +196,7 @@ const Page = styled.div`
   padding: 4rem 1.5rem;
   max-width: 1100px;
   margin: 0 auto;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ${p => p.theme.font.mono};
 `;
 
 const TopBar = styled.div`
@@ -259,13 +259,14 @@ const inputStyles = `
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 6px;
   color: #fff;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  /* A plain template literal, not a styled component, so it cannot reach the theme. */
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   padding: 0.6rem 0.75rem;
   outline: none;
 
   &:focus {
-    border-color: rgba(252, 211, 77, 0.5);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   }
 `;
 
@@ -312,7 +313,7 @@ const UploadLabel = styled.label`
   cursor: pointer;
 
   &:hover {
-    border-color: rgba(252, 211, 77, 0.5);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
     color: #fff;
   }
 `;
@@ -322,8 +323,8 @@ const Save = styled.button`
   font-size: 0.7rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #12102a;
-  background: #fcd34d;
+  color: var(--accent-ink);
+  background: var(--accent);
   border: none;
   padding: 0.55rem 1.1rem;
   border-radius: 6px;

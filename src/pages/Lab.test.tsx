@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { render } from '../test/renderWithTheme';
 import { MemoryRouter } from 'react-router-dom';
 import { lazy } from 'react';
 import type { LabEntry } from '../types';

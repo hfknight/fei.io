@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Suspense, lazy } from 'react';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { render } from '../../test/renderWithTheme';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import LabEntryRoute from './LabEntryRoute';
 import { findLabEntry } from '../../data/labEntries';

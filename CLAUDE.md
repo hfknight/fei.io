@@ -37,33 +37,43 @@ npm run test:run   # tests
 ## Fonts
 
 Loaded via Google Fonts in `index.html`:
-- **Inter** (200–500) — body text, used in `/readme` and `/contact`
-- **JetBrains Mono** (400–500) — nav, footer, labels, monospace accents
-- **Cormorant Garamond** (400) — loaded, available
-- **Big Shoulders Display** (800) — loaded, available
-- **Playfair Display** (400, 500, italic) — loaded, available
+- **Archivo** (400–700) — display face, headings. `--font-display`
+- **Inter** (200–500) — body text, inherited copy. `--font-body`
+- **JetBrains Mono** (400–500) — chrome and labels. `--font-mono`
+- **Big Shoulders Display** (800) — `LoadingScreen` only, in CSS and in a canvas `ctx.font`.
+  Deliberately outside the token system: a canvas cannot read a CSS custom property.
+- **Anton** (400, its only weight) — the cut-out wordmarks, referenced inside SVG
+  `<clipPath>` stencils in `About.tsx` (`readme`) and `Lab.tsx` (`lab`). Outside the token
+  system like Big Shoulders: SVG presentation attributes take a literal family name.
+  The two stencils differ deliberately: `/readme` stretches its six letters to the column
+  width via `textLength` + `lengthAdjust`, which at that count lands near Anton's natural
+  density; `lab` solves for cap height only and lets the word end where it ends, because
+  three letters given the same stretch become a caricature.
 
-Additional fonts loaded via `src/index.css` (used in `/changelog` day sections):
-- **Outfit** — primary day section font (`--day-font-primary`)
-- **Exo 2** — day section secondary (`--day-font-secondary`)
-- **Audiowide**, **Neonderthaw**, **Press Start 2P** — special section effects
+The three system faces have exactly one definition each, in `tokens.ts`. Author
+`${p => p.theme.font.body}` — never a raw stack. Changing a face is a one-line change there.
+Inline style objects (`React.CSSProperties`) cannot reach the theme, so they use
+`'var(--font-mono)'` directly. `/changelog` keeps its own `--day-font-*` faces, as it keeps
+its own palette.
 
 ## Routes
 
 | Path | Component | Description |
 |---|---|---|
-| `/` | `Landing` | Video background, loading screen, intro panel |
+| `/` | `Landing` | Split-stage pet-video hero with draggable lens reveals |
 | `/readme` | `About` | Personal statement, dark editorial layout |
-| `/changelog` | `Day` | Day-journey scroll visualization |
-| `/contact` | `Contact` | Contact links from portfolio.json |
-| `/work` | `Work` | (placeholder) |
+| `/changelog` | `Day` | **Retired.** Route kept, no nav link. |
+| `/lab` | `Lab` | Lab index — `/readme`'s split, mirrored: list left, pinned picture right |
+| `/lab/:slug` | `LabEntryRoute` | A lab entry |
 | `/writing` | `Writing` | Blog index (published posts) |
 | `/writing/:slug` | `WritingPost` | A post, rendered in its template |
 | `/writing/admin` | `AdminPosts` | Admin post list (Cloudflare Access–gated) |
 | `/writing/admin/new`, `/writing/admin/:id` | `AdminEditor` | Create/edit a post |
+| `/loading` | `LoadingScreen` | Animated loading overlay |
 
-All routes are wrapped by `Layout` (renders `Header` + `Footer` globally).
-Blog routes are lazy-loaded so the markdown/highlighter bundle stays off the landing page.
+All routes are wrapped by `Layout` (renders `Header` globally; the `Footer` is home-only —
+see below). Blog routes are lazy-loaded so the markdown/highlighter bundle stays off the
+landing page.
 
 ## Blog system (Cloudflare-backed)
 
@@ -90,13 +100,13 @@ The portfolio is structured as a **day-journey visualization** — five time-of-
 1. `Day.tsx` fetches `/data/portfolio.json` and transforms it into `TimeSection` objects via `transformJsonToTimeSections()` in `src/utils/`
 2. Scroll position on `Day.tsx` drives `activeSection` + `scrollProgress` state, which gates animations and conditional rendering throughout the tree
 3. Components consume `scrollProgress` as a 0–1 progress value passed as props
-4. `About.tsx` and `Contact.tsx` also fetch `/data/portfolio.json` — `about.content` (string[]) and `contact.links` respectively
+4. `About.tsx` (`/readme`) owns its copy inline — the principles carry inline markup
+   (hover treatments), which JSON strings cannot express
 
 ### `public/data/portfolio.json` shape
 
 ```
 {
-  about:   { content: string[] }
   contact: { links: [{ name, link, icon }] }
   sections: [{ id, title, subtitle, gradient }]  // drives Day journey
 }
@@ -106,26 +116,197 @@ The portfolio is structured as a **day-journey visualization** — five time-of-
 
 - `src/components/Layout/` — global shell rendered on every route
   - `Header.tsx` — fixed top-right nav bar; active link state, Home link when not on `/`
-  - `Footer.tsx` — fixed bottom bar with copyright
-  - `Layout.tsx` — renders `<Header> + {children} + <Footer>`
-- `src/components/Landing/` — landing page (`/`) only
-  - `index.tsx` — orchestrates video, loading screen, intro panel
-  - `VideoBackground.tsx` — `<video>` with WebM + MP4 fallback
-  - `LoadingScreen.tsx` — animated loading overlay
-  - `IntroPanel.tsx` — hero text over video
+  - `Footer.tsx` — fixed bottom bar with copyright. Home-only: interior pages compose their
+    own full-height layouts and the fixed bar overlaps or crowds them, so `Layout` renders it
+    only on `/` (`FOOTER_PATH`). Over the landing it sits on the video hero.
+  - `Layout.tsx` — renders `<Header> + {children}`, plus `<Footer>` on `/` only
+- `src/components/Landing/` — landing page (`/`) only. React renders static markup with
+  `data-*` hooks; `landingEngine.ts` mutates it imperatively.
+  - `index.tsx` — mounts the tree, creates/destroys the engine; gates the loader intro
+    on first visit + fine hover + motion allowed
+  - `SplitStage.tsx` — two half-screen video panes (Jojo light / Ollie dark) with
+    gradient + frost overlays; the engine scrubs each clip to track the cursor
+  - `Lockup.tsx` — centered "I'm Fei" hero lockup; recedes while a lens is dragged
+  - `PetCaption.tsx` — per-pet caption flanking the lockup; hidden below `lg`
+  - `Loader.tsx` — liquid-glass first-visit overlay: curtains part, logo fills by real
+    download progress, engine-driven
+  - `Lenses.tsx` / `lensEngine.ts` / `lensMath.ts` / `blobMapWorker.ts` — two draggable
+    refraction lenses: static markup, imperative drag/refraction/clone engine, shared
+    DOM-free Snell math, off-thread merged-lens displacement-map raster
+  - `TravelPath.tsx`, `MoodClock.tsx`, `StackReveal.tsx` — lens-only reveals (city-map
+    travel route, Dallas time/mood stamp, tech-chip stacks) — see "Landing lens reveals"
+  - `landingConfig.ts` — tuning constants: per-clip scrub windows, `CLIP_FPS`, lens optics
+  - `introState.ts` — module-scoped "intro has played" flag, shared with the
+    route-transition layer
+  - `LoadingScreen.tsx` — standalone animated loading overlay, served at `/loading`
 - `src/components/DayJourney/TimeSection/` — one subdirectory per time period; each owns its own visuals and animations
-- `src/components/DayJourney/TimeSection/Midnight/Constellation/` — animated constellation component featuring pets (Chinchilla, TabbyCat, Samoyed)
-- `src/styles/theme.ts` — single source of truth for the warm amber/cream color palette, spacing scale, and responsive breakpoints (`sm` 640 / `md` 768 / `lg` 1024 / `xl` 1280)
+- `src/components/DayJourney/TimeSection/Midnight/Constellation/` — animated constellation component featuring pets (TabbyCat, Samoyed)
+- `src/styles/tokens.ts` — the single source of truth: neutral oklch ramp at hue 265, type/space/radius/motion primitives, and the glass recipe driven by `GLASS_K`.
+- `src/styles/tokens.css.ts` — emits the tokens as `:root` (light) and `[data-surface="inverted"]` (dark).
+- `src/styles/theme.ts` — typed accessor over the tokens, returning `var(--x)` strings; `breakpoints` returns literal px strings (`sm` 640 / `md` 768 / `lg` 1024 / `xl` 1280)
 - `src/styles/styled.d.ts` — TypeScript augmentation so the theme is fully typed in all styled-components
 - `src/types/index.ts` — shared interfaces: `JsonSection`, `TimeSection`, `Constellation`
 
+### Landing lens reveals
+
+The landing hides elements that surface **only under a draggable lens**. Give a node
+`data-lens-reveal` and base `opacity: 0`; GlobalStyles additionally forces every reveal to
+`visibility: hidden`, because `opacity: 0` still **paints** — the base copies of TravelPath's
+animated-WebP maps kept decoding and its viewport-wide route SVG kept repainting over the
+videos, hitching the pet scrub. `lensEngine.ts`'s `buildLensWorld` flips both back (inline
+`visibility` beats the global rule) inside every refracted lens clone — one hook covers both
+lenses and the metaball bridge. `TravelPath` (the travel-path reveal: Huangshan → Beijing →
+Shanghai maps joined by a dashed two-tone route, terminating at the Dallas pin in the
+lower-left light half — everything but Dallas hides below the `xl` breakpoint, all-or-nothing,
+via CSS media query so the gate also works inside the clones), `MoodClock`
+(Dallas time + mood-of-the-day, upper-right dark half), and `StackReveal` (tech-stack chips) ride
+this. `StackReveal` renders once per role (`role="frontend"` under "Full-Stack Engineer",
+`role="ai"` under "AI Product Engineer") and is nested *inside* that role's `<span>` in `Lockup`
+rather than positioned at a page percentage — the role text is a fixed 14px, so its centre is a
+fixed pixel offset from centre that drifts as a percentage; nesting keeps the chip row centred
+under the text at every width. It is gated by `Lockup`'s `interactive` prop, so like the others it
+never ships to touch / reduced-motion. Two deliberate calls: the row is laid out **flat** and lets
+the convex refraction supply the arc (a baked-in arc only lines up at one lens position); and the
+chip is **surface-aware** so each stack echoes its role text — light-glass / dark-ink on the light
+half (frontend, like `DallasPin`), dark-glass / light-ink on the dark half (AI, like `MoodClock`).
+The dark chip must be dark *and* fairly opaque: the lens's chromatic-aberration filter screen-blends
+the split channels and washes a thin, translucent chip toward light (which greyed out an earlier
+attempt), so its light marks only stay legible on a deep, near-opaque fill.
+
+Four gotchas. The clone is a **static snapshot**, so live/dynamic content freezes at
+clone-build time unless synced into every `[data-lens-world]` copy each tick — see `MoodClock`
+driving `[data-time-reveal]` nodes from a `setInterval`. A revealed node may set its own
+opacity via `data-reveal-opacity` (default `1`; the map rides `0.8`). A reveal carrying SVG
+resources (`<mask>`/`<clipPath>` with ids) must re-declare `visibility: visible` on its
+`<defs>`: `url(#id)` resolves to the **first** id in document order — the hidden base copy —
+and mask *content* inherits the hidden, which empties the mask and erases the element in
+every world (TravelPath's route hit this). And continuous animation inside a reveal should be
+gated to when it can be seen: the route's dash march runs only under `html[data-lens-drag]`
+(set by the lens drag handlers, the `data-lockup-recede` channel), because a paint-invalidating
+animation runs in all three worlds at once. Reveals are gated with the lenses: desktop only
+(hover + fine pointer), never shipped to touch / reduced-motion.
+
+### Route transitions
+
+`AppRoutes` wraps the routes in `AnimatePresence mode="wait"` and feeds the **destination
+path** to exiting pages via the `custom` prop; every page wraps itself in `PageTransition`
+(the landing is wrapped in `AppRoutes` instead — it needs the wrapper only for its exit),
+whose exit variants are functions of that destination. (Reading `useLocation()` inside the
+exiting tree does NOT work — exit variants are captured before that re-render lands;
+`custom` is the supported channel.)
+
+Three exit paths:
+
+- **To any non-home route** — the `Curtain` sweep: a 170vw box painted in the *destination*
+  surface slides over the old page. It depends on `Layout` flipping `data-surface` eagerly,
+  so the new page's background is pixel-identical to the curtain at hand-off.
+- **To home, first visit this page load** — exit immediately, no sweep: the landing's own
+  `Loader` overlay is the transition. "First visit" is `introState.ts`'s module flag, latched
+  by the landing engine's `onRevealed`.
+- **To home, landing already revealed** — `HomeCurtains` (mounted in `AppRoutes` *outside*
+  `AnimatePresence`, because it must outlive the exiting page): two half-screen curtains
+  mirroring SplitStage's gradients slide in from the sides, meet in the middle, and part over
+  the freshly mounted landing. The old page holds until covered (an exit to `opacity: 0.999`
+  for `HOME_CURTAIN_IN` — the change must be real for framer to spend the duration; same-value
+  keyframes complete instantly), and `Layout` defers the `data-surface` flip by the same
+  interval so the surface swaps under full cover.
+
 ### Styling conventions
-
-The `theme` object (amber/cream palette) applies to the day-journey sections. The standalone pages (`/readme`, `/contact`) use a **dark indigo palette** (`#12102a` background) that intentionally does not use theme tokens — this is by design to match the cinematic landing video aesthetic. Do not "fix" hardcoded colors on these pages.
-
-All responsive work is done with styled-components media queries referencing `theme.breakpoints`.
 
 Animation conventions:
 - Use `cubic-bezier(0.16, 1, 0.3, 1)` (ease-out-expo) as the standard easing — never bounce or elastic
 - Always handle `useReducedMotion()` for entrance animations
 - Pause CSS keyframe animations when sections are off-screen using `animationPlayState`
+
+### Design system
+
+`src/styles/tokens.ts` is the single source of truth: a neutral oklch ramp at hue 265,
+type/space/radius/motion primitives, and a glass recipe driven by one dial (`GLASS_K`).
+`tokens.css.ts` emits it as `:root` (light) and `[data-surface="inverted"]` (dark).
+`theme.ts` is a typed accessor returning `var(--x)` strings — author
+`${p => p.theme.color.ink}` as before.
+
+`theme.breakpoints` returns literal px strings, because CSS custom properties are
+illegal inside `@media` queries.
+
+Glass has **two** tints, not one. The fill and rim (`--glass-top/bot/rim`) follow the
+surface; the highlight and sheen (`--glass-hi`, `--glass-sheen`) are always white, because
+they model reflected light rather than pigment. Tinting them with ink turns a highlight
+into a hard dark line. The drop shadow stays black on both surfaces — it is cast, not
+reflected. On the inverted surface both tints are white, so the recipe reduces to the
+original single-tint one and the dark theme is byte-for-byte unchanged.
+
+`--ui-scheme` (`light` / `dark`) drives the CSS `color-scheme` property, so the UA themes
+native controls — the admin's `<select>` popups — and scrollbars to match the surface.
+It is deliberately named outside the `--color-*` family so the "every colour is oklch"
+test guard skips it.
+
+The light surface is **near-neutral grey paper, not white**: `--color-surface` is
+`oklch(0.913 0.0013 106.4)` (`#e2e2e1`) — a bespoke off-ramp value, a hair darker than the old
+`--n-3` and essentially hueless. Three tokens are tuned against its *lightness* and move only if
+that changes — see `docs/adr/0001-grey-light-surface.md`.
+
+Light pages also wear a faint **paper grain**: a single fixed noise layer (`body::after`, scoped
+to `data-surface="default"`) blended `overlay` at low opacity — a heavier cousin of the landing's
+`--frost-noise`, defined in `GlobalStyles.ts`. It sits over content but is imperceptible on text
+and shows only as texture on the flat paper. Contrast is unaffected; the deep pages and the
+landing keep their own treatments.
+
+`--accent` is the warm yellow, and it is **surface-aware** — it has to be. On the inverted
+surface it is the legacy `#fcd34d` (12.85:1); on the light surface that same yellow drops to
+1.14:1, and no lightness of it clears AA on both, so the light value is darkened to
+`oklch(0.50 0.111 92)` (4.73:1), which at that hue necessarily reads olive-bronze. It is the
+link colour on every light page. `--accent-ink` is text placed *on* an accent fill: the deep
+surface on dark, white on light. Hue 92 sits 173° from the ramp's 265, i.e. near its
+complement — the warmth is deliberate.
+
+On light, `--chrome-ink-muted` equals `--color-ink-muted` (both `--n-9`), exactly as on the
+inverted surface. There is no separate chrome-muted weight on either surface any more.
+
+Never hardcode the accent. For a translucent accent use
+`color-mix(in srgb, var(--accent) 35%, transparent)`, which renders byte-identically to the
+old `rgba(252,211,77,0.35)` and follows the surface. `/changelog`'s neon is out of the system
+and keeps its own hex.
+
+`Layout` sets `data-surface` on `<html>` from the route, resolving it deny-then-allow:
+`DARK_PREFIXES` (`/writing/admin`, `/lab/`) is consulted first, then `LIGHT_EXACT` and the
+`/writing/` prefix, falling through to `inverted`. **The ordering is load-bearing** —
+`/writing/admin` is itself matched by the `/writing/` prefix. Post slugs come from D1 at
+runtime, so they cannot be enumerated. The fall-through must stay `inverted`, because an
+unmigrated page still hardcodes `#12102a`.
+
+The flip is immediate on location change — PageTransition's sweep depends on that (see
+"Route transitions" below) — with one exception: a *return* to home defers the flip by
+`HOME_CURTAIN_IN` so the surface swaps while HomeCurtains has the viewport covered;
+flipped eagerly, the old page inverts on screen before the curtains arrive.
+
+Light: `/readme`, `/lab`, `/writing`, `/writing/:slug`.
+Inverted: `/` (chrome over video, permanently), `/loading`, `/changelog`, `/lab/:slug`
+(bespoke entries), `/writing/admin*`. Migrating one of those means adding its path and
+reworking that page's hardcoded colors.
+
+`data-surface` is a plain attribute selector, not bound to `<html>`. Any element can flip its
+own surface, and two do: `PostBody`'s `<pre>` (a dark code island, so `.hljs-title`'s accent
+stays yellow) and `PhotoEssay`'s `Overlay` (a scrim over a photograph, where the title and
+date shared with the no-cover header must read white). Both re-declare `color`, because CSS
+inherits the *computed* ink from the ancestor and the attribute alone would not override it.
+
+`/changelog` is retired: the route still resolves, but it has no nav link and its neon
+palette is deliberately outside the system.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as GitHub issues in `hfknight/fei.io`, driven by the `gh` CLI. External PRs are
+not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles map 1:1 onto identically-named labels. See
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root, both created lazily. See
+`docs/agents/domain.md`.

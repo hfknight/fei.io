@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import PageTransition from '../components/PageTransition';
 import ShimmerText from '../components/ShimmerText';
 import { RenderedPost } from '../components/Blog/RenderedPost';
 import { fetchPost } from '../lib/blogApi';
+import { WRITING_GROUND } from '../styles/surface';
 import type { BlogPost } from '../types';
 
 type State =
@@ -41,8 +42,6 @@ const PostView: React.FC<{ slug: string }> = ({ slug }) => {
     <PageTransition>
       <Page>
         <Inner>
-          <BackLink to="/writing">← writing</BackLink>
-
           {state.kind === 'loading' && <Status><ShimmerText>Loading…</ShimmerText></Status>}
           {state.kind === 'notfound' && <Status>Post not found.</Status>}
           {state.kind === 'error' && <Status>Something went wrong.</Status>}
@@ -66,34 +65,23 @@ export default WritingPost;
 
 const Page = styled.div`
   min-height: 100dvh;
-  background: #12102a;
+  /* The writing pages' sunlit paper — shared with the index and the transition curtain
+     via surface.ts, so the curtain hand-off stays pixel-identical. */
+  background: ${WRITING_GROUND};
   padding: 6.5rem 0 5rem;
 `;
 
 const Inner = styled.div`
-  max-width: 720px;
+  /* Wide enough for StandardArticle's rail + reading column; the other templates
+     center their own <=680px columns inside it, so their measure is unchanged. */
+  max-width: 960px;
   width: 100%;
   margin: 0 auto;
   padding: 0 1.5rem;
 `;
 
-const BackLink = styled(Link)`
-  display: inline-block;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.62rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
-  text-decoration: none;
-  margin-bottom: 3rem;
-
-  &:hover {
-    color: rgba(255, 255, 255, 0.85);
-  }
-`;
-
 const Status = styled.p`
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${p => p.theme.font.body};
   font-weight: 200;
-  color: rgba(255, 255, 255, 0.55);
+  color: ${p => p.theme.color.inkMuted};
 `;
