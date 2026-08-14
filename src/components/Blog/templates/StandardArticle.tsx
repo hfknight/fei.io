@@ -5,32 +5,30 @@ import { formatDate, isVideoUrl } from './types';
 /* The hero glyph: the title's first letterform, blown up past its frame the way an
    editorial spread crops a numeral — form first, letter second. First alphanumeric
    so quotes/emoji don't become the monument; a title with none falls back to its
-   first character. Always uppercased: the monument is a display form, not a
-   quotation — lowercase letters like f or l reduce to a bare stem once the rule
-   shears their right side, and read as a 1. */
+   first character. The case is the title's own — the glyph quotes the title rather
+   than displaying it, so "fanmatchday…" cuts an f, not an F. */
 function heroGlyph(title: string): string {
   const m = title.match(/[A-Za-z0-9]/);
-  return (m ? m[0] : title.trim().charAt(0) || 'f').toUpperCase();
+  return m ? m[0] : title.trim().charAt(0) || 'f';
 }
 
 // Standard article: the writing index's split, carried into the post — the title's
 // first letter set huge in Anton owns the left rail, and everything readable (date,
 // title, body) hangs right of a full-height rule, like the reference spreads.
 export default function StandardArticle({ title, coverImageUrl, publishedAt, children }: TemplateProps) {
-  // An image cover becomes the glyph's fill (a window onto it, like the index
-  // masthead); it is not repeated below. Video covers keep the old inline render.
+  // An image cover becomes the well's ground with the glyph die-cut out of it
+  // (figure and ground swapped from the old letter-window); it is not repeated
+  // below. Video covers keep the old inline render.
   const coverFill = coverImageUrl && !isVideoUrl(coverImageUrl) ? coverImageUrl : null;
 
   return (
     <Article>
       <GlyphCol aria-hidden>
-        <GlyphWell>
-          <Glyph
-            $cover={coverFill != null}
-            style={coverFill ? { backgroundImage: `url(${coverFill})` } : undefined}
-          >
-            {heroGlyph(title)}
-          </Glyph>
+        <GlyphWell
+          $cover={coverFill != null}
+          style={coverFill ? { backgroundImage: `url(${coverFill})` } : undefined}
+        >
+          <Glyph $cover={coverFill != null}>{heroGlyph(title)}</Glyph>
         </GlyphWell>
       </GlyphCol>
 
@@ -76,13 +74,29 @@ const GlyphCol = styled.div`
 /* The glyph's frame. Overflow-hidden is what turns a drop cap into a crop: the
    letterform is set larger than this box and anchored to its right edge, so it sheds
    its left side past the rail and its extremes past the top and bottom. */
-const GlyphWell = styled.div`
+const GlyphWell = styled.div<{ $cover: boolean }>`
   position: relative;
   overflow: hidden;
-  height: clamp(14rem, 40vh, 20rem);
+  /* A custom property so the glyph can size itself against the well (see Glyph's
+     font-size) — the two must not drift apart. */
+  --well-h: clamp(14rem, 40vh, 20rem);
+  height: var(--well-h);
+
+  /* With a cover the well shows the picture itself, anchored left so the overflow
+     sheds past the right rule — the same blade that shears the glyph. The ink
+     underlay is the degradation path: a cover that fails to load leaves the paper
+     letter on solid ink (the monument inverted) rather than paper on paper, i.e.
+     an empty header. */
+  ${p =>
+    p.$cover &&
+    `
+    background-color: ${p.theme.color.ink};
+    background-size: cover;
+    background-position: left center;
+  `}
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    height: 8.5rem;
+    --well-h: 8.5rem;
     margin-bottom: 2rem;
   }
 `;
@@ -98,35 +112,48 @@ const Glyph = styled.span<{ $cover: boolean }>`
   /* Anton, like the wordmark stencils on /readme, /lab, and the index masthead —
      deliberately outside the token system (see CLAUDE.md on the stencil faces). */
   font-family: Anton, sans-serif;
-  /* Set well past the frame: taller than GlyphWell, so the letterform sheds its
-     extremes top and bottom, and wide glyphs shed their left side — the crop is
-     what makes it a form instead of a drop cap. */
-  font-size: clamp(20rem, 44vh, 27rem);
+  /* Solved for the well like the lab stencil solves for cap height: Anton's caps and
+     ascenders ink 0.86em (canvas-measured), so this fills the well flush top and
+     bottom. Wide glyphs still shed their left side past the rail; descenders shed
+     past the bottom. */
+  font-size: calc(var(--well-h) / 0.86);
+  /* Load-bearing beyond taste: at Anton's 0.86em ink height a 0.85 line box hugs the
+     letterform, so centering the box centers the ink. */
   line-height: 0.85;
   color: ${p => p.theme.color.ink};
   user-select: none;
 
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    /* No rule to press against below the split — anchor left and crop right. */
-    left: 0;
-    right: auto;
-    font-size: 12rem;
-  }
-
-  /* With a cover, the letter is a window onto it — background-clip: text, the CSS
-     twin of the index masthead's SVG stencil. The ink background-color stays
-     underneath so a cover that fails to load degrades to the solid-ink glyph
-     instead of an invisible one. */
+  /* With a cover, figure and ground swap: the picture (on GlyphWell) is the ground
+     and the letter is die-cut out of it. Painted in the surface colour rather than
+     masked out — the hole shows flat paper, so an overlay in paper's own token is
+     pixel-identical to a true knockout and needs none of the mask plumbing. Scaled
+     down from the monument (~60% of the well) and dropped to the bottom edge: a
+     printer's mark stamped in the corner, still sheared by the rule, its descenders
+     shed past the bottom. Stretched wide the way the index masthead stretches its
+     stencil letters tall — Anton's lowercase forms are condensed stems, and unstretched
+     the sheared f reads as a bare bar rather than a letter. */
   ${p =>
     p.$cover &&
     `
-    background-color: currentColor;
-    background-size: cover;
-    background-position: center;
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    top: auto;
+    bottom: -0.12em;
+    transform: scaleX(1.25);
+    transform-origin: bottom right;
+    font-size: clamp(11rem, 33vh, 16rem);
+    color: ${p.theme.color.surface};
   `}
+
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+    ${p =>
+      p.$cover
+        ? /* The die-cut is an edge mark, so it keeps the right anchor even without
+             the rule to press against. */
+          `font-size: 7rem;`
+        : /* No rule to press against below the split — anchor left and crop right.
+             The base font-size tracks --well-h, so the fit carries down unstated. */
+          `left: 0;
+           right: auto;`}
+  }
 `;
 
 /* Everything readable hangs off the rule, which runs the article's full height. */
