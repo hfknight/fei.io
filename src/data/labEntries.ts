@@ -47,8 +47,19 @@ export function sortByDateDesc(entries: LabEntry[]): LabEntry[] {
   return [...entries].sort((a, b) => b.date.localeCompare(a.date));
 }
 
+// The index order. Date-desc, except galleries sink below the dated work: a gallery is an
+// open shelf, not a dated piece — new items keep its date fresh, so ranked by date alone
+// it would squat at the top of the list indefinitely.
+export function orderForIndex(entries: LabEntry[]): LabEntry[] {
+  const sorted = sortByDateDesc(entries);
+  return [
+    ...sorted.filter((e) => e.kind !== 'gallery'),
+    ...sorted.filter((e) => e.kind === 'gallery'),
+  ];
+}
+
 export function labEntriesByDate(): LabEntry[] {
-  return sortByDateDesc(labEntries);
+  return orderForIndex(labEntries);
 }
 
 export function findLabEntry(slug: string): LabEntry | undefined {
