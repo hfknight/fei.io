@@ -663,10 +663,13 @@ const EntryLink = styled(Link)`
   text-decoration: none;
   padding: 1.9rem 0;
 
-  /* The warm mark rather than the system yellow — the tone /readme's Aesthetic clause
-     carries, derived per-surface so it clears AA at this type size (see tokens.ts). */
+  /* The picture's own streak orange rather than the shared mark — sampled from the
+     plate's glitch verticals (they average #f06030–#f08060, oklch hue ~40), then pulled
+     down to the deepest lightness that still reads vivid: 3.6:1 on the paper surface,
+     clear of the 3:1 large-text floor at this title size. Local to this list — the mark
+     token stays the /readme tone. */
   &:hover h2 {
-    color: ${p => p.theme.color.mark};
+    color: oklch(0.58 0.2 40);
   }
 `;
 
