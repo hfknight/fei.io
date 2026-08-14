@@ -43,6 +43,67 @@ export type PromptedItem = {
  */
 export const promptedItems: PromptedItem[] = [
   {
+    id: 'felted-jojo-ollie',
+    title: 'jojo and ollie, needle-felted',
+    prompt: `Create a highly detailed 3D illustration in a cute handmade wool / felt style, similar to a premium knitted toy or needle-felted character.
+
+Subject: [Samoyed dog / tabby cat]
+
+The character is standing facing forward, full body, on a clean soft beige background.
+
+The character has round shiny eyes, soft fluffy fur made of felted wool, slightly blushed cheeks, and a gentle happy expression.
+
+The character is wearing cozy knitted clothes in warm pastel colors, including:
+
+* A thick knitted sweater or cardigan with small embroidered details
+* A striped knitted scarf wrapped around the neck
+* Knit shorts or pants
+* Little shoes
+* A small crossbody bag (knitted or felt texture)
+
+The style is whimsical, heartwarming, and highly detailed with visible wool texture and yarn stitches.
+
+Lighting is soft and studio-like, with subtle shadows on the floor.
+
+The overall mood is adorable, cozy, and premium.
+
+Negative prompt: realistic photo, 2d drawing, anime, cartoon flat, blurry, low quality, low detail, extra limbs, deformed, disfigured, text, watermark, logo, busy background, clutter`,
+    model: 'ChatGPT',
+    date: '2026-08-13',
+    type: 'image',
+    src: 'https://media.fei.io/lab/prompted/felted-jojo-ollie.webp',
+  },
+  {
+    id: 'above-the-clouds',
+    title: 'jojo and ollie above the clouds',
+    prompt: `The prompt didn't survive. The filename remembers only its opening: "use as the whole film set main reference..."`,
+    model: 'Seedance 2',
+    date: '2026-03-25',
+    type: 'video',
+    webm: 'https://media.fei.io/lab/prompted/above-the-clouds.webm',
+    mp4: 'https://media.fei.io/lab/prompted/above-the-clouds.mp4',
+    poster: 'https://media.fei.io/lab/prompted/above-the-clouds-poster.webp',
+  },
+  {
+    id: 'bluebonnet',
+    title: 'bluebonnet through a veil of light',
+    prompt: `A dreamy, ethereal macro photograph of a Texas bluebonnet, captured in an extremely soft-focus, impressionistic style. A single tall bluebonnet flower dominates the composition, with layered cobalt-blue and violet petals, subtle pale lavender highlights, and tiny warm yellow-white accents near the centers. The flower appears gently swaying in a breeze, creating **strong directional motion blur** that stretches the petals and edges vertically and slightly diagonally, as if captured during a slow camera movement. The motion blur should feel organic and painterly rather than artificial.
+
+Use a very shallow depth of field with almost the entire flower softly blurred, while retaining just enough recognizable petal structure to identify it as a bluebonnet. Surround it with heavily defocused blue and purple flowers, soft green stems and leaves, and luminous pastel bokeh.
+
+Color palette: soft periwinkle blue, cobalt blue, lavender, dusty violet, pale cream, subtle warm yellow, and muted sage green. Extremely low contrast, diffused natural backlight, glowing highlights, creamy whites, gentle atmospheric haze, delicate film grain, subtle watercolor texture, dreamy editorial botanical photography.
+
+The background should be bright, airy, and almost white with soft lavender-blue and warm cream gradients. Large areas of negative space, no hard edges, no sharp details, no dark shadows. The entire image should feel like a soft botanical artwork photographed through a thin veil of light, elegant, poetic, nostalgic, and slightly surreal.
+
+Vertical 9:16 composition, centered flower, minimal composition, premium art-gallery aesthetic, high resolution.
+
+**No text, no typography, no frame, no vase, no people, no insects, no additional objects.**`,
+    model: 'ChatGPT',
+    date: '2026-07-26',
+    type: 'image',
+    src: 'https://media.fei.io/lab/prompted/bluebonnet.webp',
+  },
+  {
     id: 'writing-hero',
     title: 'jojo and ollie at the window',
     prompt: `Create a **vertical 2:3 fine-art watercolor illustration** closely matching the reference composition.
@@ -754,6 +815,21 @@ no AI artifacts`,
     date: '2026-05-16',
     type: 'image',
     src: 'https://media.fei.io/lab/prompted/fwc26-dallas.webp',
+  },
+  {
+    id: 'pixel-knight',
+    title: 'nine moods of a pixel knight',
+    prompt: `THE CHARACTER
+
+A detailed pixel art illustration of a cute anime-style female knight with pink hair in a ponytail and bright blue eyes. She is wearing intricate silver and white plate armor with gold and blue accents, and a flowing blue cape. In her right hand, she holds a large, ornate, glowing blue and gold sword. In her left hand, she holds a matching large blue and gold heater shield with decorative gold engravings. Clean white background, 16-bit retro game style, crisp pixels, vibrant colors, chibi character design.
+
+THE GRID
+
+In a 3×3 grid, each cell should have an aspect ratio of 2:3. Show the same character with different emotion, examples are: cozy, intense, anger, frightended and etc, while keeping the scene consistent, with randomized poses in each cell.`,
+    model: 'ChatGPT',
+    date: '2026-05-05',
+    type: 'image',
+    src: 'https://media.fei.io/lab/prompted/pixel-knight.webp',
   },
   {
     id: 'folk-flat-illustration',
