@@ -60,7 +60,7 @@ const inkRing = css`
 
 const Bar = styled.header`
   position: fixed;
-  top: 0;
+  top: env(safe-area-inset-top);
   right: 0;
   z-index: 10;
   display: flex;

@@ -69,6 +69,10 @@ const Overlay = styled.div`
   /* The scrim is cast over a photograph, so it stays the deep surface on any page. */
   background: linear-gradient(transparent, rgba(18, 16, 42, 0.92));
   text-align: center;
+
+  @media (max-width: ${(p) => p.theme.breakpoints.md}) {
+    padding: 1.5rem 1rem;
+  }
 `;
 
 const Header = styled.div`
@@ -95,6 +99,10 @@ const Title = styled.h1`
   line-height: 1.04;
   letter-spacing: -0.02em;
   margin: 0;
+
+  @media (max-width: ${(p) => p.theme.breakpoints.md}) {
+    font-size: clamp(1.9rem, 8vw, 2.8rem);
+  }
 `;
 
 const Body = styled.div`

@@ -205,6 +205,7 @@ const Lab: React.FC = () => {
               </svg>
             </Masthead>
           </Slide>
+          <MobileTitle aria-hidden>{WORDMARK}</MobileTitle>
         </Rail>
       </Page>
     </PageTransition>
@@ -362,6 +363,28 @@ const Rail = styled.div`
  * glass — its window shows the untreated original — but stays inside the cut, so the paper
  * margin still holds.
  */
+/* Mobile's stand-in for the cut-out wordmark, same as /readme's: the Masthead stencil is
+   desktop staging and never renders below md, which left the page untitled on a phone.
+   Plain Anton in the picture's bottom-left corner, no stencil, no effects. Literal white:
+   it sits on the photograph, which does not follow the page surface. */
+const MobileTitle = styled.div`
+  display: none;
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    display: block;
+    position: absolute;
+    left: ${p => p.theme.space[3]};
+    bottom: ${p => p.theme.space[3]};
+    /* Above the plate's band/grain stack (z 0-3). */
+    z-index: 4;
+    font-family: 'Anton', sans-serif;
+    font-size: 2.1rem;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.92);
+    pointer-events: none;
+  }
+`;
+
 const Plate = styled.div`
   position: absolute;
   top: 0;

@@ -63,9 +63,12 @@ const useMode = (): Mode => {
 
 /**
  * Buffering the whole clip into a Blob before seeking is load-bearing, not
- * incidental: it is what makes zero-decode seek-scrubbing reliable. `static`
- * never seeks, so it streams straight into the element instead — cheaper on
- * mobile data. `armed` defers the download until the pane is worth paying for.
+ * incidental: it is what makes zero-decode seek-scrubbing reliable. `cursor` is the
+ * only mode that needs it — `static` never seeks, and `scroll`'s seeks are driven by
+ * scroll position, which arrives gradually as the visitor scrolls rather than in
+ * mouse-jitter bursts, so a streamed src's normal buffering keeps up. Both stream
+ * straight into the element instead — cheaper on mobile data, where `scroll` always
+ * runs. `armed` defers the download until the pane is worth paying for.
  */
 function useClip(
   videoRef: React.RefObject<HTMLVideoElement | null>,
@@ -91,7 +94,7 @@ function useClip(
       setReady(true);
     };
 
-    if (mode === 'static') {
+    if (mode === 'static' || mode === 'scroll') {
       vid.src = clip.src;
       vid.addEventListener('canplay', settleAt, { once: true });
       vid.load();

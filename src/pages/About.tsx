@@ -444,6 +444,31 @@ const UnclipRoot = createGlobalStyle`
       scroll-snap-type: none;
     }
   }
+
+  /* Mobile stacks the portrait full-bleed under the fixed nav, and the nav's page ink
+     has no contrast over the photograph — the same problem /lab's index hit, solved
+     the same way (see Lab.tsx): the track gets a self-contained dark glass plate with
+     its ink pinned white and the dark-surface mark. */
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    [data-nav-track] {
+      background: rgba(12, 13, 16, 0.58);
+      -webkit-backdrop-filter: blur(10px) saturate(140%);
+      backdrop-filter: blur(10px) saturate(140%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      --color-mark: oklch(0.70 0.19 35);
+    }
+
+    [data-nav-track] a {
+      color: #fff;
+      opacity: 0.85;
+    }
+
+    [data-nav-track] a[aria-current='page'] {
+      opacity: 1;
+      color: var(--color-mark);
+    }
+  }
 `;
 
 const PORTRAIT_SRC = '/readme_protrait.webp';
@@ -683,10 +708,13 @@ const ContactRail = styled(motion.nav)`
   }
 
   /* The column is 42vh of photo here, not a full-height poster, so the deep floor the desktop
-     inset buys would push the stack up into the middle of the picture. */
+     inset buys would push the stack up into the middle of the picture. Right corner, not
+     left: the plain "readme" title (MobileTitle below) holds the picture's bottom-left. */
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    left: ${p => p.theme.space[3]};
+    left: auto;
+    right: ${p => p.theme.space[3]};
     bottom: ${p => p.theme.space[3]};
+    align-items: flex-end;
   }
 
   a {
@@ -706,6 +734,28 @@ const ContactRail = styled(motion.nav)`
   a:hover,
   a:focus-visible {
     color: rgba(255, 255, 255, 1);
+  }
+`;
+
+/* Mobile's stand-in for the cut-out wordmark: the Masthead stencil is desktop staging and
+   never renders here, which left the page untitled on a phone. Plain Anton — the wordmark's
+   own face, no stencil, no effects — set in the picture's bottom-left corner, opposite the
+   contact links. Literal white like the rail's links: it sits on the photograph, which does
+   not follow the page surface. */
+const MobileTitle = styled.div`
+  display: none;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    display: block;
+    position: absolute;
+    left: ${p => p.theme.space[3]};
+    bottom: ${p => p.theme.space[3]};
+    z-index: 4;
+    font-family: 'Anton', sans-serif;
+    font-size: 2.1rem;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.92);
+    pointer-events: none;
   }
 `;
 
@@ -4005,6 +4055,16 @@ const Projects: React.FC<{
   const [open, setOpen] = useState<number | null>(null);
   const triggers = useRef<(HTMLButtonElement | null)[]>([]);
   const rowRef = useRef<HTMLDivElement>(null);
+  /* The open/close choreography — losers wiping away sideways, the survivor flying to the
+     hero and back — is staged for the horizontal accordion row. Below md the panels are a
+     stacked column, and the same moves read as slabs sweeping across full-width cards, so
+     the stacked layout takes the reduced-motion path instead: the detail simply appears,
+     the losers fade. Read once at mount like the landing's canHover — the layout's own
+     JS gate (the click's tile measurement below) re-reads live either way. */
+  const [stacked] = useState(
+    () => typeof window !== 'undefined' && !window.matchMedia(`(min-width: ${MD_MIN})`).matches,
+  );
+  const staged = !reduced && !stacked;
   /* Where the clicked panel's window sat, as a share of the picture column it is about to
      become — the two edges the detail's shots open FROM (see Detail's reveal). Captured on the
      click, because by the time the detail mounts the panel is unmounted and the row has already
@@ -4091,24 +4151,34 @@ const Projects: React.FC<{
               }}
               /* The rise's place in the stagger — see Panel. */
               style={{ '--i': i } as React.CSSProperties}
-              layoutId={reduced ? undefined : `project-panel-${i}`}
+              layoutId={staged ? `project-panel-${i}` : undefined}
               /* A losing column clips itself away rather than being covered by an opaque card,
                  so what the wipe uncovers is the ruled ground the panels sit on — the section's
                  graph paper, showing through the transparent frame — instead of a flat
                  rectangle. Nothing here runs while the row is at rest: with `open` null every
-                 panel animates to OPEN_CLIP, which is the value it already has. */
-              animate={{
-                clipPath:
-                  open === null ? OPEN_CLIP : wipeClip(wipeOf(i, open).fromRight),
-                transition:
-                  open === null
-                    ? { duration: 0.34, ease }
-                    : {
-                        duration: WIPE_DUR,
-                        ease,
-                        delay: wipeOf(i, open).order * WIPE_STAGGER,
-                      },
-              }}
+                 panel animates to OPEN_CLIP, which is the value it already has.
+
+                 Stacked column: no wipe — the sideways clip was drawn for the horizontal row
+                 (see `staged`) — the losers just fade under the detail. */
+              animate={
+                staged
+                  ? {
+                      clipPath:
+                        open === null ? OPEN_CLIP : wipeClip(wipeOf(i, open).fromRight),
+                      transition:
+                        open === null
+                          ? { duration: 0.34, ease }
+                          : {
+                              duration: WIPE_DUR,
+                              ease,
+                              delay: wipeOf(i, open).order * WIPE_STAGGER,
+                            },
+                    }
+                  : {
+                      opacity: open === null ? 1 : 0,
+                      transition: { duration: reduced ? 0 : 0.25, ease },
+                    }
+              }
               /* The flight HOME, and only that: opening is the Hero's own transition (see
                  heroIn), because opening is the element over there arriving. This is the panel
                  the hero flies back INTO, so closing is timed here.
@@ -4217,7 +4287,9 @@ const Projects: React.FC<{
               project={PROJECTS[open]}
               from={openFrom}
               index={open}
-              reduced={reduced}
+              /* The stacked column rides the reduced-motion path: the detail's flight,
+                 reveal clips and beat delays are all staged against the horizontal row. */
+              reduced={reduced || stacked}
               onClose={close}
             />
           )}
@@ -4562,6 +4634,7 @@ const About: React.FC = () => {
           animate={{ width: PEEK_W, opacity: 1 }}
           transition={{ duration: 0.6, ease, delay: 0.6, opacity: { duration: 0.1, delay: 0.6 } }}
         />
+        <MobileTitle aria-hidden>readme</MobileTitle>
         {/* Last of the column to arrive, after the window it hangs off. */}
         <ContactRail
           aria-label="Contact"

@@ -1,5 +1,6 @@
 import styled, { keyframes } from 'styled-components';
 import StackReveal from './StackReveal';
+import { TOUCH } from './SplitStage';
 
 // the recede's anticipation beat: the bracket frame puffs outward before the box dives.
 const brkPop = keyframes`
@@ -104,6 +105,15 @@ const Tagline = styled.div`
     letter-spacing: 0.28em;
     margin-bottom: 10px;
   }
+
+  /* Stacked halves (SplitStage's touch gate): the seam runs horizontal, and the
+     tagline sits wholly on the light top half — the inline dark→light seam-split
+     gradient would fade its back half into the light photo. All-dark ink instead.
+     !important because the gradient it corrects is an inline style; the longhand,
+     because the shorthand would also reset background-clip and paint a bar. */
+  ${TOUCH} {
+    background-image: linear-gradient(90deg, oklch(0.26 0.01 265), oklch(0.42 0.009 265)) !important;
+  }
 `;
 
 const Title = styled.h1`
@@ -120,6 +130,25 @@ const Title = styled.h1`
   /* scale the hero down on phones so "I'm [logo] Fei" fits without overflowing */
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     font-size: clamp(34px, 11vw, 56px);
+  }
+
+  /* Stacked halves: the title straddles the horizontal seam, so its left-dark /
+     right-light seam-split inks fail — "Fei" lands light-on-light. Dark ink reads on
+     both halves (the dog's ground is mid-grey, and display-size text only needs 3:1),
+     so the whole word row takes "I'm"'s dark gradient, echoing the tagline above.
+     !important beats the inline gradients; longhand, so background-clip survives.
+     The feather follows: CSS fill outranks its presentation attributes, keeping a
+     quiet two-tone with the brighter wing on the left like the desktop mark. */
+  ${TOUCH} {
+    > span {
+      background-image: linear-gradient(90deg, oklch(0.28 0.01 265 / 0.9), oklch(0.55 0.008 265 / 0.8)) !important;
+    }
+    [data-logo] path:first-of-type {
+      fill: oklch(0.5 0.008 265);
+    }
+    [data-logo] path:not(:first-of-type) {
+      fill: oklch(0.28 0.01 265 / 0.9);
+    }
   }
 `;
 
@@ -138,6 +167,16 @@ const Roles = styled.div`
     margin-top: 12px;
     font-size: 11px;
     column-gap: 12px;
+  }
+
+  /* Stacked halves: both roles sit on the dark bottom half, so the left role's
+     inline dark ink (meant for the light left half) goes light like its sibling.
+     !important beats the inline gradient it corrects; the longhand, because the
+     shorthand would also reset background-clip and paint a bar. */
+  ${TOUCH} {
+    > span:first-child {
+      background-image: linear-gradient(90deg, oklch(0.9 0.004 265), oklch(0.985 0.002 265)) !important;
+    }
   }
 `;
 

@@ -49,7 +49,7 @@ const Landing: React.FC = () => {
       {/* position:fixed, so DOM order here is cosmetic — rendered first to overlay.
           Only mounted for the full intro; the static path reveals the hero directly. */}
       {playIntro && <Loader />}
-      <SplitStage />
+      <SplitStage stills={!interactive} />
       <Lockup interactive={interactive} />
       <PetCaption pet="j" />
       <PetCaption pet="o" />

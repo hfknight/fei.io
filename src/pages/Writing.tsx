@@ -170,7 +170,9 @@ const Writing: React.FC = () => {
                   </defs>
                 </svg>
               </Masthead>
-                <HeroImage />
+                <HeroImage>
+                  <MobileWordmark aria-hidden>{WORDMARK}</MobileWordmark>
+                </HeroImage>
               </HeroBlock>
             </HeroClip>
 
@@ -253,6 +255,13 @@ const Page = styled.div`
   align-items: center;
   justify-content: center;
   padding: 8rem 2rem 6rem;
+
+  /* Below the wordmark's breakpoint the hero picture opens the page (see MobileWordmark),
+     so the content starts under the nav rather than floating at the viewport's centre. */
+  @media (max-width: ${(p) => p.theme.breakpoints.lg}) {
+    align-items: flex-start;
+    padding: 5.5rem 1.5rem 4rem;
+  }
 `;
 
 const Block = styled.div`
@@ -305,8 +314,10 @@ const ColRule = styled(motion.span)`
 
 /* The cut-out mark below is aria-hidden and the removed breadcrumb was the page's only
    other text naming it, so this stays in the accessibility tree everywhere — visually
-   hidden above the wordmark's breakpoint (clipped, not display:none) rather than only
-   existing on mobile. */
+   hidden at every width (clipped, not display:none). Below the wordmark's breakpoint the
+   page is titled by MobileWordmark on the hero picture instead, matching /readme and
+   /lab's mobile openings; it used to become the visible heading there, a lone line of
+   display type above the picture. */
 const Heading = styled.h1`
   position: absolute;
   width: 1px;
@@ -317,22 +328,6 @@ const Heading = styled.h1`
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-
-  @media (max-width: ${(p) => p.theme.breakpoints.lg}) {
-    position: static;
-    width: auto;
-    height: auto;
-    margin: 0 0 1.5rem;
-    padding: 0;
-    overflow: visible;
-    clip: auto;
-    white-space: normal;
-
-    font-family: ${(p) => p.theme.font.display};
-    font-weight: 700;
-    font-size: clamp(2rem, 8vw, 2.6rem);
-    color: ${(p) => p.theme.color.ink};
-  }
 `;
 
 /* The wordmark and the hero image share one virtual canvas — --word-h tall for the
@@ -414,6 +409,30 @@ const HeroImage = styled.div`
        on the window and its occupants. */
     background-size: cover;
     background-position: center;
+  }
+`;
+
+/* Below the wordmark's breakpoint the page opens like /readme and /lab do on a phone:
+   the picture first, a plain Anton title in its corner. Page ink rather than those pages'
+   literal white — they sit their titles on dark photographs, and this watercolor is
+   nearly the paper's own value. Bottom-RIGHT, unlike their bottom-left: the 2:1 crop
+   puts the dark window interior and the sleeping cat in the lower-left, and the ink only
+   reads on the pale sunlit wall on the right. */
+const MobileWordmark = styled.div`
+  display: none;
+
+  @media (max-width: ${(p) => p.theme.breakpoints.lg}) {
+    display: block;
+    position: absolute;
+    right: ${(p) => p.theme.space[3]};
+    bottom: ${(p) => p.theme.space[3]};
+    /* Above HeroImage's ::after grain. */
+    z-index: 1;
+    font-family: 'Anton', sans-serif;
+    font-size: 2.1rem;
+    line-height: 1;
+    color: ${(p) => p.theme.color.ink};
+    pointer-events: none;
   }
 `;
 

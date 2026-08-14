@@ -229,6 +229,13 @@ export function createLandingEngine(root: HTMLElement, opts: EngineOpts): Landin
       setLoaderFill(dispProg);
       if (allDone && dispProg >= 0.999) { finishLoader(); return; }
     });
+  } else if (!interactive) {
+    // Stills stand in for the videos on this path (SplitStage's `stills` prop, set by
+    // index.tsx from this same `!interactive`), so no [data-jojo]/[data-ollie] elements
+    // exist for loadClip below to report `done` on — the loop below would wait forever.
+    // Reveal immediately instead; the invariant this leans on is that videos exist iff
+    // `interactive` is true.
+    revealStatic();
   } else {
     loop(() => {
       if (loaderDone) return;

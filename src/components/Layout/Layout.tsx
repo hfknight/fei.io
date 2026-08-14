@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useReducedMotion } from 'framer-motion';
 import Header from './Header';
 import Footer from './Footer';
+import MobileNotice from './MobileNotice';
 import { HOME_CURTAIN_IN } from '../HomeCurtains';
 import { CURTAIN_COVER } from '../PageTransition';
 import { landingHasRevealed } from '../Landing/introState';
@@ -72,6 +73,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <>
       <Header />
+      {/* On `/` the same sentence joins Footer's bar instead, so there is one bottom
+          line rather than two stacked ones — see MobileNotice.tsx and Footer.tsx. */}
+      {pathname !== FOOTER_PATH && <MobileNotice />}
       <div className="layout-content">{children}</div>
       {pathname === FOOTER_PATH && <Footer />}
     </>
