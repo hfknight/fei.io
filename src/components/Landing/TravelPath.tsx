@@ -40,7 +40,7 @@ interface Stop {
 const STOPS: Stop[] = [
   { img: '/huangshan-map-loop@2x.webp', cx: 30, cy: 31, w: 232, h: 189, rot: -4.5 },
   { img: '/beijing-map-loop@2x.webp', cx: 60, cy: 15, w: 223, h: 174, rot: 3 },
-  { img: '/shanghai-map-loop@2x.webp', cx: 72, cy: 37, w: 236, h: 199, rot: -2 },
+  { img: '/shanghai-map-loop@2x.webp', cx: 70.5, cy: 35, w: 190, h: 160, rot: -2 },
 ];
 
 // --- The stamp frame ---
