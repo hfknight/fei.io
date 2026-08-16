@@ -7,10 +7,12 @@ import styled, { keyframes } from 'styled-components';
 // lenses (8), above the split-stage videos so it reads inside the clone.
 //
 // Dallas is the terminus and the only stop with a pin + a baked-in name — the three
-// upstream stops are deliberately unlabeled miniatures. Their art is pre-cropped to the
-// landmark cluster, so each renders 1:1 into its box (source is @2x) under a radial mask
-// that dissolves the map lines into the cloned video. Dallas's art is NOT pre-cropped; its
-// ZOOM/FOCUS dials window into the pin cluster instead (see its entry).
+// upstream stops are deliberately unlabeled miniatures. Each is framed as a perforated
+// postage stamp (see the STAMP_* dials): a neutral-paper card die-cut with semicircular
+// perforation notches, the animated map hard-cropped inside it. The three memories are
+// mailed artifacts; Dallas is NOT one — its art dissolves into the living video via a
+// radial mask, because home is the present, not a memory. Dallas's art is also not
+// pre-cropped; its ZOOM/FOCUS dials window into the pin cluster instead (see its entry).
 //
 // Everything except Dallas hides below the xl breakpoint — a narrow window has no room for
 // three maps around the lockup, and a partial route (dangling dashes) would read as broken,
@@ -22,25 +24,71 @@ interface Stop {
   img: string;
   cx: number;         // box centre, % of viewport width — shared with the path endpoints
   cy: number;         // box centre, % of viewport height
-  w: number;          // box size, px (art renders 1:1 — pre-cropped @2x source)
-  h: number;
+  w: number;          // ART size, px (renders 1:1 — pre-cropped @2x source); the stamp
+  h: number;          // card is STAMP_INSET larger on every side
+  rot: number;        // scatter rotation, deg — prints laid on a table, not a UI grid
 }
 
 // Animated WebP loops (from the map videos, cropped to the landmark cluster at encode
 // time — the same pre-crop the old stills baked in, so 1:1 rendering still holds).
-// Boxes run ~15% larger than the still era: the lockup recedes during a drag, so the
-// route has more room. Animated WebP (not <video>) is load-bearing: browsers animate an
+// Boxes sat ~15% larger than the still era (the lockup recedes during a drag, so the
+// route has more room), then came back down ~10% for the stamp frame: the hard crop
+// shows the whole rectangle where the dissolve faded its outer third, so the same art
+// reads bigger at a smaller box. Animated WebP (not <video>) is load-bearing: browsers animate an
 // image resource in every element painting it, so the lens-world clones stay in frame
 // sync with zero engine involvement.
 const STOPS: Stop[] = [
-  { img: '/huangshan-map-loop@2x.webp', cx: 30, cy: 31, w: 258, h: 210 },
-  { img: '/beijing-map-loop@2x.webp', cx: 60, cy: 15, w: 248, h: 193 },
-  { img: '/shanghai-map-loop@2x.webp', cx: 72, cy: 37, w: 262, h: 221 },
+  { img: '/huangshan-map-loop@2x.webp', cx: 30, cy: 31, w: 232, h: 189, rot: -4.5 },
+  { img: '/beijing-map-loop@2x.webp', cx: 60, cy: 15, w: 223, h: 174, rot: 3 },
+  { img: '/shanghai-map-loop@2x.webp', cx: 72, cy: 37, w: 236, h: 199, rot: -2 },
 ];
 
-// Fade must reach full transparency INSIDE the box so the rectangle's own edge never shows.
-const STOP_MASK =
-  'radial-gradient(46% 46% at 50% 50%, #000 0%, #000 55%, rgba(0,0,0,0) 100%)';
+// --- The stamp frame ---
+//
+// Paper border between the perforation line and the art. Must exceed STAMP_HOLE_R so the
+// notches never bite into the map.
+const STAMP_INSET = 10;
+// Perforation dials: notch radius + target pitch. The pitch is rounded per edge so a
+// whole number of notches lands on each side and the corners always get one (real
+// perforation tears through the corner hole).
+const STAMP_HOLE_R = 3.5;
+const STAMP_PITCH = 12;
+// The stamps are printed on the house paper stock: this is the light surface's literal
+// value (--color-surface on light pages — the token itself can't be used here, because
+// the landing is permanently inverted and the var resolves dark). Same paper on both
+// halves — a print doesn't theme with its surface; the pale card glowing on Ollie's dark
+// half is how photo prints look at night. Deliberately opaque AND deliberately grey, not
+// white: the lens's chromatic-aberration screen-blend washes fills toward light (the
+// StackReveal lesson), so grey paper reads as clean white under the glass where a true
+// white would bloom.
+const STAMP_PAPER = 'oklch(0.913 0.0013 106.4)';
+
+// The die-cut, as a CSS mask-image. A data-URI SVG rather than gradient layers: union
+// compositing can't punch holes, mask-composite support is uneven, and an SVG gives
+// exact corner handling at each card's aspect. The <mask> id is private to the image's
+// own document, so this sidesteps the url(#id) first-in-document-order trap that the
+// route's in-page defs have to work around.
+const stampMask = (w: number, h: number): string => {
+  const holes: string[] = [];
+  const nx = Math.round(w / STAMP_PITCH);
+  const ny = Math.round(h / STAMP_PITCH);
+  for (let i = 0; i <= nx; i++) {
+    const x = (w / nx) * i;
+    holes.push(`<circle cx="${x}" cy="0" r="${STAMP_HOLE_R}"/>`);
+    holes.push(`<circle cx="${x}" cy="${h}" r="${STAMP_HOLE_R}"/>`);
+  }
+  for (let j = 1; j < ny; j++) {
+    const y = (h / ny) * j;
+    holes.push(`<circle cx="0" cy="${y}" r="${STAMP_HOLE_R}"/>`);
+    holes.push(`<circle cx="${w}" cy="${y}" r="${STAMP_HOLE_R}"/>`);
+  }
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">` +
+    `<mask id="m"><rect width="${w}" height="${h}" fill="#fff"/>` +
+    `<g fill="#000">${holes.join('')}</g></mask>` +
+    `<rect width="${w}" height="${h}" fill="#fff" mask="url(#m)"/></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+};
 
 // --- Dallas (the route's terminus) ---
 //
@@ -78,17 +126,19 @@ const ROUTE =
   'C740,282 706,340 662,366 C632,378 620,402 646,404 C672,406 668,376 642,378 ' +
   'C560,394 480,420 450,437';
 
-// Dash gaps around the three % stops: holes punched in the route's mask, sized to each
-// map's dissolve extent (~half the box) plus a breath of clearance. Ellipse radii are
-// viewBox units calibrated at the 1280px gate (units grow with the viewport, so wider
-// windows only get more clearance, never a touch).
-// Beijing + Shanghai hug the visible-art edge with no breath: their connecting leg is
-// the route's shortest, and half-box + clearance radii left it only a dash or two.
+// Dash gaps punched in the route's mask. The dissolve era needed one per map (a dashed
+// line marching through a half-transparent smudge read as a glitch); the stamps are
+// opaque cards painted AFTER the route in DOM order, so their legs simply tuck under the
+// card edge — the line goes under the print, no hole required. Ellipse radii are viewBox
+// units calibrated at the 1280px gate (units grow with the viewport, so wider windows
+// only get more clearance, never a touch).
 const HOLES: Array<{ cx: number; cy: number; rx: number; ry: number }> = [
-  { cx: 300, cy: 174, rx: 101, ry: 77 },  // huangshan
-  { cx: 600, cy: 84, rx: 86, ry: 60 },    // beijing
-  { cx: 720, cy: 208, rx: 90, ry: 68 },   // shanghai
   { cx: 698, cy: 334, rx: 18, ry: 15 },   // the plane (22px glyph + clearance)
+  // The whole Beijing→Shanghai leg: their cards stack corner-to-corner, and the two or
+  // three dashes surviving in that sliver read as leftover, not route — the adjacency
+  // itself says "next stop". The ellipse spans the gap between the card centres; its
+  // overshoot lands under the opaque cards, so it can't eat any other leg.
+  { cx: 660, cy: 146, rx: 75, ry: 75 },
 ];
 
 // The dashes march toward Dallas — one dash cycle (7 dash + 9 gap) per loop, so the
@@ -209,31 +259,59 @@ const TravelPath: React.FC = () => (
         />
       </svg>
       {/* The two dark-half stops (Beijing, Shanghai) use night-version art — dark ground,
-          lit landmarks — so each map natively echoes its plate, the same surface rule the
-          route's ink follows. No dimming filter needed. */}
-      {STOPS.map((s) => (
-        <div
-          key={s.img}
-          data-lens-reveal
-          data-reveal-opacity="0.8"
-          style={{
-            position: 'absolute',
-            left: `${s.cx}%`,
-            top: `${s.cy}%`,
-            width: s.w,
-            height: s.h,
-            transform: 'translate(-50%, -50%)',
-            opacity: 0,
-            pointerEvents: 'none',
-            zIndex: 7,
-            backgroundImage: `url(${s.img})`,
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: '100% 100%',
-            WebkitMask: STOP_MASK,
-            mask: STOP_MASK,
-          }}
-        />
-      ))}
+          lit landmarks — inside the shared neutral paper, so each print echoes its plate
+          while the card stays a card.
+          Structure is two nested layers, and the split is load-bearing: filters apply
+          BEFORE mask in the paint order, so a drop-shadow on the masked element would be
+          clipped by its own die-cut. The wrapper carries the shadow (drop-shadow, not
+          box-shadow, so it traces the perforated silhouette); the paper layer carries the
+          mask. The shadow stays black on both halves — cast, not reflected. Full reveal
+          opacity (no data-reveal-opacity): a translucent print breaks the object, and it
+          is what lets the route legs hide under the card. */}
+      {STOPS.map((s) => {
+        const bw = s.w + 2 * STAMP_INSET;
+        const bh = s.h + 2 * STAMP_INSET;
+        const mask = stampMask(bw, bh);
+        return (
+          <div
+            key={s.img}
+            data-lens-reveal
+            style={{
+              position: 'absolute',
+              left: `${s.cx}%`,
+              top: `${s.cy}%`,
+              width: bw,
+              height: bh,
+              transform: `translate(-50%, -50%) rotate(${s.rot}deg)`,
+              opacity: 0,
+              pointerEvents: 'none',
+              zIndex: 7,
+              filter: 'drop-shadow(0 8px 16px oklch(0 0 0 / 0.35))',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: STAMP_PAPER,
+                WebkitMaskImage: mask,
+                maskImage: mask,
+                WebkitMaskSize: '100% 100%',
+                maskSize: '100% 100%',
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                inset: STAMP_INSET,
+                backgroundImage: `url(${s.img})`,
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '100% 100%',
+              }}
+            />
+          </div>
+        );
+      })}
     </RouteGate>
     <div
       data-lens-reveal
