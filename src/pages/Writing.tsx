@@ -11,10 +11,10 @@ import type { BlogPostSummary } from '../types';
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 /* Seconds of flat paper before the entrance choreography begins. The page mounts only
-   after the curtain has fully swept (AnimatePresence mode="wait"), then PageTransition
-   fades it in over 0.3s — starting the rules at t=0 buries the stroke's start in that
-   fade. A beat of stillness first, the way /readme holds ~0.95s before its own cascade. */
-const LEAD = 0.35;
+   after the curtain has fully swept (AnimatePresence mode="wait") — 0.75s already covered
+   before mount — then PageTransition fades it in over 0.3s. That sweep is the beat of
+   stillness; LEAD only needs to clear the start of the 0.3s fade-in, not add a second hold. */
+const LEAD = 0.1;
 
 /* The seven letters stretched to the rail's width, the way /readme and /lab stretch their
    own wordmarks — see the stencil effect below for the measurement. */
@@ -144,7 +144,7 @@ const Writing: React.FC = () => {
               <HeroBlock
                 initial={reduced ? { opacity: 0 } : { x: '100%' }}
                 animate={heroReady ? (reduced ? { opacity: 1 } : { x: 0 }) : undefined}
-                transition={{ duration: reduced ? 0.4 : 0.85, delay: reduced ? 0 : LEAD + 0.35, ease }}
+                transition={{ duration: reduced ? 0.4 : 0.6, delay: reduced ? 0 : LEAD + 0.2, ease }}
               >
               {/* The letterforms are windows onto the hero image directly beneath them —
                   aria-hidden, purely decorative. */}
