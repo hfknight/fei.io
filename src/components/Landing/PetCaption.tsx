@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+import { TOUCH } from './SplitStage';
+
 interface Props {
   pet: 'j' | 'o';
 }
@@ -20,6 +22,54 @@ const Cap = styled.div`
      simplifying/hiding captions on narrow screens). Keeps the 50/50 split clean. */
   @media (max-width: ${({ theme }) => theme.breakpoints.lg}) {
     display: none;
+  }
+
+  /* Desktop position: flanks the lockup at its natural width. */
+  &[data-pet-cap='j'] {
+    left: 11.5rem;
+    top: 88px;
+  }
+  &[data-pet-cap='o'] {
+    left: calc(50% + 6rem);
+    bottom: 88px;
+  }
+
+  /* Between the lg hide-gate and xl, the cover-cropped pet videos fill most of
+     each pane and the desktop offsets land on the pets' faces. Pull both
+     captions in to hug the centre seam, near the top, the emptiest region of
+     the composition at these widths. */
+  @media (max-width: ${({ theme }) => theme.breakpoints.xl}) {
+    &[data-pet-cap='j'] {
+      left: auto;
+      right: calc(50% + 1.5rem);
+      top: 88px;
+    }
+    &[data-pet-cap='o'] {
+      left: calc(50% + 1.5rem);
+      top: 88px;
+      bottom: auto;
+    }
+  }
+
+  /* Touch stacks the halves top/bottom at ANY width (see SplitStage), so the seam is
+     horizontal and "50% + x" no longer means a pane edge — the xl rule above would park
+     Ollie's white ink on the light half. Both captions share ONE column just left of the
+     centre line, mirrored about the seam: Jojo top 88 beside the cat, Ollie bottom 88
+     beside the dog — the region both pets leave free at every stacked width. After the
+     xl block so it wins where both apply. */
+  ${TOUCH} {
+    &[data-pet-cap='j'] {
+      left: auto;
+      right: calc(50% + 1.5rem);
+      top: 88px;
+      bottom: auto;
+    }
+    &[data-pet-cap='o'] {
+      left: auto;
+      right: calc(50% + 1.5rem);
+      top: auto;
+      bottom: 88px;
+    }
   }
 `;
 
@@ -44,8 +94,6 @@ const PetCaption: React.FC<Props> = ({ pet }) =>
     <Cap
       data-pet-cap="j"
       style={{
-        left: '11.5rem',
-        top: 88,
         opacity: 0,
         transform: 'translateX(-26px)',
         transition: 'opacity .26s ease, transform .32s cubic-bezier(.2, .8, .2, 1)',
@@ -75,8 +123,6 @@ const PetCaption: React.FC<Props> = ({ pet }) =>
     <Cap
       data-pet-cap="o"
       style={{
-        left: 'calc(50% + 6rem)',
-        bottom: 88,
         opacity: 0,
         transform: 'translateX(26px)',
         transition: 'opacity .26s ease, transform .32s cubic-bezier(.2, .8, .2, 1)',
