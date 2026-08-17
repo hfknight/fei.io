@@ -11,7 +11,6 @@ import {
   rasterise,
   splitIntoChars,
 } from './lab/entries/asciiSample';
-import { theme } from '../styles/theme';
 /* Plain import = the file URL (svgr components need ?react); the ascii sampler rasterises it.
    The feather, because it IS the site's mark — the loader and the home lockup both draw this
    exact geometry. Only its alpha is used; the file's orange fills are discarded (see
@@ -206,6 +205,21 @@ const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
    read a custom property. */
 const PEEK_W = 44;
 
+/* Where the page cuts over from desktop staging (Masthead, Peek, the portrait clip frame,
+   the prose→ascii morph, scroll-snap, the wheel-driven two-state model) to the stacked quiet
+   layout. Two ways in, and both are load-bearing: width, because below 1220 the composition's
+   own pieces stop fitting (Masthead's original gate); and touch, because the two-state model
+   is COMMITTED BY THE WHEEL HANDLER — a touch scroll never fires it, so a wide tablet
+   (iPad Pro landscape is 1366) was left mid-morph with snap points it could strand between.
+   Same capability gate SplitStage uses for the landing's stacked halves.
+
+   The JS below mirrors the CSS list exactly — the `stacked` flag and the tile measurement in
+   Panel's onClick must agree with the stylesheet about which of the two detail layouts is on
+   screen, and a fractional viewport width can't fall in a gap between the two. */
+const STACKED_MQ = '(max-width: 1220px), (hover: none), (pointer: coarse)';
+const STACKED_MEDIA = `@media ${STACKED_MQ}`;
+const isStackedViewport = () => window.matchMedia(STACKED_MQ).matches;
+
 const PEEK_GEO = `
   --peek-x: 48px;
   --peek-w: ${PEEK_W}px;
@@ -373,30 +387,31 @@ const Page = styled.div`
   display: grid;
   grid-template-columns: var(--rail) 1fr;
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  /* Below the stage cutover (STACKED_MQ) the morph is off, but the scroll listener still
+     writes --p here — so EVERY beat has to be pinned off explicitly or it leaks onto the
+     stacked layout, where the page is plain flow and nothing is transforming. Two of these
+     were caught leaking in testing: the paragraph gaps closing, and the leading tightening
+     as you scrolled. */
+  ${STACKED_MEDIA} {
     grid-template-columns: 1fr;
-    /* The morph is desktop-only, but the scroll listener still writes --p here — so EVERY beat
-       has to be pinned off explicitly or it leaks onto a phone, where the page is plain flow
-       and nothing is transforming. Two of these were caught leaking in testing: the paragraph
-       gaps closing, and the leading tightening as you scrolled a phone. */
     --collapse-t: 0;
     --lh-t: 0;
     --narrow-t: 0;
     --emerge-t: 1;
-    /* There is no rail below md — the grid is one column — so there is nothing to slide out
-       and the frame already has the width. Pinned here rather than at each reader, because all
-       three of them reach it only through var().
+    /* There is no rail below the cutover — the grid is one column — so there is nothing to
+       slide out and the frame already has the width. Pinned here rather than at each reader,
+       because all three of them reach it only through var().
 
        On the ATTRIBUTE, not on the bare selector, and that is not decoration: a media query
        adds no specificity, so a plain --rail-out: 0 here loses to &[data-wide] above and the
-       portrait column slides clean off a phone. Third beat caught leaking this way. */
+       portrait column slides clean off. Third beat caught leaking this way. */
     &[data-wide] {
       --rail-out: 0;
     }
     /* No roll and no sequence here — the page is plain flow — so the section is simply there.
        Bare selector, like the reduced-motion pin above. */
     --arrive: 1;
-    /* The reveal is display: none below md, so there is no band to reserve. */
+    /* The reveal is display: none below the cutover, so there is no band to reserve. */
     --section-top: 5rem;
   }
 `;
@@ -431,10 +446,10 @@ const UnclipRoot = createGlobalStyle`
     scroll-snap-type: y mandatory;
   }
 
-  /* Off wherever the two-state model does not hold: mobile stacks the page into ordinary flow
-     with far more than two screens of content, and under reduced motion the morph is disabled
-     and the stage is unpinned, so snapping would only skip past the readme. */
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  /* Off wherever the two-state model does not hold: below the stage cutover the page stacks
+     into ordinary flow with far more than two screens of content, and under reduced motion the
+     morph is disabled and the stage is unpinned, so snapping would only skip past the readme. */
+  ${STACKED_MEDIA} {
     html {
       scroll-snap-type: none;
     }
@@ -445,11 +460,11 @@ const UnclipRoot = createGlobalStyle`
     }
   }
 
-  /* Mobile stacks the portrait full-bleed under the fixed nav, and the nav's page ink
-     has no contrast over the photograph — the same problem /lab's index hit, solved
+  /* Below the cutover the portrait stacks full-bleed under the fixed nav, and the nav's page
+     ink has no contrast over the photograph — the same problem /lab's index hit, solved
      the same way (see Lab.tsx): the track gets a self-contained dark glass plate with
      its ink pinned white and the dark-surface mark. */
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     [data-nav-track] {
       background: rgba(12, 13, 16, 0.58);
       -webkit-backdrop-filter: blur(10px) saturate(140%);
@@ -564,7 +579,7 @@ const Masthead = styled.div`
     calc(-1 * (var(--mast-top) + var(--word-drop)));
   clip-path: url(#readme-clip);
 
-  @media (max-width: 1220px) {
+  ${STACKED_MEDIA} {
     display: none;
   }
 `;
@@ -628,11 +643,11 @@ const Portrait = styled.aside`
     pointer-events: none;
   }
 
-  @media (max-width: 1220px) {
+  ${STACKED_MEDIA} {
     clip-path: none;
   }
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     height: 42vh;
 
     /* No cut-out letters to line up with here, so the column goes back to a plain
@@ -675,7 +690,7 @@ const Peek = styled(motion.div)`
   /* The element's page offset, subtracted so the window continues the column's picture. */
   background-position: calc(var(--portrait-x) - var(--peek-x)) calc(-1 * var(--peek-y));
 
-  @media (max-width: 1220px) {
+  ${STACKED_MEDIA} {
     display: none;
   }
 `;
@@ -701,16 +716,13 @@ const ContactRail = styled(motion.nav)`
   align-items: flex-start;
   gap: 0.3rem;
 
-  /* Below here the window it hangs off is gone (see Peek), so the links take its left edge
-     rather than sitting in the space where it used to be. */
-  @media (max-width: 1220px) {
-    left: var(--peek-x);
-  }
-
   /* The column is 42vh of photo here, not a full-height poster, so the deep floor the desktop
      inset buys would push the stack up into the middle of the picture. Right corner, not
-     left: the plain "readme" title (MobileTitle below) holds the picture's bottom-left. */
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+     left: the plain "readme" title (MobileTitle below) holds the picture's bottom-left.
+     This also supersedes the "window it hangs off is gone" left-edge fallback the 1220 cutover
+     used to carry on its own: both land at the same breakpoint now, and the corner placement
+     wins. */
+  ${STACKED_MEDIA} {
     left: auto;
     right: ${p => p.theme.space[3]};
     bottom: ${p => p.theme.space[3]};
@@ -745,7 +757,7 @@ const ContactRail = styled(motion.nav)`
 const MobileTitle = styled.div`
   display: none;
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     display: block;
     position: absolute;
     left: ${p => p.theme.space[3]};
@@ -807,7 +819,7 @@ const ColumnGroup = styled(motion.div)`
   translate: calc(var(--rail-out, 0) * -100%) 0;
   transition: translate ${RAIL_S} cubic-bezier(0.16, 1, 0.3, 1);
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     position: relative;
     height: auto;
   }
@@ -833,7 +845,7 @@ const Content = styled.div`
      re-resolving the target and the scroll fights itself. Content does not move. */
   scroll-snap-align: start;
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     --content-pad: 1.75rem;
     padding: 3.5rem var(--content-pad) 4rem;
   }
@@ -873,7 +885,7 @@ const Stage = styled.div`
      not: only the prose does, and it takes it back below. */
   pointer-events: none;
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     position: static;
     height: auto;
     display: block;
@@ -958,9 +970,9 @@ const SwapUnit = styled.div`
     transition: none;
   }
 
-  /* Mobile stacks the page in plain flow — but the scroll listener still writes --p there,
-     so the transform must be explicitly off, exactly like Column's. */
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  /* Below the stage cutover the page stacks in plain flow — but the scroll listener still
+     writes --p there, so the transform must be explicitly off, exactly like Column's. */
+  ${STACKED_MEDIA} {
     transform: none;
   }
 `;
@@ -1011,8 +1023,17 @@ const Column = styled.div`
   opacity: clamp(0, calc((var(--swap) + var(--swap-run) / 2 - var(--p, 0)) / var(--swap-run)), 1);
   will-change: opacity;
 
+  /* max-width stays a phone-scale rule: with --narrow-t pinned to 0 this already resolves to
+     the 640px measure above (see MEASURE_NARROW's comment) — a centered editorial column,
+     which is what the stacked band wants. Widening it here would give a ~120-char line at
+     tablet widths. */
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     max-width: none;
+  }
+
+  /* opacity IS a morph pin — the scroll listener writes --p at every width, and this ramp
+     reads it — so it has to be pinned to 1 wherever the morph is off, same cutover as Page. */
+  ${STACKED_MEDIA} {
     opacity: 1;
   }
 `;
@@ -1099,9 +1120,9 @@ const Graf = styled(motion.p)`
     content: ' ';
   }
 
-  /* Never on mobile: the page is plain flow there and the readme stays four paragraphs, but
-     the scroll listener still writes the attribute. */
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  /* Never below the stage cutover: the page is plain flow there and the readme stays four
+     paragraphs, but the scroll listener still writes the attribute. */
+  ${STACKED_MEDIA} {
     [data-merged] & {
       display: block;
       word-break: normal;
@@ -1566,7 +1587,7 @@ const RevealLayer = styled.div`
   opacity: clamp(0, calc((var(--p, 0) - (var(--swap) - var(--swap-run) / 2)) / var(--swap-run)), 1);
   will-change: opacity;
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     display: none;
   }
 
@@ -2169,7 +2190,7 @@ const ProjectsSection = styled.section`
      the layout nothing. */
   scroll-snap-align: end;
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     /* Stacked, so there is no portrait to clear and no nav column to align to: the frame goes
        back to an even poster border on both sides. */
     --frame-left: var(--img-margin);
@@ -2203,7 +2224,7 @@ const SectionLabel = styled.h2`
   text-transform: uppercase;
   margin: 0;
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     height: auto;
     margin-bottom: 1.25rem;
   }
@@ -2219,7 +2240,7 @@ const labelSlot = css`
   align-items: center;
   white-space: nowrap;
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     /* Back into flow, which is what gives the strip its height once --cue-h is off. */
     position: static;
   }
@@ -2247,7 +2268,7 @@ const RestCue = styled.span`
   /* Neither of these has a first screen for a cue to sit on — the page is plain flow and the
      panels are simply below the prose — and --p is never written under reduced motion, so the
      ramp above would leave this at full opacity beside the heading, the same words twice. */
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     display: none;
   }
   @media (prefers-reduced-motion: reduce) {
@@ -2296,7 +2317,7 @@ const ScrollHint = styled.span`
   margin-left: 0.7rem;
   pointer-events: none;
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     display: none;
   }
 `;
@@ -2326,7 +2347,7 @@ const RowFrame = styled(motion.div)`
   flex: 1 1 auto;
   min-height: 0;
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     height: auto;
   }
 
@@ -2338,7 +2359,11 @@ const RowFrame = styled(motion.div)`
     aspect-ratio: 16 / 10;
   }
 
-  @media (prefers-reduced-motion: reduce) and (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  /* The stacked cutover's OR-list distributed over the reduced-motion condition by hand — a
+     comma list can't be AND-ed as one unit in a media query. */
+  @media (prefers-reduced-motion: reduce) and (max-width: 1220px),
+    (prefers-reduced-motion: reduce) and (hover: none),
+    (prefers-reduced-motion: reduce) and (pointer: coarse) {
     aspect-ratio: auto;
   }
 
@@ -2392,7 +2417,7 @@ const PanelRow = styled.div`
     --panel-w: ${PANEL_HOVER_W};
   }
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     flex-direction: column;
     height: auto;
 
@@ -2509,11 +2534,17 @@ const Panel = styled(motion.button)`
     outline-offset: 3px;
   }
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     /* flex-basis has to be released with the height: in a COLUMN flex container the basis is
-       the main size, so the row's flex shorthand above zeroed these panels and the 200px never
+       the main size, so the row's flex shorthand above zeroed these panels and the height never
        applied — they collapsed to a sliver of their own bottom-aligned text. */
     flex: 0 0 auto;
+    /* Taller than the phone's 200px: at tablet widths a full-width 200px panel reads as a
+       letterboxed strip. */
+    height: 260px;
+  }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     height: 200px;
   }
 
@@ -2872,9 +2903,9 @@ const PanelBlurb = styled.p`
     transform: none;
   }
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    /* No hover to give below md, where the row is a stacked column — a gated blurb there
-       would leave every panel permanently in state one. */
+  ${STACKED_MEDIA} {
+    /* No hover to give below the cutover, where the row is a stacked column — a gated
+       blurb there would leave every panel permanently in state one. */
     opacity: 1;
     transform: none;
   }
@@ -3024,9 +3055,9 @@ const DetailSplit = styled(motion.div)`
   width: ${SPLIT_SHOTS};
   overflow: hidden;
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    /* No room for two columns at phone width — the pictures take the top half and the copy
-       takes the bottom, and the diagonal between the two shots survives unchanged. */
+  ${STACKED_MEDIA} {
+    /* No room for two columns below the cutover — the pictures take the top half and the
+       copy takes the bottom, and the diagonal between the two shots survives unchanged. */
     width: auto;
     right: 0;
     bottom: 50%;
@@ -3292,8 +3323,8 @@ const MediaStage = styled(motion.div)<{
     pointer-events: none;
   }
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    /* Same halving the split takes at phone width — pictures above, copy below. */
+  ${STACKED_MEDIA} {
+    /* Same halving the split takes below the cutover — pictures above, copy below. */
     width: auto;
     right: 0;
     bottom: 50%;
@@ -3316,11 +3347,6 @@ const MediaStage = styled(motion.div)<{
    Vertically it does not move: the panel and the frame are the same height, so the place the
    mark already holds is the place it keeps. */
 const TILE_X_END = 1 - parseFloat(SPLIT_SHOTS) / 100 / 2;
-/* The side-by-side layout's floor, as a media query can ask for it: one px past the breakpoint
-   every `max-width: md` rule in this file stops at. Spelled from the theme so the two cannot
-   drift — see the tile measurement in Panel's onClick, the one place JS has to know which of
-   the two detail layouts it is looking at. */
-const MD_MIN = `${parseFloat(theme.breakpoints.md) + 1}px`;
 
 const StagedTile = motion(styled(AppTile)`
   && {
@@ -3362,7 +3388,7 @@ const PluginStat = styled(motion.div)`
   text-align: center;
   pointer-events: none;
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+  ${STACKED_MEDIA} {
     display: none;
   }
 `;
@@ -3416,6 +3442,30 @@ const StatMeta = styled.div`
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.82);
   text-shadow: 0 1px 10px rgba(6, 6, 10, 0.75);
+`;
+
+/* The same numbers when the detail has no measured tile to hang PluginStat under — the
+   stacked layout skips the tile measurement (see Panel's onClick), and the numbers are
+   content, not staging, so they move into the caption as a plain row instead of vanishing
+   with the choreography. Eyebrow idiom around a display-face count, on the caption's own
+   flat dark ground — no photograph here, so no shadow. */
+const CaptionStat = styled.div`
+  margin-top: 1.1rem;
+  font-family: ${p => p.theme.font.mono};
+  font-size: 0.66rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+
+  strong {
+    font-family: ${p => p.theme.font.display};
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #fff;
+    margin-left: 0.35rem;
+  }
 `;
 
 const PhoneFrame = styled.div`
@@ -3490,11 +3540,11 @@ const DetailCaption = styled(motion.div)<{ $aside: boolean; $left?: boolean }>`
           flex-direction: column;
           justify-content: center;
 
-          @media (max-width: ${p.theme.breakpoints.md}) {
+          ${STACKED_MEDIA} {
             left: 0;
             right: 0;
             top: 50%;
-            /* Centring is a desktop luxury. In half of a phone-width frame the paragraph is
+            /* Centring is a desktop luxury. In half of a stacked-width frame the paragraph is
                taller than the box it sits in, and centred overflow spills BOTH ways — upward
                over the screenshots and downward past the frame, so the copy collided with the
                pictures and still lost its last line. Start it at the top and let it scroll. */
@@ -4015,6 +4065,15 @@ const Detail: React.FC<{
         </PanelEyebrow>
         <DetailName>{project.name}</DetailName>
         <DetailText>{project.detail ?? project.blurb}</DetailText>
+        {/* Mirrors PluginStat's gate exactly, minus the tile: where the tile-anchored block
+            renders, this must not, and vice versa — one copy of the numbers on screen. */}
+        {stats && !(tile && from?.tile) && (
+          <CaptionStat>
+            Downloads<strong>{stats.downloads.toLocaleString()}</strong>
+            {stats.version && <> · v{stats.version}</>}
+            {stats.releases > 0 && <> · {stats.releases} releases</>}
+          </CaptionStat>
+        )}
         {project.url && (
           <DetailLink
             href={project.url}
@@ -4056,13 +4115,13 @@ const Projects: React.FC<{
   const triggers = useRef<(HTMLButtonElement | null)[]>([]);
   const rowRef = useRef<HTMLDivElement>(null);
   /* The open/close choreography — losers wiping away sideways, the survivor flying to the
-     hero and back — is staged for the horizontal accordion row. Below md the panels are a
-     stacked column, and the same moves read as slabs sweeping across full-width cards, so
-     the stacked layout takes the reduced-motion path instead: the detail simply appears,
-     the losers fade. Read once at mount like the landing's canHover — the layout's own
+     hero and back — is staged for the horizontal accordion row. Below the stage cutover the
+     panels are a stacked column, and the same moves read as slabs sweeping across full-width
+     cards, so the stacked layout takes the reduced-motion path instead: the detail simply
+     appears, the losers fade. Read once at mount like the landing's canHover — the layout's own
      JS gate (the click's tile measurement below) re-reads live either way. */
   const [stacked] = useState(
-    () => typeof window !== 'undefined' && !window.matchMedia(`(min-width: ${MD_MIN})`).matches,
+    () => typeof window !== 'undefined' && isStackedViewport(),
   );
   const staged = !reduced && !stacked;
   /* Where the clicked panel's window sat, as a share of the picture column it is about to
@@ -4211,7 +4270,7 @@ const Projects: React.FC<{
                      picture above, copy below (see DetailCaption) — and a mark placed at a
                      point measured in a side-by-side frame lands nowhere in particular. The
                      stacked detail keeps the staged tile instead. */
-                  const t = window.matchMedia(`(min-width: ${MD_MIN})`).matches
+                  const t = !isStackedViewport()
                     ? triggers.current[i]
                         ?.querySelector('[data-tile]')
                         ?.getBoundingClientRect()
@@ -4597,7 +4656,7 @@ const About: React.FC = () => {
             color-interpolation-filters="sRGB" is required: SVG filters default to linearRGB,
             which would relight the photograph on its way through a filter meant only to
             displace it. Its own <svg> rather than the Masthead one below, so the filter does
-            not live inside a subtree that goes display: none at 1220px. */}
+            not live inside a subtree that goes display: none at the stacked cutover. */}
         <svg width="0" height="0" focusable="false" aria-hidden>
           <defs>
             <filter id="readme-aberration" colorInterpolationFilters="sRGB">
