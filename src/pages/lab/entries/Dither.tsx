@@ -1,0 +1,857 @@
+/**
+ * The dither lab entry's page: effect switcher, per-effect sliders, duotone pickers, image
+ * input (file/drop/paste), and PNG export — wired to the pure math in `ditherCore.ts` and the
+ * canvas edge in `ditherCanvas.ts`. See the plan's Product Contract (R1-R11) for the settled
+ * shape; nothing here decides behaviour that wasn't already decided there.
+ */
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import styled, { css } from 'styled-components';
+import PageTransition from '../../../components/PageTransition';
+import { usePageTitle } from '../../../hooks/usePageTitle';
+import { staticVars } from '../../../styles/tokens';
+import type {
+  AsciiParams,
+  Duotone,
+  DotsParams,
+  EffectId,
+  HalftoneParams,
+  LatticeParams,
+} from './ditherCore';
+import { ASCII_RAMPS } from './ditherCore';
+import type { RenderSpec } from './ditherCanvas';
+import { PREVIEW_MAX_COLS, renderEffect, renderExport } from './ditherCanvas';
+
+/* ------------------------------------------------------------------ */
+/* Defaults                                                             */
+/* ------------------------------------------------------------------ */
+
+const DEFAULT_HALFTONE: HalftoneParams = { cellSize: 8, angle: 45, contrast: 0, invert: false };
+const DEFAULT_DOTS: DotsParams = { cellSize: 8, fillCutoff: 0.08, contrast: 0 };
+const DEFAULT_ASCII: AsciiParams = { cellSize: 8, contrast: 0, charset: ASCII_RAMPS.classic };
+const DEFAULT_LATTICE: LatticeParams = { density: 2, threshold: 0.15, jitter: 0.6 };
+const DEFAULT_DUOTONE: Duotone = { paper: '#f4ead5', ink: '#1a1408' };
+const DEFAULT_JITTER_SEED = 42;
+
+const SAMPLE_URL = '/lab/dither/bluebonnet.webp';
+const NOTICE_MS = 4000;
+
+/** The seam a test can assert without touching canvas: what a download would be named/typed. */
+export const EXPORT_FILENAME = 'dither.png';
+export const EXPORT_MIME = 'image/png';
+
+const EFFECTS: { id: EffectId; label: string }[] = [
+  { id: 'halftone', label: 'halftone' },
+  { id: 'dots', label: 'dots' },
+  { id: 'ascii', label: 'ascii' },
+  { id: 'lattice', label: 'lattice' },
+];
+
+const DUOTONE_PRESETS: { name: string; ink: string; paper: string }[] = [
+  { name: 'crt', paper: '#0a0f0a', ink: '#4ade80' },
+  { name: 'blueprint', paper: '#0b2c66', ink: '#e8eefc' },
+  { name: 'classic', paper: '#ffffff', ink: '#000000' },
+];
+
+const CHARSET_PRESETS: { name: string; charset: string }[] = [
+  { name: 'classic', charset: ASCII_RAMPS.classic },
+  { name: 'blocky', charset: ASCII_RAMPS.blocky },
+  { name: 'thin', charset: ASCII_RAMPS.thin },
+];
+
+/** Either decode path — createImageBitmap or the HTMLImageElement fallback — hands back
+ *  something with pixel dimensions the canvas edge can draw from. */
+type ImgSource = ImageBitmap | HTMLImageElement;
+
+interface HeldSource {
+  img: ImgSource;
+  bitmap?: ImageBitmap;
+  objectUrl?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* The page                                                             */
+/* ------------------------------------------------------------------ */
+
+const Dither: React.FC = () => {
+  usePageTitle('Dither');
+
+  const [effect, setEffect] = useState<EffectId>('halftone');
+  const [halftone, setHalftone] = useState<HalftoneParams>(DEFAULT_HALFTONE);
+  const [dots, setDots] = useState<DotsParams>(DEFAULT_DOTS);
+  const [ascii, setAscii] = useState<AsciiParams>(DEFAULT_ASCII);
+  const [lattice, setLattice] = useState<LatticeParams>(DEFAULT_LATTICE);
+  const [duotone, setDuotone] = useState<Duotone>(DEFAULT_DUOTONE);
+  const [jitterSeed, setJitterSeed] = useState(DEFAULT_JITTER_SEED);
+
+  const [source, setSource] = useState<ImgSource | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const heldRef = useRef<HeldSource | null>(null);
+  const noticeTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const asciiFontGatedRef = useRef(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasWrapRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const spec: RenderSpec = useMemo(
+    () => ({ effect, halftone, dots, ascii, lattice, duotone, jitterSeed }),
+    [effect, halftone, dots, ascii, lattice, duotone, jitterSeed],
+  );
+
+  const showNotice = useCallback((message: string) => {
+    setNotice(message);
+    clearTimeout(noticeTimeoutRef.current);
+    noticeTimeoutRef.current = setTimeout(() => setNotice(null), NOTICE_MS);
+  }, []);
+
+  useEffect(() => () => clearTimeout(noticeTimeoutRef.current), []);
+
+  /* Leaving the route releases the held decode — replacement already releases the previous
+     one, this covers the last. */
+  useEffect(
+    () => () => {
+      heldRef.current?.bitmap?.close();
+      if (heldRef.current?.objectUrl) URL.revokeObjectURL(heldRef.current.objectUrl);
+      heldRef.current = null;
+    },
+    [],
+  );
+
+  /**
+   * Every replacement funnels through here (sample fetch, file picker, drop, paste). A
+   * non-image blob or a decode failure keeps the current source in place — the visitor never
+   * loses their work to a bad drop — and surfaces the same inline notice either way. The
+   * previous bitmap/URL is released only once the new one has successfully decoded.
+   */
+  const loadSource = useCallback(
+    async (blob: Blob) => {
+      if (!blob.type.startsWith('image/')) {
+        showNotice('that file is not an image');
+        return;
+      }
+      try {
+        let next: HeldSource;
+        if (typeof createImageBitmap === 'function') {
+          const bitmap = await createImageBitmap(blob);
+          next = { img: bitmap, bitmap };
+        } else {
+          const objectUrl = URL.createObjectURL(blob);
+          const img = new Image();
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error('image decode failed'));
+            img.src = objectUrl;
+          });
+          next = { img, objectUrl };
+        }
+        const prev = heldRef.current;
+        heldRef.current = next;
+        setSource(next.img);
+        prev?.bitmap?.close();
+        if (prev?.objectUrl) URL.revokeObjectURL(prev.objectUrl);
+      } catch {
+        showNotice('could not read that image');
+      }
+    },
+    [showNotice],
+  );
+
+  /* R6: the bundled sample renders before anyone touches the page — never an empty dropzone.
+     A failed fetch (offline, blocked) is swallowed: the page just shows an empty canvas. */
+  useEffect(() => {
+    let cancelled = false;
+    fetch(SAMPLE_URL)
+      .then((res) => res.blob())
+      .then((blob) => {
+        if (!cancelled) return loadSource(blob);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [loadSource]);
+
+  /* R7 (paste): only a clipboard payload carrying an image file counts as image input — a
+     paste into the custom-charset text field must pass through untouched. */
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) void loadSource(file);
+          return;
+        }
+      }
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [loadSource]);
+
+  /* Preview render: fires on every spec/source change, i.e. every slider drag. Sized to the
+     container's width, height following the source's aspect so cells stay square. */
+  useEffect(() => {
+    if (!source) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    if (!canvas.getContext('2d')) return; // jsdom has no 2d context; nothing to draw
+
+    const width = canvasWrapRef.current?.clientWidth || 600;
+    const height = Math.max(1, Math.round(width * (source.height / source.width)));
+    canvas.width = width;
+    canvas.height = height;
+
+    renderEffect(canvas, source, spec, PREVIEW_MAX_COLS);
+
+    /* Font gate (U2 edit): before the FIRST ascii render only, wait for JetBrains Mono to be
+       usable and re-render once — a cold load should never freeze fallback glyphs. Later
+       ascii renders (slider drags) don't re-gate. */
+    if (spec.effect === 'ascii' && !asciiFontGatedRef.current) {
+      asciiFontGatedRef.current = true;
+      // Family name read from the token, not hardcoded here — same face ditherCanvas.ts's
+      // ctx.font paints with, kept as one source of truth (tokens.ts's --font-mono).
+      const load = document.fonts?.load
+        ? document.fonts.load(`16px ${staticVars['--font-mono']}`)
+        : Promise.resolve();
+      let cancelled = false;
+      Promise.resolve(load)
+        .catch(() => undefined)
+        .then(() => {
+          if (!cancelled) renderEffect(canvas, source, spec, PREVIEW_MAX_COLS);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [source, spec]);
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) void loadSource(file);
+  };
+
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+  const onDragLeave = () => setDragOver(false);
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) void loadSource(file);
+  };
+
+  /* Jitter takes a fresh seed only when jitter itself moves (KTD4) — density/threshold, and
+     every other slider, leave the scatter alone. */
+  const onJitterChange = (value: number) => {
+    setLattice((prev) => ({ ...prev, jitter: value }));
+    setJitterSeed(Math.floor(Math.random() * 1_000_000));
+  };
+
+  const download = useCallback(async () => {
+    if (!source || exporting) return;
+    setExporting(true);
+    try {
+      const result = await renderExport(source, spec);
+      if (!result) {
+        showNotice('export failed');
+        return;
+      }
+      const url = URL.createObjectURL(result.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = EXPORT_FILENAME;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }, [source, spec, exporting, showNotice]);
+
+  const canCopy = typeof ClipboardItem !== 'undefined';
+
+  const copy = useCallback(async () => {
+    if (!source || exporting || !canCopy) return;
+    setExporting(true);
+    try {
+      const blobPromise = renderExport(source, spec).then((result) => {
+        if (!result) throw new Error('export failed');
+        return result.blob;
+      });
+      // Pass the promise directly to ClipboardItem, not an awaited blob — Safari requires it.
+      await navigator.clipboard.write([new ClipboardItem({ [EXPORT_MIME]: blobPromise })]);
+    } catch {
+      showNotice('copy failed');
+    } finally {
+      setExporting(false);
+    }
+  }, [source, spec, exporting, canCopy, showNotice]);
+
+  return (
+    <PageTransition>
+      <Page>
+        <Crumb to="/lab">← lab</Crumb>
+        <Title>dither</Title>
+        <Lede>drop a photo anywhere, pick a look, take home the full-resolution png.</Lede>
+
+        <Layout>
+          <CanvasCol>
+            <CanvasWrap
+              ref={canvasWrapRef}
+              $dragOver={dragOver}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+            >
+              <Canvas ref={canvasRef} />
+              {dragOver && <DropHint>drop to replace the photo</DropHint>}
+            </CanvasWrap>
+
+            {notice && <Notice role="status">{notice}</Notice>}
+
+            <InputRow>
+              <ChooseButton type="button" onClick={() => fileInputRef.current?.click()}>
+                choose a photo
+              </ChooseButton>
+              <HiddenFileInput
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={onFileChange}
+              />
+              <ActionButton type="button" disabled={!source || exporting} onClick={() => void download()}>
+                download png
+              </ActionButton>
+              {canCopy && (
+                <ActionButton type="button" disabled={!source || exporting} onClick={() => void copy()}>
+                  copy
+                </ActionButton>
+              )}
+            </InputRow>
+          </CanvasCol>
+
+          <Controls>
+            <EffectRow role="radiogroup" aria-label="Effect">
+              {EFFECTS.map((e) => (
+                <EffectButton
+                  key={e.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={effect === e.id}
+                  $active={effect === e.id}
+                  onClick={() => setEffect(e.id)}
+                >
+                  {e.label}
+                </EffectButton>
+              ))}
+            </EffectRow>
+
+            {effect === 'halftone' && (
+              <ParamSet>
+                <SliderField
+                  label="Cell size"
+                  min={6}
+                  max={48}
+                  step={1}
+                  value={halftone.cellSize}
+                  onChange={(v) => setHalftone((p) => ({ ...p, cellSize: v }))}
+                />
+                <SliderField
+                  label="Angle"
+                  min={0}
+                  max={180}
+                  step={1}
+                  value={halftone.angle}
+                  onChange={(v) => setHalftone((p) => ({ ...p, angle: v }))}
+                />
+                <SliderField
+                  label="Contrast"
+                  min={-0.5}
+                  max={1.5}
+                  step={0.05}
+                  value={halftone.contrast}
+                  onChange={(v) => setHalftone((p) => ({ ...p, contrast: v }))}
+                />
+                <ToggleButton
+                  type="button"
+                  aria-pressed={halftone.invert}
+                  $active={halftone.invert}
+                  onClick={() => setHalftone((p) => ({ ...p, invert: !p.invert }))}
+                >
+                  invert
+                </ToggleButton>
+              </ParamSet>
+            )}
+
+            {effect === 'dots' && (
+              <ParamSet>
+                <SliderField
+                  label="Cell size"
+                  min={6}
+                  max={48}
+                  step={1}
+                  value={dots.cellSize}
+                  onChange={(v) => setDots((p) => ({ ...p, cellSize: v }))}
+                />
+                <SliderField
+                  label="Fill cutoff"
+                  min={0}
+                  max={0.6}
+                  step={0.01}
+                  value={dots.fillCutoff}
+                  onChange={(v) => setDots((p) => ({ ...p, fillCutoff: v }))}
+                />
+                <SliderField
+                  label="Contrast"
+                  min={-0.5}
+                  max={1.5}
+                  step={0.05}
+                  value={dots.contrast}
+                  onChange={(v) => setDots((p) => ({ ...p, contrast: v }))}
+                />
+              </ParamSet>
+            )}
+
+            {effect === 'ascii' && (
+              <ParamSet>
+                <SliderField
+                  label="Cell size"
+                  min={6}
+                  max={48}
+                  step={1}
+                  value={ascii.cellSize}
+                  onChange={(v) => setAscii((p) => ({ ...p, cellSize: v }))}
+                />
+                <SliderField
+                  label="Contrast"
+                  min={-0.5}
+                  max={1.5}
+                  step={0.05}
+                  value={ascii.contrast}
+                  onChange={(v) => setAscii((p) => ({ ...p, contrast: v }))}
+                />
+                <FieldLabel>charset</FieldLabel>
+                <PresetRow>
+                  {CHARSET_PRESETS.map((preset) => (
+                    <PresetButton
+                      key={preset.name}
+                      type="button"
+                      $active={ascii.charset === preset.charset}
+                      onClick={() => setAscii((p) => ({ ...p, charset: preset.charset }))}
+                    >
+                      {preset.name}
+                    </PresetButton>
+                  ))}
+                </PresetRow>
+                <TextInput
+                  type="text"
+                  aria-label="Custom characters"
+                  value={ascii.charset}
+                  onChange={(e) => setAscii((p) => ({ ...p, charset: e.target.value }))}
+                />
+              </ParamSet>
+            )}
+
+            {effect === 'lattice' && (
+              <ParamSet>
+                <SliderField
+                  label="Node spacing"
+                  min={1}
+                  max={6}
+                  step={1}
+                  value={lattice.density}
+                  onChange={(v) => setLattice((p) => ({ ...p, density: v }))}
+                />
+                <SliderField
+                  label="Threshold"
+                  min={0}
+                  max={0.6}
+                  step={0.01}
+                  value={lattice.threshold}
+                  onChange={(v) => setLattice((p) => ({ ...p, threshold: v }))}
+                />
+                <SliderField
+                  label="Jitter"
+                  min={0}
+                  max={1.5}
+                  step={0.05}
+                  value={lattice.jitter}
+                  onChange={onJitterChange}
+                />
+              </ParamSet>
+            )}
+
+            <FieldLabel>ink &amp; paper</FieldLabel>
+            <DuotoneRow>
+              <ColorInput
+                type="color"
+                aria-label="Ink color"
+                value={duotone.ink}
+                onChange={(e) => setDuotone((p) => ({ ...p, ink: e.target.value }))}
+              />
+              <ColorInput
+                type="color"
+                aria-label="Paper color"
+                value={duotone.paper}
+                onChange={(e) => setDuotone((p) => ({ ...p, paper: e.target.value }))}
+              />
+              {DUOTONE_PRESETS.map((preset) => (
+                <SwatchButton
+                  key={preset.name}
+                  type="button"
+                  aria-label={`${preset.name} preset`}
+                  style={{ background: preset.paper, borderColor: preset.ink }}
+                  onClick={() => setDuotone({ ink: preset.ink, paper: preset.paper })}
+                />
+              ))}
+            </DuotoneRow>
+          </Controls>
+        </Layout>
+      </Page>
+    </PageTransition>
+  );
+};
+
+export default Dither;
+
+/* ------------------------------------------------------------------ */
+/* A slider with a visible mono label AND an aria-label — same value,   */
+/* the label reads for sighted use and assistive tech both.             */
+/* ------------------------------------------------------------------ */
+
+const SliderField: React.FC<{
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  onChange: (value: number) => void;
+}> = ({ label, min, max, step, value, onChange }) => (
+  <Field>
+    <FieldLabel>
+      {label} <FieldValue>{value}</FieldValue>
+    </FieldLabel>
+    <Slider
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      aria-label={label}
+      onChange={(e) => onChange(Number(e.target.value))}
+    />
+  </Field>
+);
+
+/* ------------------------------------------------------------------ */
+/* Styles                                                               */
+/* ------------------------------------------------------------------ */
+
+const Page = styled.div`
+  min-height: 100dvh;
+  background: var(--n-11);
+  padding: 5rem clamp(1.5rem, 3.5vw, 3.5rem) 3rem;
+`;
+
+const Crumb = styled(Link)`
+  display: inline-block;
+  font-family: ${(p) => p.theme.font.mono};
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--n-6);
+  text-decoration: none;
+  margin-bottom: 1.8rem;
+
+  &:hover {
+    color: var(--n-1);
+  }
+`;
+
+const Title = styled.h1`
+  font-family: ${(p) => p.theme.font.display};
+  font-weight: 700;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  color: var(--n-1);
+  margin: 0 0 0.5rem;
+  text-transform: lowercase;
+`;
+
+const Lede = styled.p`
+  font-family: ${(p) => p.theme.font.body};
+  font-weight: 200;
+  font-size: 0.9rem;
+  color: var(--n-6);
+  margin: 0 0 2.5rem;
+  max-width: 40ch;
+`;
+
+const Layout = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2.5rem;
+  align-items: start;
+
+  @media (max-width: ${(p) => p.theme.breakpoints.lg}) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const CanvasCol = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+`;
+
+const CanvasWrap = styled.div<{ $dragOver: boolean }>`
+  position: relative;
+  width: 100%;
+  border: 1px dashed ${(p) => (p.$dragOver ? 'var(--n-3)' : 'transparent')};
+  border-radius: 4px;
+
+  ${(p) =>
+    p.$dragOver &&
+    css`
+      canvas {
+        opacity: 0.5;
+      }
+    `}
+`;
+
+const Canvas = styled.canvas`
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--n-9);
+  border-radius: 4px;
+`;
+
+const DropHint = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ${(p) => p.theme.font.mono};
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: var(--n-1);
+  pointer-events: none;
+`;
+
+const Notice = styled.p`
+  font-family: ${(p) => p.theme.font.mono};
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--n-4);
+  margin: 0;
+`;
+
+const InputRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+`;
+
+const HiddenFileInput = styled.input`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+`;
+
+const buttonSkin = css`
+  font-family: ${(p) => p.theme.font.mono};
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  padding: 0.6rem 1rem;
+  border-radius: 2px;
+  cursor: pointer;
+  border: 1px solid var(--n-6);
+  background: transparent;
+  color: var(--n-3);
+
+  &:hover:not(:disabled) {
+    border-color: var(--n-1);
+    color: var(--n-1);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+`;
+
+const ChooseButton = styled.button`
+  ${buttonSkin}
+`;
+
+const ActionButton = styled.button`
+  ${buttonSkin}
+`;
+
+const Controls = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
+
+const EffectRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+`;
+
+const EffectButton = styled.button<{ $active: boolean }>`
+  font-family: ${(p) => p.theme.font.mono};
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  padding: 0.5rem 0.9rem;
+  border-radius: 2px;
+  cursor: pointer;
+  border: 1px solid ${(p) => (p.$active ? 'var(--n-1)' : 'var(--n-6)')};
+  background: ${(p) => (p.$active ? 'var(--n-1)' : 'transparent')};
+  color: ${(p) => (p.$active ? 'var(--n-11)' : 'var(--n-4)')};
+`;
+
+const ParamSet = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const Field = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+`;
+
+const FieldLabel = styled.span`
+  font-family: ${(p) => p.theme.font.mono};
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  color: var(--n-5);
+`;
+
+const FieldValue = styled.span`
+  color: var(--n-3);
+`;
+
+const Slider = styled.input`
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+  margin: 0;
+
+  &::-webkit-slider-runnable-track {
+    height: 2px;
+    background: var(--n-7);
+    border-radius: 1px;
+  }
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -6px;
+    border-radius: 50%;
+    background: var(--n-1);
+    border: none;
+  }
+
+  &::-moz-range-track {
+    height: 2px;
+    background: var(--n-7);
+    border-radius: 1px;
+  }
+
+  &::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--n-1);
+    border: none;
+  }
+`;
+
+const ToggleButton = styled.button<{ $active: boolean }>`
+  align-self: flex-start;
+  font-family: ${(p) => p.theme.font.mono};
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  padding: 0.4rem 0.8rem;
+  border-radius: 2px;
+  cursor: pointer;
+  border: 1px solid ${(p) => (p.$active ? 'var(--n-1)' : 'var(--n-6)')};
+  background: ${(p) => (p.$active ? 'var(--n-1)' : 'transparent')};
+  color: ${(p) => (p.$active ? 'var(--n-11)' : 'var(--n-4)')};
+`;
+
+const PresetRow = styled.div`
+  display: flex;
+  gap: 0.4rem;
+`;
+
+const PresetButton = styled.button<{ $active: boolean }>`
+  font-family: ${(p) => p.theme.font.mono};
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  padding: 0.35rem 0.6rem;
+  border-radius: 2px;
+  cursor: pointer;
+  border: 1px solid ${(p) => (p.$active ? 'var(--n-1)' : 'var(--n-7)')};
+  background: transparent;
+  color: ${(p) => (p.$active ? 'var(--n-1)' : 'var(--n-5)')};
+`;
+
+const TextInput = styled.input`
+  font-family: ${(p) => p.theme.font.mono};
+  font-size: 0.75rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 2px;
+  border: 1px solid var(--n-7);
+  background: var(--n-10);
+  color: var(--n-2);
+`;
+
+const DuotoneRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const ColorInput = styled.input`
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--n-6);
+  border-radius: 2px;
+  background: transparent;
+  cursor: pointer;
+`;
+
+const SwatchButton = styled.button`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid;
+  cursor: pointer;
+`;

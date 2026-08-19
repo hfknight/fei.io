@@ -31,6 +31,7 @@ import {
   seededRand,
   stretchContrast,
 } from './ditherCore';
+import { staticVars } from '../../../styles/tokens';
 
 export interface RenderSpec {
   effect: EffectId;
@@ -126,7 +127,9 @@ const paintAscii = (
   cell: number,
 ): void => {
   if (marks.length === 0) return;
-  ctx.font = `${cell}px 'JetBrains Mono', monospace`;
+  // A canvas cannot read a CSS custom property, so the mono stack comes straight from
+  // tokens.ts — the same single source the page's font gate loads against.
+  ctx.font = `${cell}px ${staticVars['--font-mono']}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   for (const m of marks) {
