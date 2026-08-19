@@ -29,7 +29,8 @@ import { PREVIEW_MAX_COLS, renderEffect, renderExport } from './ditherCanvas';
 const DEFAULT_HALFTONE: HalftoneParams = { cellSize: 8, angle: 45, contrast: 0, invert: false };
 const DEFAULT_DOTS: DotsParams = { cellSize: 8, fillCutoff: 0.08, contrast: 0 };
 const DEFAULT_ASCII: AsciiParams = { cellSize: 8, contrast: 0, charset: ASCII_RAMPS.classic };
-const DEFAULT_LATTICE: LatticeParams = { density: 2, threshold: 0.15, jitter: 0.6 };
+/* `density` reaches the canvas edge as the mesh's column count (see ditherCanvas.ts). */
+const DEFAULT_LATTICE: LatticeParams = { density: 36, threshold: 0.15, jitter: 0.6 };
 const DEFAULT_DUOTONE: Duotone = { paper: '#f4ead5', ink: '#1a1408' };
 const DEFAULT_JITTER_SEED = 42;
 
@@ -49,8 +50,13 @@ const EFFECTS: { id: EffectId; label: string }[] = [
 
 const DUOTONE_PRESETS: { name: string; ink: string; paper: string }[] = [
   { name: 'crt', paper: '#0a0f0a', ink: '#4ade80' },
+  { name: 'amber', paper: '#140d02', ink: '#ffb000' },
   { name: 'blueprint', paper: '#0b2c66', ink: '#e8eefc' },
+  { name: 'riso red', paper: '#f3ede2', ink: '#ff3b30' },
+  { name: 'riso pink', paper: '#f6efe6', ink: '#ff4d8f' },
+  { name: 'newsprint', paper: '#e9e4d7', ink: '#3a352c' },
   { name: 'classic', paper: '#ffffff', ink: '#000000' },
+  { name: 'inverse', paper: '#0d0d0d', ink: '#f2f2f2' },
 ];
 
 const CHARSET_PRESETS: { name: string; charset: string }[] = [
@@ -464,10 +470,10 @@ const Dither: React.FC = () => {
             {effect === 'lattice' && (
               <ParamSet>
                 <SliderField
-                  label="Node spacing"
-                  min={1}
-                  max={6}
-                  step={1}
+                  label="Detail"
+                  min={14}
+                  max={72}
+                  step={2}
                   value={lattice.density}
                   onChange={(v) => setLattice((p) => ({ ...p, density: v }))}
                 />
@@ -853,6 +859,7 @@ const TextInput = styled.input`
 const DuotoneRow = styled.div`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
 `;
 

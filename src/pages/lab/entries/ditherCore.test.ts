@@ -93,7 +93,7 @@ describe('halftoneMarks', () => {
   it('gives a black cell the max radius', () => {
     const marks = halftoneMarks(flatGrid(4, 4, 0), params());
     expect(marks.length).toBeGreaterThan(0);
-    for (const m of marks) expect(m.r).toBeCloseTo(0.5, 6);
+    for (const m of marks) expect(m.r).toBeCloseTo(0.575, 6);
   });
 
   it('follows sqrt: luma 0.75 gives half the radius of luma 0', () => {
@@ -104,7 +104,7 @@ describe('halftoneMarks', () => {
   });
 
   it('skips exactly at the 5%-of-cell-radius floor, not just at r ≈ 0', () => {
-    // r = 0.5*sqrt(1-l); l = 0.999 gives r ≈ 0.0158 (below the 0.025 floor, skipped);
+    // r = 0.575*sqrt(1-l); l = 0.999 gives r ≈ 0.0182 (below the 0.0288 floor, skipped);
     // l = 0.99 gives r ≈ 0.05 (above it, kept).
     expect(halftoneMarks(flatGrid(2, 2, 0.999), params())).toEqual([]);
     expect(halftoneMarks(flatGrid(2, 2, 0.99), params()).length).toBeGreaterThan(0);
@@ -113,7 +113,7 @@ describe('halftoneMarks', () => {
   it('invert swaps the mapping: white now gets the max radius, black gets skipped', () => {
     const whiteInverted = halftoneMarks(flatGrid(4, 4, 1), params({ invert: true }));
     expect(whiteInverted.length).toBeGreaterThan(0);
-    for (const m of whiteInverted) expect(m.r).toBeCloseTo(0.5, 6);
+    for (const m of whiteInverted) expect(m.r).toBeCloseTo(0.575, 6);
 
     const blackInverted = halftoneMarks(flatGrid(4, 4, 0), params({ invert: true }));
     expect(blackInverted).toEqual([]);

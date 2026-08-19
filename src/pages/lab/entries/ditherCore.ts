@@ -79,7 +79,10 @@ export const stretchContrast = (luma: Float32Array, contrast: number): Float32Ar
   return out;
 };
 
-const HALFTONE_R_MAX = 0.5;
+/* 15% past the half-cell on purpose: shadow dots swell into their neighbours and dark
+ * regions merge into solid ink instead of staying a polka-dot field — the classic print
+ * overshoot (the reference app ships the same 1.15). */
+const HALFTONE_R_MAX = 0.575;
 const HALFTONE_MIN_R = 0.05 * HALFTONE_R_MAX;
 
 /**

@@ -56,15 +56,17 @@ export const EXPORT_MAX_PIXELS = 16_000_000;
 
 type Source = (CanvasImageSource & { width: number; height: number }) | ImageBitmap;
 
-/** Lattice has no per-effect cell-size control; density scales node spacing off this base. */
-const LATTICE_BASE_CELL = 8;
+/** Line/node weight as a fraction of one mesh cell, so lattice strokes scale with export
+ *  resolution the same way the marks themselves do. */
+const LATTICE_LINE_WIDTH_RATIO = 0.09;
+const LATTICE_NODE_RADIUS_RATIO = 0.13;
 
-/** Line/node weight as a fraction of one cell, so lattice strokes scale with export resolution
- *  the same way the marks themselves do. */
-const LATTICE_LINE_WIDTH_RATIO = 0.2;
-const LATTICE_NODE_RADIUS_RATIO = 0.16;
-
-const cellPxFor = (spec: RenderSpec): number => {
+/**
+ * Lattice reads `density` as the mesh's column count and sizes the probe grid to it directly
+ * (the reference app's shape: a 14-100 column node grid, coarse and bold), rather than
+ * skipping cells of a fine probe — so `latticeMarks` always receives step 1 below.
+ */
+const cellPxFor = (spec: RenderSpec, sourceW: number): number => {
   switch (spec.effect) {
     case 'halftone':
       return spec.halftone.cellSize;
@@ -73,7 +75,7 @@ const cellPxFor = (spec: RenderSpec): number => {
     case 'ascii':
       return spec.ascii.cellSize;
     case 'lattice':
-      return LATTICE_BASE_CELL;
+      return sourceW / Math.max(2, spec.lattice.density);
   }
 };
 
@@ -183,7 +185,7 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
   const sourceH = source.height;
   if (sourceW <= 0 || sourceH <= 0) return;
 
-  const cellPx = cellPxFor(spec);
+  const cellPx = cellPxFor(spec, sourceW);
   const cols = Math.max(1, Math.min(maxCols, Math.ceil(sourceW / cellPx)));
   const rows = Math.max(1, Math.round(cols * (sourceH / sourceW)));
 
@@ -218,7 +220,11 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
       paintAscii(ctx, asciiMarks(grid, spec.ascii), cell);
       break;
     case 'lattice':
-      paintLattice(ctx, latticeMarks(grid, spec.lattice, seededRand(spec.jitterSeed)), cell);
+      paintLattice(
+        ctx,
+        latticeMarks(grid, { ...spec.lattice, density: 1 }, seededRand(spec.jitterSeed)),
+        cell,
+      );
       break;
   }
 };
