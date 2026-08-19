@@ -8,6 +8,13 @@ import { stampMeta } from '../lib/stampMeta';
  * with the usePageTitle call in its component. */
 
 const LAB_META: Record<string, PageMeta> = {
+  dither: {
+    title: 'Dither — a halftone, dots, ascii, and lattice image tool · Fei Hu',
+    description:
+      'Drop in a photo and render it as halftone, dots, ascii, or a lattice — per-effect ' +
+      'controls, an ink-and-paper duotone, and a full-resolution PNG out. Everything runs ' +
+      'in the browser; the image never leaves it.',
+  },
   prompted: {
     title: 'everything here was prompted — an AI gallery · Fei Hu',
     description:
