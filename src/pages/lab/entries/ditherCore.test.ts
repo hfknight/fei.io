@@ -300,17 +300,38 @@ describe('latticeMarks', () => {
     ]);
   });
 
-  it('connects surviving horizontal and vertical neighbors only', () => {
+  it('connects only cardinal neighbors at zero jitter — diagonals sit past the base reach', () => {
     const grid = flatGrid(2, 2, 1);
     const { nodes, edges } = latticeMarks(grid, { density: 1, threshold: 0, jitter: 0 }, zeroRand);
-    // A 2x2 fully-surviving grid has exactly 4 edges (2 horizontal pairs, 2 vertical pairs).
+    // A 2x2 fully-surviving grid has exactly 4 cardinal edges; the 2 diagonals (length √2)
+    // exceed the zero-jitter reach of 1.25 and are culled.
     expect(edges.length).toBe(4);
-    for (const [a, b] of edges) {
+    for (const { a, b, luma, fade } of edges) {
       expect(a).toBeGreaterThanOrEqual(0);
       expect(a).toBeLessThan(nodes.length);
       expect(b).toBeGreaterThanOrEqual(0);
       expect(b).toBeLessThan(nodes.length);
+      expect(luma).toBe(1);
+      expect(fade).toBeGreaterThan(0);
+      expect(fade).toBeLessThanOrEqual(1);
     }
+  });
+
+  it('lets diagonal struts in once jitter extends the reach', () => {
+    const grid = flatGrid(2, 2, 1);
+    // zeroRand keeps nodes on centers, so jitter only widens the reach: 1.25 + 1*1.35 = 2.6,
+    // which admits the two √2-long diagonals on top of the 4 cardinals.
+    const { edges } = latticeMarks(grid, { density: 1, threshold: 0, jitter: 1 }, zeroRand);
+    expect(edges.length).toBe(6);
+  });
+
+  it('samples each edge luminance at the strut midpoint', () => {
+    // 2x1 grid, both cells surviving: the midpoint of the strut between (0.5) and (1.5)
+    // lands at x=1.0, which floors into the right cell — the edge carries that cell's luma.
+    const grid: Grid = { cols: 2, rows: 1, luma: new Float32Array([1, 0.6]) };
+    const { edges } = latticeMarks(grid, { density: 1, threshold: 0.5, jitter: 0 }, zeroRand);
+    expect(edges.length).toBe(1);
+    expect(edges[0].luma).toBeCloseTo(0.6);
   });
 
   it('never lets an edge reference a culled node index', () => {
@@ -322,11 +343,12 @@ describe('latticeMarks', () => {
     };
     const { nodes, edges } = latticeMarks(grid, { density: 1, threshold: 0.5, jitter: 0 }, zeroRand);
     expect(nodes.length).toBe(5); // the five "1" cells
-    for (const [a, b] of edges) {
+    for (const { a, b } of edges) {
       expect(a).toBeLessThan(nodes.length);
       expect(b).toBeLessThan(nodes.length);
     }
-    // No two surviving cells in this checkerboard are adjacent, so there are no edges.
+    // Surviving checkerboard cells are only diagonal neighbors, which the zero-jitter reach
+    // culls, so there are no edges.
     expect(edges).toEqual([]);
   });
 

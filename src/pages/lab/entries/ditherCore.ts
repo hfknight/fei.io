@@ -173,16 +173,38 @@ export const asciiMarks = (
   return marks;
 };
 
+/* Cardinal + both diagonal neighbour directions, each pair visited once. Whether a diagonal
+ * strut actually appears is decided by reach, not by this list: an unjittered diagonal is
+ * √2 cells long, past the base reach, so diagonals only join the mesh as jitter extends it —
+ * the reference app behaves the same way. */
+const LATTICE_NEIGHBORS: [number, number][] = [
+  [1, 0],
+  [0, 1],
+  [1, 1],
+  [-1, 1],
+];
+
+/* Edge midpoints are culled at a softer threshold than nodes (the reference app ships the
+ * same 0.75 ratio), so struts survive slightly into shadow before their endpoints do. */
+const LATTICE_EDGE_LUMA_RATIO = 0.75;
+
 /**
- * A node grid with a luminance cull, jittered surviving positions, and edges connecting
- * horizontally/vertically adjacent survivors. `rand` is injected so callers (and tests) can
- * make the scatter deterministic — see `seededRand`.
+ * A node grid with a luminance cull, jittered surviving positions, and luminance-weighted
+ * edges: every neighbouring pair (cardinal and diagonal) within reach becomes an edge carrying
+ * the luminance sampled at its midpoint and a `fade` (1 at zero length, 0 at full reach), so
+ * the paint step can let the mesh itself carry the image — bright regions render dense and
+ * bright, shadows thin out and dim. Reach starts just past one cell (diagonals excluded) and
+ * grows with jitter. `rand` is injected so callers (and tests) can make the scatter
+ * deterministic — see `seededRand`.
  */
 export const latticeMarks = (
   grid: Grid,
   params: LatticeParams,
   rand: () => number,
-): { nodes: { x: number; y: number; luma: number }[]; edges: [number, number][] } => {
+): {
+  nodes: { x: number; y: number; luma: number }[];
+  edges: { a: number; b: number; luma: number; fade: number }[];
+} => {
   const step = Math.max(1, Math.round(params.density));
   const colIdxs: number[] = [];
   for (let c = 0; c < grid.cols; c += step) colIdxs.push(c);
@@ -206,15 +228,33 @@ export const latticeMarks = (
     }
   }
 
-  const edges: [number, number][] = [];
+  // Base reach sits a quarter past one cell so an unjittered cardinal strut keeps a visible
+  // fade (the reference app's exact 1.0 base zeroes it out and the mesh vanishes at zero
+  // scatter); jitter then extends it, letting diagonals (√2) and stretched struts in.
+  const reach = step * (1.25 + params.jitter * 1.35);
+  const edgeCutoff = params.threshold * LATTICE_EDGE_LUMA_RATIO;
+
+  const edges: { a: number; b: number; luma: number; fade: number }[] = [];
   for (let ri = 0; ri < rowIdxs.length; ri++) {
     for (let ci = 0; ci < colIdxs.length; ci++) {
       const idx = nodeIndexAt[ri][ci];
       if (idx === undefined) continue;
-      const right = ci + 1 < colIdxs.length ? nodeIndexAt[ri][ci + 1] : undefined;
-      if (right !== undefined) edges.push([idx, right]);
-      const down = ri + 1 < rowIdxs.length ? nodeIndexAt[ri + 1][ci] : undefined;
-      if (down !== undefined) edges.push([idx, down]);
+      for (const [dc, dr] of LATTICE_NEIGHBORS) {
+        const rj = ri + dr;
+        const cj = ci + dc;
+        if (rj >= rowIdxs.length || cj < 0 || cj >= colIdxs.length) continue;
+        const jdx = nodeIndexAt[rj][cj];
+        if (jdx === undefined) continue;
+        const na = nodes[idx];
+        const nb = nodes[jdx];
+        const dist = Math.hypot(nb.x - na.x, nb.y - na.y);
+        if (dist > reach) continue;
+        const mc = Math.min(grid.cols - 1, Math.max(0, Math.floor((na.x + nb.x) / 2)));
+        const mr = Math.min(grid.rows - 1, Math.max(0, Math.floor((na.y + nb.y) / 2)));
+        const l = grid.luma[mr * grid.cols + mc];
+        if (l < edgeCutoff) continue;
+        edges.push({ a: idx, b: jdx, luma: l, fade: 1 - dist / reach });
+      }
     }
   }
 

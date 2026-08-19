@@ -40,7 +40,8 @@ export interface RenderSpec {
   ascii: AsciiParams;
   lattice: LatticeParams;
   duotone: Duotone;
-  /** Marks take the sampled pixel's colour instead of the ink; paper stays the ground. */
+  /** Marks take the sampled pixel's colour instead of the ink; the ground keeps its duotone
+   *  colour (paper, or ink for lattice — see the ground swap in `renderEffect`). */
   sourceColor: boolean;
   jitterSeed: number;
 }
@@ -118,15 +119,31 @@ const getProbe = (source: Source, cols: number, rows: number): Probe => {
 
 /** A per-cell CSS colour lookup in unit-cell space, clamped so jittered marks stay in range. */
 type ColorAt = (x: number, y: number) => string;
+/** The same lookup as raw channels, for painters that shade the colour (the dots beads). */
+type RgbAt = (x: number, y: number) => [number, number, number];
 
-const colorAtFor = (probe: Probe): ColorAt => {
+const rgbAtFor = (probe: Probe): RgbAt => {
   const { cols, rows, rgb } = probe;
   return (x, y) => {
     const col = Math.min(cols - 1, Math.max(0, Math.floor(x)));
     const row = Math.min(rows - 1, Math.max(0, Math.floor(y)));
     const o = (row * cols + col) * 4;
-    return `rgb(${rgb[o]},${rgb[o + 1]},${rgb[o + 2]})`;
+    return [rgb[o], rgb[o + 1], rgb[o + 2]];
   };
+};
+
+const colorAtFor = (probe: Probe): ColorAt => {
+  const at = rgbAtFor(probe);
+  return (x, y) => {
+    const [r, g, b] = at(x, y);
+    return `rgb(${r},${g},${b})`;
+  };
+};
+
+/** `duotone` values come from `<input type="color">`, which always yields #rrggbb. */
+const hexToRgb = (hex: string): [number, number, number] => {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 };
 
 const paintCircles = (
@@ -160,6 +177,37 @@ const paintCircles = (
   ctx.fill();
 };
 
+/**
+ * Dots paint as lit beads on the dark ground, per the reference app: each dot is a small
+ * radial gradient — a highlight pushed toward the upper-left, the base colour through the
+ * middle, a darker rim — so the field reads as glass spheres catching light rather than flat
+ * confetti. Gradients cannot batch into one path; the bead look trades that away.
+ */
+const paintBeads = (
+  ctx: CanvasRenderingContext2D,
+  marks: { x: number; y: number; r: number }[],
+  cell: number,
+  mark: string,
+  rgbAt?: RgbAt,
+): void => {
+  const base = hexToRgb(mark);
+  for (const m of marks) {
+    const pr = m.r * cell;
+    if (pr < 0.5) continue;
+    const [r, g, b] = rgbAt ? rgbAt(m.x, m.y) : base;
+    const px = m.x * cell;
+    const py = m.y * cell;
+    const grad = ctx.createRadialGradient(px - pr * 0.3, py - pr * 0.3, pr * 0.05, px, py, pr);
+    grad.addColorStop(0, `rgba(${Math.min(255, r + 80)},${Math.min(255, g + 80)},${Math.min(255, b + 80)},1)`);
+    grad.addColorStop(0.5, `rgba(${r},${g},${b},1)`);
+    grad.addColorStop(1, `rgba(${Math.max(0, r - 60)},${Math.max(0, g - 60)},${Math.max(0, b - 60)},0.8)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(px, py, pr, 0, Math.PI * 2);
+    ctx.fill();
+  }
+};
+
 const paintAscii = (
   ctx: CanvasRenderingContext2D,
   marks: { col: number; row: number; char: string }[],
@@ -178,57 +226,44 @@ const paintAscii = (
   }
 };
 
+/**
+ * Lattice paints the image *as* the mesh, per the reference app: every strut's opacity is its
+ * midpoint luminance scaled by how stretched it is, and every node's opacity and radius grow
+ * with its cell's brightness — so bright regions render a dense, glowing web and shadows thin
+ * to nothing, and the photograph stays readable through the wireframe. Per-mark alpha rules
+ * out path batching; the mesh is coarse (≤72 columns), so the mark count stays small.
+ */
 const paintLattice = (
   ctx: CanvasRenderingContext2D,
-  marks: { nodes: { x: number; y: number; luma: number }[]; edges: [number, number][] },
+  marks: {
+    nodes: { x: number; y: number; luma: number }[];
+    edges: { a: number; b: number; luma: number; fade: number }[];
+  },
   cell: number,
+  mark: string,
   colorAt?: ColorAt,
 ): void => {
   const { nodes, edges } = marks;
-  if (edges.length > 0) {
-    ctx.lineWidth = Math.max(1, cell * LATTICE_LINE_WIDTH_RATIO);
-    if (colorAt) {
-      // Each strut takes its origin node's sampled colour, per the reference app's look.
-      for (const [a, b] of edges) {
-        const na = nodes[a];
-        const nb = nodes[b];
-        ctx.strokeStyle = colorAt(na.x, na.y);
-        ctx.beginPath();
-        ctx.moveTo(na.x * cell, na.y * cell);
-        ctx.lineTo(nb.x * cell, nb.y * cell);
-        ctx.stroke();
-      }
-    } else {
-      ctx.beginPath();
-      for (const [a, b] of edges) {
-        const na = nodes[a];
-        const nb = nodes[b];
-        ctx.moveTo(na.x * cell, na.y * cell);
-        ctx.lineTo(nb.x * cell, nb.y * cell);
-      }
-      ctx.stroke();
-    }
-  }
-  if (nodes.length > 0) {
-    const r = Math.max(1, cell * LATTICE_NODE_RADIUS_RATIO);
-    if (colorAt) {
-      for (const n of nodes) {
-        ctx.fillStyle = colorAt(n.x, n.y);
-        ctx.beginPath();
-        ctx.arc(n.x * cell, n.y * cell, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      return;
-    }
+  ctx.lineWidth = Math.max(1, cell * LATTICE_LINE_WIDTH_RATIO);
+  for (const e of edges) {
+    const na = nodes[e.a];
+    const nb = nodes[e.b];
+    ctx.globalAlpha = Math.min(1, e.fade * e.luma * 1.25);
+    ctx.strokeStyle = colorAt ? colorAt((na.x + nb.x) / 2, (na.y + nb.y) / 2) : mark;
     ctx.beginPath();
-    for (const n of nodes) {
-      const px = n.x * cell;
-      const py = n.y * cell;
-      ctx.moveTo(px + r, py);
-      ctx.arc(px, py, r, 0, Math.PI * 2);
-    }
+    ctx.moveTo(na.x * cell, na.y * cell);
+    ctx.lineTo(nb.x * cell, nb.y * cell);
+    ctx.stroke();
+  }
+  const r = Math.max(1, cell * LATTICE_NODE_RADIUS_RATIO);
+  for (const n of nodes) {
+    ctx.globalAlpha = Math.min(1, n.luma * 2);
+    ctx.fillStyle = colorAt ? colorAt(n.x, n.y) : mark;
+    ctx.beginPath();
+    ctx.arc(n.x * cell, n.y * cell, Math.max(0.8, r * (0.5 + n.luma * 0.8)), 0, Math.PI * 2);
     ctx.fill();
   }
+  ctx.globalAlpha = 1;
 };
 
 /**
@@ -268,17 +303,25 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
   // this is the only cell-size math the paint step needs.
   const cell = target.width / cols;
 
-  ctx.fillStyle = spec.duotone.paper;
+  // Lattice and dots invert the duotone roles: both grow their marks with *brightness*, so
+  // they only read as the image when the marks sit light-on-dark (dark marks that grow with
+  // brightness produce a negative). The mesh/beads take the paper colour over an ink ground —
+  // same as the reference app. Halftone and ascii keep the print convention: ink on paper,
+  // marks growing with darkness.
+  const inverted = spec.effect === 'lattice' || spec.effect === 'dots';
+  const ground = inverted ? spec.duotone.ink : spec.duotone.paper;
+  const mark = inverted ? spec.duotone.paper : spec.duotone.ink;
+  ctx.fillStyle = ground;
   ctx.fillRect(0, 0, target.width, target.height);
-  ctx.fillStyle = spec.duotone.ink;
-  ctx.strokeStyle = spec.duotone.ink;
+  ctx.fillStyle = mark;
+  ctx.strokeStyle = mark;
 
   switch (spec.effect) {
     case 'halftone':
       paintCircles(ctx, halftoneMarks(grid, spec.halftone), cell, colorAt);
       break;
     case 'dots':
-      paintCircles(ctx, dotsMarks(grid, spec.dots), cell, colorAt);
+      paintBeads(ctx, dotsMarks(grid, spec.dots), cell, mark, spec.sourceColor ? rgbAtFor(probe) : undefined);
       break;
     case 'ascii':
       paintAscii(ctx, asciiMarks(grid, spec.ascii), cell, colorAt);
@@ -288,6 +331,7 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
         ctx,
         latticeMarks(grid, { ...spec.lattice, density: 1 }, seededRand(spec.jitterSeed)),
         cell,
+        mark,
         colorAt,
       );
       break;

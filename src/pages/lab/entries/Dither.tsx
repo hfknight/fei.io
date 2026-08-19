@@ -30,7 +30,10 @@ const DEFAULT_HALFTONE: HalftoneParams = { cellSize: 8, angle: 45, contrast: 0, 
 const DEFAULT_DOTS: DotsParams = { cellSize: 8, fillCutoff: 0.08, contrast: 0 };
 const DEFAULT_ASCII: AsciiParams = { cellSize: 8, contrast: 0, charset: ASCII_RAMPS.classic };
 /* `density` reaches the canvas edge as the mesh's column count (see ditherCanvas.ts). */
-const DEFAULT_LATTICE: LatticeParams = { density: 36, threshold: 0.15, jitter: 0.6 };
+/* Threshold defaults near zero: the mesh's luminance-alpha already fades shadows out, so the
+ * hard cull is a stylistic extra, not the primary tone control (the reference app defaults it
+ * off entirely). */
+const DEFAULT_LATTICE: LatticeParams = { density: 36, threshold: 0.05, jitter: 0.6 };
 const DEFAULT_DUOTONE: Duotone = { paper: '#f4ead5', ink: '#1a1408' };
 const DEFAULT_JITTER_SEED = 42;
 
