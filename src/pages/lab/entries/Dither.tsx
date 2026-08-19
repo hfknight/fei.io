@@ -91,7 +91,7 @@ const Dither: React.FC = () => {
   const [ascii, setAscii] = useState<AsciiParams>(DEFAULT_ASCII);
   const [lattice, setLattice] = useState<LatticeParams>(DEFAULT_LATTICE);
   const [duotone, setDuotone] = useState<Duotone>(DEFAULT_DUOTONE);
-  const [sourceColor, setSourceColor] = useState(false);
+  const [sourceColor, setSourceColor] = useState(true);
   const [jitterSeed, setJitterSeed] = useState(DEFAULT_JITTER_SEED);
 
   const [source, setSource] = useState<ImgSource | null>(null);
