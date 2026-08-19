@@ -40,6 +40,8 @@ export interface RenderSpec {
   ascii: AsciiParams;
   lattice: LatticeParams;
   duotone: Duotone;
+  /** Marks take the sampled pixel's colour instead of the ink; paper stays the ground. */
+  sourceColor: boolean;
   jitterSeed: number;
 }
 
@@ -85,32 +87,67 @@ const cellPxFor = (spec: RenderSpec, sourceW: number): number => {
  * this cache instead of re-drawing and re-reading the probe canvas — the one part of the
  * pipeline whose cost is real DOM work rather than array math.
  */
-const probeCache = new WeakMap<Source, { cols: number; rows: number; luma: Float32Array }>();
+interface Probe {
+  cols: number;
+  rows: number;
+  luma: Float32Array;
+  /** The probe's raw RGBA, kept so source-colour marks can look their cell's pixel back up. */
+  rgb: Uint8ClampedArray;
+}
 
-const getLumaGrid = (source: Source, cols: number, rows: number): Float32Array => {
+const probeCache = new WeakMap<Source, Probe>();
+
+const getProbe = (source: Source, cols: number, rows: number): Probe => {
   const cached = probeCache.get(source);
-  if (cached && cached.cols === cols && cached.rows === rows) return cached.luma;
+  if (cached && cached.cols === cols && cached.rows === rows) return cached;
 
+  const empty: Probe = { cols, rows, luma: new Float32Array(cols * rows), rgb: new Uint8ClampedArray(cols * rows * 4) };
   const probe = document.createElement('canvas');
   probe.width = cols;
   probe.height = rows;
   const ctx = probe.getContext('2d', { willReadFrequently: true });
-  if (!ctx) return new Float32Array(cols * rows);
+  if (!ctx) return empty;
 
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(source, 0, 0, cols, rows);
   const { data } = ctx.getImageData(0, 0, cols, rows);
-  const luma = lumaGrid(data, cols, rows);
-  probeCache.set(source, { cols, rows, luma });
-  return luma;
+  const entry: Probe = { cols, rows, luma: lumaGrid(data, cols, rows), rgb: data };
+  probeCache.set(source, entry);
+  return entry;
+};
+
+/** A per-cell CSS colour lookup in unit-cell space, clamped so jittered marks stay in range. */
+type ColorAt = (x: number, y: number) => string;
+
+const colorAtFor = (probe: Probe): ColorAt => {
+  const { cols, rows, rgb } = probe;
+  return (x, y) => {
+    const col = Math.min(cols - 1, Math.max(0, Math.floor(x)));
+    const row = Math.min(rows - 1, Math.max(0, Math.floor(y)));
+    const o = (row * cols + col) * 4;
+    return `rgb(${rgb[o]},${rgb[o + 1]},${rgb[o + 2]})`;
+  };
 };
 
 const paintCircles = (
   ctx: CanvasRenderingContext2D,
   marks: { x: number; y: number; r: number }[],
   cell: number,
+  colorAt?: ColorAt,
 ): void => {
   if (marks.length === 0) return;
+  if (colorAt) {
+    // Per-mark fills cannot batch into one path; source colour trades that batching away.
+    for (const m of marks) {
+      const pr = m.r * cell;
+      if (pr <= 0) continue;
+      ctx.fillStyle = colorAt(m.x, m.y);
+      ctx.beginPath();
+      ctx.arc(m.x * cell, m.y * cell, pr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    return;
+  }
   ctx.beginPath();
   for (const m of marks) {
     const pr = m.r * cell;
@@ -127,6 +164,7 @@ const paintAscii = (
   ctx: CanvasRenderingContext2D,
   marks: { col: number; row: number; char: string }[],
   cell: number,
+  colorAt?: ColorAt,
 ): void => {
   if (marks.length === 0) return;
   // A canvas cannot read a CSS custom property, so the mono stack comes straight from
@@ -135,6 +173,7 @@ const paintAscii = (
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   for (const m of marks) {
+    if (colorAt) ctx.fillStyle = colorAt(m.col + 0.5, m.row + 0.5);
     ctx.fillText(m.char, (m.col + 0.5) * cell, (m.row + 0.5) * cell);
   }
 };
@@ -143,21 +182,44 @@ const paintLattice = (
   ctx: CanvasRenderingContext2D,
   marks: { nodes: { x: number; y: number; luma: number }[]; edges: [number, number][] },
   cell: number,
+  colorAt?: ColorAt,
 ): void => {
   const { nodes, edges } = marks;
   if (edges.length > 0) {
     ctx.lineWidth = Math.max(1, cell * LATTICE_LINE_WIDTH_RATIO);
-    ctx.beginPath();
-    for (const [a, b] of edges) {
-      const na = nodes[a];
-      const nb = nodes[b];
-      ctx.moveTo(na.x * cell, na.y * cell);
-      ctx.lineTo(nb.x * cell, nb.y * cell);
+    if (colorAt) {
+      // Each strut takes its origin node's sampled colour, per the reference app's look.
+      for (const [a, b] of edges) {
+        const na = nodes[a];
+        const nb = nodes[b];
+        ctx.strokeStyle = colorAt(na.x, na.y);
+        ctx.beginPath();
+        ctx.moveTo(na.x * cell, na.y * cell);
+        ctx.lineTo(nb.x * cell, nb.y * cell);
+        ctx.stroke();
+      }
+    } else {
+      ctx.beginPath();
+      for (const [a, b] of edges) {
+        const na = nodes[a];
+        const nb = nodes[b];
+        ctx.moveTo(na.x * cell, na.y * cell);
+        ctx.lineTo(nb.x * cell, nb.y * cell);
+      }
+      ctx.stroke();
     }
-    ctx.stroke();
   }
   if (nodes.length > 0) {
     const r = Math.max(1, cell * LATTICE_NODE_RADIUS_RATIO);
+    if (colorAt) {
+      for (const n of nodes) {
+        ctx.fillStyle = colorAt(n.x, n.y);
+        ctx.beginPath();
+        ctx.arc(n.x * cell, n.y * cell, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      return;
+    }
     ctx.beginPath();
     for (const n of nodes) {
       const px = n.x * cell;
@@ -189,7 +251,9 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
   const cols = Math.max(1, Math.min(maxCols, Math.ceil(sourceW / cellPx)));
   const rows = Math.max(1, Math.round(cols * (sourceH / sourceW)));
 
-  const rawLuma = getLumaGrid(source, cols, rows);
+  const probe = getProbe(source, cols, rows);
+  const rawLuma = probe.luma;
+  const colorAt = spec.sourceColor ? colorAtFor(probe) : undefined;
   const luma =
     spec.effect === 'halftone'
       ? stretchContrast(rawLuma, spec.halftone.contrast)
@@ -211,19 +275,20 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
 
   switch (spec.effect) {
     case 'halftone':
-      paintCircles(ctx, halftoneMarks(grid, spec.halftone), cell);
+      paintCircles(ctx, halftoneMarks(grid, spec.halftone), cell, colorAt);
       break;
     case 'dots':
-      paintCircles(ctx, dotsMarks(grid, spec.dots), cell);
+      paintCircles(ctx, dotsMarks(grid, spec.dots), cell, colorAt);
       break;
     case 'ascii':
-      paintAscii(ctx, asciiMarks(grid, spec.ascii), cell);
+      paintAscii(ctx, asciiMarks(grid, spec.ascii), cell, colorAt);
       break;
     case 'lattice':
       paintLattice(
         ctx,
         latticeMarks(grid, { ...spec.lattice, density: 1 }, seededRand(spec.jitterSeed)),
         cell,
+        colorAt,
       );
       break;
   }

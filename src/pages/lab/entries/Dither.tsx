@@ -88,6 +88,7 @@ const Dither: React.FC = () => {
   const [ascii, setAscii] = useState<AsciiParams>(DEFAULT_ASCII);
   const [lattice, setLattice] = useState<LatticeParams>(DEFAULT_LATTICE);
   const [duotone, setDuotone] = useState<Duotone>(DEFAULT_DUOTONE);
+  const [sourceColor, setSourceColor] = useState(false);
   const [jitterSeed, setJitterSeed] = useState(DEFAULT_JITTER_SEED);
 
   const [source, setSource] = useState<ImgSource | null>(null);
@@ -103,8 +104,8 @@ const Dither: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const spec: RenderSpec = useMemo(
-    () => ({ effect, halftone, dots, ascii, lattice, duotone, jitterSeed }),
-    [effect, halftone, dots, ascii, lattice, duotone, jitterSeed],
+    () => ({ effect, halftone, dots, ascii, lattice, duotone, sourceColor, jitterSeed }),
+    [effect, halftone, dots, ascii, lattice, duotone, sourceColor, jitterSeed],
   );
 
   const showNotice = useCallback((message: string) => {
@@ -497,7 +498,15 @@ const Dither: React.FC = () => {
             )}
 
             <FieldLabel>ink &amp; paper</FieldLabel>
-            <DuotoneRow>
+            <ToggleButton
+              type="button"
+              aria-pressed={sourceColor}
+              $active={sourceColor}
+              onClick={() => setSourceColor((v) => !v)}
+            >
+              image colors
+            </ToggleButton>
+            <DuotoneRow $muted={sourceColor}>
               <ColorInput
                 type="color"
                 aria-label="Ink color"
@@ -856,11 +865,14 @@ const TextInput = styled.input`
   color: var(--n-2);
 `;
 
-const DuotoneRow = styled.div`
+const DuotoneRow = styled.div<{ $muted?: boolean }>`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem;
+  /* With image colors on, the ink picker only paints the ground; the row quiets down but
+     stays usable, since paper still matters. */
+  opacity: ${(p) => (p.$muted ? 0.45 : 1)};
 `;
 
 const ColorInput = styled.input`
