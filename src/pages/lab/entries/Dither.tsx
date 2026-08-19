@@ -33,7 +33,7 @@ const DEFAULT_LATTICE: LatticeParams = { density: 2, threshold: 0.15, jitter: 0.
 const DEFAULT_DUOTONE: Duotone = { paper: '#f4ead5', ink: '#1a1408' };
 const DEFAULT_JITTER_SEED = 42;
 
-const SAMPLE_URL = '/lab/dither/bluebonnet.webp';
+const SAMPLE_URL = '/lab/dither/lab-hand.webp';
 const NOTICE_MS = 4000;
 
 /** The seam a test can assert without touching canvas: what a download would be named/typed. */
@@ -297,10 +297,6 @@ const Dither: React.FC = () => {
   return (
     <PageTransition>
       <Page>
-        <Crumb to="/lab">← lab</Crumb>
-        <Title>dither</Title>
-        <Lede>drop a photo anywhere, pick a look, take home the full-resolution png.</Lede>
-
         <Layout>
           <CanvasCol>
             <CanvasWrap
@@ -338,6 +334,12 @@ const Dither: React.FC = () => {
           </CanvasCol>
 
           <Controls>
+            <TitleBlock>
+              <Crumb to="/lab">← lab</Crumb>
+              <Title>dither</Title>
+              <Lede>drop a photo anywhere, pick a look, take home the full-resolution png.</Lede>
+            </TitleBlock>
+
             <EffectRow role="radiogroup" aria-label="Effect">
               {EFFECTS.map((e) => (
                 <EffectButton
@@ -560,6 +562,13 @@ const Page = styled.div`
   padding: 5rem clamp(1.5rem, 3.5vw, 3.5rem) 3rem;
 `;
 
+const TitleBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+`;
+
 const Crumb = styled(Link)`
   display: inline-block;
   font-family: ${(p) => p.theme.font.mono};
@@ -568,7 +577,6 @@ const Crumb = styled(Link)`
   text-transform: uppercase;
   color: var(--n-6);
   text-decoration: none;
-  margin-bottom: 1.8rem;
 
   &:hover {
     color: var(--n-1);
@@ -580,7 +588,7 @@ const Title = styled.h1`
   font-weight: 700;
   font-size: clamp(1.8rem, 3vw, 2.4rem);
   color: var(--n-1);
-  margin: 0 0 0.5rem;
+  margin: 0;
   text-transform: lowercase;
 `;
 
@@ -589,7 +597,7 @@ const Lede = styled.p`
   font-weight: 200;
   font-size: 0.9rem;
   color: var(--n-6);
-  margin: 0 0 2.5rem;
+  margin: 0;
   max-width: 40ch;
 `;
 
@@ -601,6 +609,11 @@ const Layout = styled.div`
 
   @media (max-width: ${(p) => p.theme.breakpoints.lg}) {
     grid-template-columns: 1fr;
+
+    /* Stacked, the title block leads the page — so the controls column comes first. */
+    & > :last-child {
+      order: -1;
+    }
   }
 `;
 
@@ -628,8 +641,12 @@ const CanvasWrap = styled.div<{ $dragOver: boolean }>`
 
 const Canvas = styled.canvas`
   display: block;
-  width: 100%;
+  width: auto;
   height: auto;
+  max-width: 100%;
+  /* The whole picture fits the viewport without scrolling; portrait sources scale down. */
+  max-height: calc(100dvh - 12rem);
+  margin-inline: auto;
   background: var(--n-9);
   border-radius: 4px;
 `;
@@ -710,16 +727,17 @@ const Controls = styled.div`
 
 const EffectRow = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  flex-wrap: nowrap;
+  gap: 0.4rem;
 `;
 
 const EffectButton = styled.button<{ $active: boolean }>`
   font-family: ${(p) => p.theme.font.mono};
-  font-size: 0.62rem;
-  letter-spacing: 0.14em;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
   text-transform: lowercase;
-  padding: 0.5rem 0.9rem;
+  padding: 0.45rem 0.7rem;
   border-radius: 2px;
   cursor: pointer;
   border: 1px solid ${(p) => (p.$active ? 'var(--n-1)' : 'var(--n-6)')};
