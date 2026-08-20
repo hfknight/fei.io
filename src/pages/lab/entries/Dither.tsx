@@ -319,28 +319,6 @@ const Dither: React.FC = () => {
               <Canvas ref={canvasRef} />
               {dragOver && <DropHint>drop to replace the photo</DropHint>}
             </CanvasWrap>
-
-            {notice && <Notice role="status">{notice}</Notice>}
-
-            <InputRow>
-              <ChooseButton type="button" onClick={() => fileInputRef.current?.click()}>
-                choose a photo
-              </ChooseButton>
-              <HiddenFileInput
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={onFileChange}
-              />
-              <ActionButton type="button" disabled={!source || exporting} onClick={() => void download()}>
-                download png
-              </ActionButton>
-              {canCopy && (
-                <ActionButton type="button" disabled={!source || exporting} onClick={() => void copy()}>
-                  copy
-                </ActionButton>
-              )}
-            </InputRow>
           </CanvasCol>
 
           <Controls>
@@ -532,6 +510,32 @@ const Dither: React.FC = () => {
                 />
               ))}
             </DuotoneRow>
+
+            <InputRow>
+              <ChooseButton type="button" onClick={() => fileInputRef.current?.click()}>
+                choose a photo
+              </ChooseButton>
+              <HiddenFileInput
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={onFileChange}
+              />
+              <ActionButton
+                type="button"
+                disabled={!source || exporting}
+                onClick={() => void download()}
+              >
+                download png
+              </ActionButton>
+              {canCopy && (
+                <ActionButton type="button" disabled={!source || exporting} onClick={() => void copy()}>
+                  copy
+                </ActionButton>
+              )}
+            </InputRow>
+
+            {notice && <Notice role="status">{notice}</Notice>}
           </Controls>
         </Layout>
       </Page>
@@ -636,9 +640,6 @@ const Layout = styled.div`
 `;
 
 const CanvasCol = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
   min-width: 0;
 `;
 
@@ -662,8 +663,10 @@ const Canvas = styled.canvas`
   width: auto;
   height: auto;
   max-width: 100%;
-  /* The whole picture fits the viewport without scrolling; portrait sources scale down. */
-  max-height: calc(100dvh - 12rem);
+  /* The whole picture fits the viewport without scrolling; portrait sources scale down.
+     Only the page's own padding sits above and below it — the buttons live in the controls
+     column, so nothing else eats the height. */
+  max-height: calc(100dvh - 9rem);
   margin-inline: auto;
   background: var(--n-9);
   border-radius: 4px;
@@ -693,8 +696,8 @@ const Notice = styled.p`
 
 const InputRow = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
 `;
 
 const HiddenFileInput = styled.input`
@@ -708,10 +711,13 @@ const HiddenFileInput = styled.input`
 
 const buttonSkin = css`
   font-family: ${(p) => p.theme.font.mono};
-  font-size: 0.62rem;
-  letter-spacing: 0.14em;
+  /* Sized like the effect row above it: the three actions have to share the 320px column
+     on one line, and matching that chrome is what makes them fit. */
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
   text-transform: lowercase;
-  padding: 0.6rem 1rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 2px;
   cursor: pointer;
   border: 1px solid var(--n-6);
