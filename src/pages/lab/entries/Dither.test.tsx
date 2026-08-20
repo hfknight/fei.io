@@ -76,6 +76,33 @@ describe('Dither', () => {
     );
   });
 
+  it('reveals blend and layer opacity only once the photo is kept', () => {
+    renderPage();
+    expect(screen.queryByLabelText('Layer opacity')).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'screen' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'keep the photo' }));
+
+    expect(screen.getByLabelText('Layer opacity')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'screen' })).toBeInTheDocument();
+  });
+
+  it('resets the photo layer on a switch', () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'keep the photo' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'screen' }));
+    fireEvent.change(screen.getByLabelText('Layer opacity'), { target: { value: '0.5' } });
+    expect(screen.getByRole('radio', { name: 'screen' })).toHaveAttribute('aria-checked', 'true');
+
+    fireEvent.click(screen.getByRole('radio', { name: 'dots' }));
+
+    expect(screen.getByRole('button', { name: 'keep the photo' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.queryByLabelText('Layer opacity')).not.toBeInTheDocument();
+  });
+
   it('leaves a tuned render alone when the effect already showing is re-picked', () => {
     renderPage();
     const angle = screen.getByLabelText('Angle') as HTMLInputElement;

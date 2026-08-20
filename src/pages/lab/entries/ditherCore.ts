@@ -14,6 +14,22 @@
 
 export type EffectId = 'halftone' | 'dots' | 'ascii' | 'lattice';
 
+export type BlendId = 'normal' | 'overlay' | 'screen' | 'multiply' | 'dodge';
+
+/**
+ * How the marks blend into the photograph beneath them, in the canvas's own vocabulary.
+ * Typed as `GlobalCompositeOperation` on purpose: canvas silently ignores an unknown operation
+ * and falls back to `source-over`, so a typo here would be invisible at runtime — this way it
+ * is a compile error instead.
+ */
+export const BLEND_OPS: Record<BlendId, GlobalCompositeOperation> = {
+  normal: 'source-over',
+  overlay: 'overlay',
+  screen: 'screen',
+  multiply: 'multiply',
+  dodge: 'color-dodge',
+};
+
 export interface Duotone {
   ink: string;
   paper: string;

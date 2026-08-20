@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ASCII_RAMPS,
   asciiMarks,
+  BLEND_OPS,
   dotsMarks,
   duotoneRoles,
   halftoneMarks,
@@ -33,6 +34,20 @@ describe('lumaGrid', () => {
     const white = new Uint8ClampedArray([255, 255, 255, 255, 255, 255, 255, 255]);
     expect(Array.from(lumaGrid(black, 2, 1))).toEqual([0, 0]);
     expect(Array.from(lumaGrid(white, 2, 1))).toEqual([1, 1]);
+  });
+});
+
+describe('BLEND_OPS', () => {
+  it('names every blend the way canvas names it', () => {
+    // Canvas ignores an unknown composite operation and paints source-over instead, so a typo
+    // here would fade into "the blend just does nothing" rather than fail.
+    expect(BLEND_OPS).toEqual({
+      normal: 'source-over',
+      overlay: 'overlay',
+      screen: 'screen',
+      multiply: 'multiply',
+      dodge: 'color-dodge',
+    });
   });
 });
 

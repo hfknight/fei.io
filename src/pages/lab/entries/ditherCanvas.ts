@@ -15,6 +15,7 @@
 
 import type {
   AsciiParams,
+  BlendId,
   Duotone,
   DotsParams,
   EffectId,
@@ -24,6 +25,7 @@ import type {
 } from './ditherCore';
 import {
   asciiMarks,
+  BLEND_OPS,
   dotsMarks,
   duotoneRoles,
   halftoneMarks,
@@ -44,8 +46,27 @@ export interface RenderSpec {
   /** Marks take the sampled pixel's colour instead of the ink; the ground keeps its duotone
    *  colour (paper, or ink for lattice — see the ground swap in `renderEffect`). */
   sourceColor: boolean;
+  /** The photograph itself grounds the frame, and the marks composite over it, instead of the
+   *  duotone filling a flat ground. */
+  photoUnder: boolean;
+  /** How the marks blend into that photograph; only meaningful with `photoUnder`. */
+  blend: BlendId;
+  /** The marks' layer opacity, 0-1; only meaningful with `photoUnder`. */
+  layerOpacity: number;
   jitterSeed: number;
 }
+
+/**
+ * Whether the marks need their own layer before they reach the frame.
+ *
+ * They do as soon as they blend or fade as a *whole* rather than one at a time: lattice sets a
+ * per-edge alpha and the beads carry alpha inside their gradients, so a layer-wide opacity
+ * cannot just be folded into `globalAlpha` at the paint step. With the photograph absent, or
+ * present under marks that neither blend nor fade, the marks go straight onto the frame and no
+ * second canvas is allocated.
+ */
+export const needsLayer = (spec: RenderSpec): boolean =>
+  spec.photoUnder && (spec.blend !== 'normal' || spec.layerOpacity < 1);
 
 /** The preview grid's column cap. Cost scales with cell count, so this is what keeps slider
  *  drags interactive on a full-resolution photo. */
@@ -116,6 +137,26 @@ const getProbe = (source: Source, cols: number, rows: number): Probe => {
   const entry: Probe = { cols, rows, luma: lumaGrid(data, cols, rows), rgb: data };
   probeCache.set(source, entry);
   return entry;
+};
+
+/**
+ * The marks' own canvas, kept module-scoped and reused: a preview re-renders on every slider
+ * tick, and allocating a viewport-sized canvas per tick is churn the drag can feel. Setting
+ * `width` clears the bitmap, so a same-size reuse clears explicitly instead.
+ */
+let layerCanvas: HTMLCanvasElement | null = null;
+
+const getLayerCtx = (width: number, height: number): CanvasRenderingContext2D | null => {
+  layerCanvas ??= document.createElement('canvas');
+  const ctx = layerCanvas.getContext('2d');
+  if (!ctx) return null;
+  if (layerCanvas.width !== width || layerCanvas.height !== height) {
+    layerCanvas.width = width;
+    layerCanvas.height = height;
+  } else {
+    ctx.clearRect(0, 0, width, height);
+  }
+  return ctx;
 };
 
 /** A per-cell CSS colour lookup in unit-cell space, clamped so jittered marks stay in range. */
@@ -308,30 +349,48 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
   // colours is darker and mark in the lighter — see `duotoneRoles` for why the polarity has to
   // follow luminance rather than the slot a colour sits in.
   const { ground, mark } = duotoneRoles(spec.effect, spec.duotone);
-  ctx.fillStyle = ground;
-  ctx.fillRect(0, 0, target.width, target.height);
-  ctx.fillStyle = mark;
-  ctx.strokeStyle = mark;
+  if (spec.photoUnder) {
+    // The photograph is the ground, so the marks read as a layer over it rather than as the
+    // whole picture — the reference app's default, where the effect canvas is transparent and
+    // stacked over the image element.
+    ctx.drawImage(source, 0, 0, target.width, target.height);
+  } else {
+    ctx.fillStyle = ground;
+    ctx.fillRect(0, 0, target.width, target.height);
+  }
+
+  const layerCtx = needsLayer(spec) ? getLayerCtx(target.width, target.height) : null;
+  const paint = layerCtx ?? ctx;
+  paint.fillStyle = mark;
+  paint.strokeStyle = mark;
 
   switch (spec.effect) {
     case 'halftone':
-      paintCircles(ctx, halftoneMarks(grid, spec.halftone), cell, colorAt);
+      paintCircles(paint, halftoneMarks(grid, spec.halftone), cell, colorAt);
       break;
     case 'dots':
-      paintBeads(ctx, dotsMarks(grid, spec.dots), cell, mark, spec.sourceColor ? rgbAtFor(probe) : undefined);
+      paintBeads(paint, dotsMarks(grid, spec.dots), cell, mark, spec.sourceColor ? rgbAtFor(probe) : undefined);
       break;
     case 'ascii':
-      paintAscii(ctx, asciiMarks(grid, spec.ascii), cell, colorAt);
+      paintAscii(paint, asciiMarks(grid, spec.ascii), cell, colorAt);
       break;
     case 'lattice':
       paintLattice(
-        ctx,
+        paint,
         latticeMarks(grid, { ...spec.lattice, density: 1 }, seededRand(spec.jitterSeed)),
         cell,
         mark,
         colorAt,
       );
       break;
+  }
+
+  if (layerCtx) {
+    ctx.globalAlpha = spec.layerOpacity;
+    ctx.globalCompositeOperation = BLEND_OPS[spec.blend];
+    ctx.drawImage(layerCtx.canvas, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
   }
 };
 
@@ -343,6 +402,9 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
  * `EXPORT_MAX_PIXELS`, scaled down proportionally when the source exceeds it — see that
  * constant's doc comment for why.
  *
+ * A blended layer halves that ceiling: the render then holds two canvases of the same size at
+ * once, and the limit it guards against is the memory behind them, not the count.
+ *
  * Resolves `null` on a null `toBlob` result, which the caller surfaces as a failure; there is
  * nothing more this module can do about it.
  */
@@ -353,7 +415,8 @@ export const renderExport = (
   const sourceW = source.width;
   const sourceH = source.height;
   const area = sourceW * sourceH;
-  const scale = area > EXPORT_MAX_PIXELS ? Math.sqrt(EXPORT_MAX_PIXELS / area) : 1;
+  const ceiling = needsLayer(spec) ? EXPORT_MAX_PIXELS / 2 : EXPORT_MAX_PIXELS;
+  const scale = area > ceiling ? Math.sqrt(ceiling / area) : 1;
   const width = Math.max(1, Math.round(sourceW * scale));
   const height = Math.max(1, Math.round(sourceH * scale));
 

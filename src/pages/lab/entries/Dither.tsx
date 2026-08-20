@@ -12,6 +12,7 @@ import { usePageTitle } from '../../../hooks/usePageTitle';
 import { staticVars } from '../../../styles/tokens';
 import type {
   AsciiParams,
+  BlendId,
   Duotone,
   DotsParams,
   EffectId,
@@ -36,7 +37,13 @@ const DEFAULT_ASCII: AsciiParams = { cellSize: 8, contrast: 0, charset: ASCII_RA
 const DEFAULT_LATTICE: LatticeParams = { density: 36, threshold: 0.05, jitter: 0.6 };
 const DEFAULT_DUOTONE: Duotone = { paper: '#f4ead5', ink: '#1a1408' };
 const DEFAULT_SOURCE_COLOR = true;
+/* The photo layer is opt-in: the page opens on the flat duotone ground it always had. */
+const DEFAULT_PHOTO_UNDER = false;
+const DEFAULT_BLEND: BlendId = 'normal';
+const DEFAULT_LAYER_OPACITY = 1;
 const DEFAULT_JITTER_SEED = 42;
+
+const BLENDS: BlendId[] = ['normal', 'overlay', 'screen', 'multiply', 'dodge'];
 
 const SAMPLE_URL = '/lab/dither/void-punk.webp';
 const NOTICE_MS = 4000;
@@ -93,6 +100,9 @@ const Dither: React.FC = () => {
   const [lattice, setLattice] = useState<LatticeParams>(DEFAULT_LATTICE);
   const [duotone, setDuotone] = useState<Duotone>(DEFAULT_DUOTONE);
   const [sourceColor, setSourceColor] = useState(DEFAULT_SOURCE_COLOR);
+  const [photoUnder, setPhotoUnder] = useState(DEFAULT_PHOTO_UNDER);
+  const [blend, setBlend] = useState<BlendId>(DEFAULT_BLEND);
+  const [layerOpacity, setLayerOpacity] = useState(DEFAULT_LAYER_OPACITY);
   const [jitterSeed, setJitterSeed] = useState(DEFAULT_JITTER_SEED);
 
   const [source, setSource] = useState<ImgSource | null>(null);
@@ -108,8 +118,32 @@ const Dither: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const spec: RenderSpec = useMemo(
-    () => ({ effect, halftone, dots, ascii, lattice, duotone, sourceColor, jitterSeed }),
-    [effect, halftone, dots, ascii, lattice, duotone, sourceColor, jitterSeed],
+    () => ({
+      effect,
+      halftone,
+      dots,
+      ascii,
+      lattice,
+      duotone,
+      sourceColor,
+      photoUnder,
+      blend,
+      layerOpacity,
+      jitterSeed,
+    }),
+    [
+      effect,
+      halftone,
+      dots,
+      ascii,
+      lattice,
+      duotone,
+      sourceColor,
+      photoUnder,
+      blend,
+      layerOpacity,
+      jitterSeed,
+    ],
   );
 
   const showNotice = useCallback((message: string) => {
@@ -276,6 +310,9 @@ const Dither: React.FC = () => {
     setLattice(DEFAULT_LATTICE);
     setDuotone(DEFAULT_DUOTONE);
     setSourceColor(DEFAULT_SOURCE_COLOR);
+    setPhotoUnder(DEFAULT_PHOTO_UNDER);
+    setBlend(DEFAULT_BLEND);
+    setLayerOpacity(DEFAULT_LAYER_OPACITY);
     setJitterSeed(DEFAULT_JITTER_SEED);
   };
 
@@ -531,6 +568,44 @@ const Dither: React.FC = () => {
                 />
               ))}
             </DuotoneRow>
+
+            <FieldLabel>photo layer</FieldLabel>
+            <ToggleButton
+              type="button"
+              aria-pressed={photoUnder}
+              $active={photoUnder}
+              onClick={() => setPhotoUnder((v) => !v)}
+            >
+              keep the photo
+            </ToggleButton>
+            {/* Blend and opacity describe how the marks meet the photograph, so they only exist
+                while there is one to meet — over a flat ground they have nothing to say. */}
+            {photoUnder && (
+              <ParamSet>
+                <PresetRow role="radiogroup" aria-label="Blend">
+                  {BLENDS.map((id) => (
+                    <PresetButton
+                      key={id}
+                      type="button"
+                      role="radio"
+                      aria-checked={blend === id}
+                      $active={blend === id}
+                      onClick={() => setBlend(id)}
+                    >
+                      {id}
+                    </PresetButton>
+                  ))}
+                </PresetRow>
+                <SliderField
+                  label="Layer opacity"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={layerOpacity}
+                  onChange={setLayerOpacity}
+                />
+              </ParamSet>
+            )}
 
             <InputRow>
               <ChooseButton type="button" onClick={() => fileInputRef.current?.click()}>
@@ -869,6 +944,7 @@ const ToggleButton = styled.button<{ $active: boolean }>`
 
 const PresetRow = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
 `;
 
@@ -877,7 +953,8 @@ const PresetButton = styled.button<{ $active: boolean }>`
   font-size: 0.58rem;
   letter-spacing: 0.1em;
   text-transform: lowercase;
-  padding: 0.35rem 0.6rem;
+  /* Tight enough that the five blend names share the 320px column on one line. */
+  padding: 0.35rem 0.4rem;
   border-radius: 2px;
   cursor: pointer;
   border: 1px solid ${(p) => (p.$active ? 'var(--n-1)' : 'var(--n-7)')};
