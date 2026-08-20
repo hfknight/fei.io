@@ -9,11 +9,12 @@ import { stampMeta } from '../lib/stampMeta';
 
 const LAB_META: Record<string, PageMeta> = {
   dither: {
+    /* Kept near 155 characters: a search result truncates around there, and the sentence that
+       survives should still carry what the tool does and that nothing is uploaded. */
     title: 'Dither — a halftone, dots, ascii, and lattice image tool · Fei Hu',
     description:
-      'Drop in a photo and render it as halftone, dots, ascii, or a lattice — per-effect ' +
-      'controls, an ink-and-paper duotone, and a full-resolution PNG out. Everything runs ' +
-      'in the browser; the image never leaves it.',
+      'Turn a photo into halftone, dots, ascii, or lattice marks, tune every control, and ' +
+      'download the full-resolution PNG. Runs in your browser; nothing is uploaded.',
   },
   prompted: {
     title: 'everything here was prompted — an AI gallery · Fei Hu',

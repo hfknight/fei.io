@@ -20,4 +20,34 @@
     <priority>0.8</priority>
     <changefreq>yearly</changefreq>
   </url>
+  <url>
+    <loc>https://fei.io/lab/dither</loc>
+    <priority>0.7</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://fei.io/lab/pick-a-font</loc>
+    <priority>0.7</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://fei.io/lab/prompted</loc>
+    <priority>0.6</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://fei.io/lab/text-into-picture</loc>
+    <priority>0.6</priority>
+    <changefreq>yearly</changefreq>
+  </url>
+  <url>
+    <loc>https://fei.io/lab/cursor-tracked-video</loc>
+    <priority>0.6</priority>
+    <changefreq>yearly</changefreq>
+  </url>
+  <url>
+    <loc>https://fei.io/lab/interfaces-that-feel-better</loc>
+    <priority>0.6</priority>
+    <changefreq>yearly</changefreq>
+  </url>
 </urlset>

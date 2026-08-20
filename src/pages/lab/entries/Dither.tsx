@@ -453,7 +453,12 @@ const Dither: React.FC = () => {
               onDragLeave={onDragLeave}
               onDrop={onDrop}
             >
-              <Canvas ref={canvasRef} />
+              {/* The canvas is the whole of this page's content, and to anything that cannot
+                  see pixels it is a blank element. The label says which effect is showing, and
+                  the child text is the canvas fallback, which is what a crawler reads. */}
+              <Canvas ref={canvasRef} role="img" aria-label={`${effect} render of the photo`}>
+                A photo rendered as {effect} marks.
+              </Canvas>
               {dragOver && <DropHint>drop to replace the photo</DropHint>}
             </CanvasWrap>
           </CanvasCol>

@@ -28,5 +28,16 @@ He flexes between tech lead and solo operator depending on what is needed — ar
 
 - https://fei.io/ — Landing
 - https://fei.io/readme — About & personal statement
-- https://fei.io/changelog — Career journey visualization
-- https://fei.io/contact — Contact links
+- https://fei.io/lab — Lab index: small tools and experiments, each one built and written up
+- https://fei.io/writing — Writing
+
+## Lab
+
+Free, browser-only tools. Nothing is uploaded; every one runs entirely on the visitor's machine.
+
+- https://fei.io/lab/dither — Dither a photo into print marks: halftone, dots, ascii, or a lattice mesh, with per-effect controls, duotone ink and paper, an optional photo layer with blend modes, and a full-resolution PNG export
+- https://fei.io/lab/pick-a-font — Font pairing by feel: four sliders map to free webfont pairings
+- https://fei.io/lab/prompted — A gallery of AI-generated images and video, each with its verbatim prompt
+- https://fei.io/lab/text-into-picture — A scroll effect that condenses a page of prose into an ASCII-halftone image
+- https://fei.io/lab/cursor-tracked-video — Cursor position drives a video's playhead, frame-accurate
+- https://fei.io/lab/interfaces-that-feel-better — Micro-interaction patterns with live demos
