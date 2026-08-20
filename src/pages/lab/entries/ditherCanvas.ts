@@ -116,9 +116,16 @@ const LATTICE_LINE_WIDTH_RATIO = 0.07;
 const LATTICE_NODE_RADIUS_RATIO = 0.1;
 const LATTICE_LINE_WIDTH_MIN = 0.85;
 const LATTICE_NODE_RADIUS_MIN = 1.3;
-/* Nodes are the mesh's light: they take their colour lifted, where struts take theirs plain.
- * Also the reference app's constant. */
-const LATTICE_NODE_GAIN = 1.5;
+/**
+ * How much harder a node pushes off the ground than its struts do.
+ *
+ * The reference app lifts node colour by a flat 1.5x, which works because its marks always sit
+ * over a photograph and its mesh is always meant to glow. Ours also has to sit on cream paper
+ * and on bright photographs, where a flat lift is worse than nothing: it cancelled the very
+ * push that was making the node visible, landing it back on the colour it was sampled from.
+ * Same idea, applied to the distance rather than the brightness — see `sourceMarkGain`.
+ */
+const LATTICE_NODE_PUSH = 1.6;
 
 /**
  * Lattice reads `density` as the mesh's column count and sizes the probe grid to it directly
@@ -203,14 +210,14 @@ type RgbAt = (x: number, y: number) => [number, number, number];
  * the sampled colour. `null` means the photograph is the ground, so each cell's own luminance
  * stands in — the thing behind the mark there is the pixel it came from.
  */
-const rgbAtFor = (probe: Probe, groundLuma: number | null | undefined): RgbAt => {
+const rgbAtFor = (probe: Probe, groundLuma: number | null | undefined, push = 1): RgbAt => {
   const { cols, rows, rgb, luma } = probe;
   return (x, y) => {
     const col = Math.min(cols - 1, Math.max(0, Math.floor(x)));
     const row = Math.min(rows - 1, Math.max(0, Math.floor(y)));
     const i = row * cols + col;
     const o = i * 4;
-    const gain = sourceMarkGain(luma[i], groundLuma ?? luma[i]);
+    const gain = sourceMarkGain(luma[i], groundLuma ?? luma[i], push);
     return [
       Math.min(255, Math.max(0, rgb[o] * gain)),
       Math.min(255, Math.max(0, rgb[o + 1] * gain)),
@@ -229,12 +236,6 @@ const colorAtFor = (probe: Probe, groundLuma: number | null | undefined): ColorA
 
 const rgbString = ([r, g, b]: [number, number, number]): string =>
   `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
-
-const scaleRgb = ([r, g, b]: [number, number, number], k: number): [number, number, number] => [
-  Math.min(255, r * k),
-  Math.min(255, g * k),
-  Math.min(255, b * k),
-];
 
 /** `duotone` values come from `<input type="color">`, which always yields #rrggbb. */
 const hexToRgb = (hex: string): [number, number, number] => {
@@ -357,7 +358,8 @@ const paintLattice = (
   cell: number,
   mark: string,
   edgeAlpha: number,
-  rgbAt?: RgbAt,
+  strutRgbAt?: RgbAt,
+  nodeRgbAt?: RgbAt,
 ): void => {
   const { nodes, edges } = marks;
   ctx.lineWidth = Math.max(LATTICE_LINE_WIDTH_MIN, cell * LATTICE_LINE_WIDTH_RATIO);
@@ -365,7 +367,7 @@ const paintLattice = (
     const na = nodes[e.a];
     const nb = nodes[e.b];
     ctx.globalAlpha = Math.min(1, e.fade * e.luma * edgeAlpha);
-    ctx.strokeStyle = rgbAt ? rgbString(rgbAt((na.x + nb.x) / 2, (na.y + nb.y) / 2)) : mark;
+    ctx.strokeStyle = strutRgbAt ? rgbString(strutRgbAt((na.x + nb.x) / 2, (na.y + nb.y) / 2)) : mark;
     ctx.beginPath();
     ctx.moveTo(na.x * cell, na.y * cell);
     ctx.lineTo(nb.x * cell, nb.y * cell);
@@ -374,7 +376,7 @@ const paintLattice = (
   const r = Math.max(LATTICE_NODE_RADIUS_MIN, cell * LATTICE_NODE_RADIUS_RATIO);
   for (const n of nodes) {
     ctx.globalAlpha = Math.min(1, n.luma * 1.6);
-    ctx.fillStyle = rgbAt ? rgbString(scaleRgb(rgbAt(n.x, n.y), LATTICE_NODE_GAIN)) : mark;
+    ctx.fillStyle = nodeRgbAt ? rgbString(nodeRgbAt(n.x, n.y)) : mark;
     ctx.beginPath();
     ctx.arc(n.x * cell, n.y * cell, Math.max(0.8, r * (0.5 + n.luma * 0.8)), 0, Math.PI * 2);
     ctx.fill();
@@ -469,6 +471,7 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
            assumption does. */
         spec.photoUnder ? 0.65 : 0.95,
         spec.sourceColor ? rgbAtFor(probe, groundLuma) : undefined,
+        spec.sourceColor ? rgbAtFor(probe, groundLuma, LATTICE_NODE_PUSH) : undefined,
       );
       break;
   }

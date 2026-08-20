@@ -67,6 +67,17 @@ describe('sourceMarkGain', () => {
     expect(sourceMarkGain(0, 0.95)).toBeCloseTo(1, 5); // a black mark already reads
   });
 
+  it('pushes further with a stronger push, never the other way', () => {
+    // The lattice's nodes have to out-read its own struts. The regression this guards: a flat
+    // brightening applied on top of a darkening gain cancelled it — 0.685 x 1.5 = 1.03, the
+    // pixel's own colour — and the mesh vanished into the photograph it was drawn on.
+    const strut = sourceMarkGain(0.7, 0.7);
+    const node = sourceMarkGain(0.7, 0.7, 1.6);
+    expect(strut).toBeLessThan(1);
+    expect(node).toBeLessThan(strut); // same direction, further along it
+    expect(sourceMarkGain(0.2, 0.1, 1.6)).toBeGreaterThan(sourceMarkGain(0.2, 0.1));
+  });
+
   it('turns at mid-grey, and never leaves a mark unchanged in the direction that hides it', () => {
     expect(sourceMarkGain(0.8, 0.49)).toBeGreaterThan(1);
     expect(sourceMarkGain(0.8, 0.5)).toBeLessThan(1);

@@ -227,9 +227,14 @@ export const ASCII_RAMPS = {
  * `groundLuma` is the luminance of what lies under the mark: the duotone's ground on a flat
  * fill, or the cell's own luminance when the photograph is the ground, since there the thing
  * behind the mark *is* the pixel it was sampled from.
+ *
+ * `push` scales how far, for marks that have to out-read their neighbours — the lattice's nodes
+ * against its own struts. It multiplies the distance, never the direction: a class of mark that
+ * pushes harder still pushes the same way, which is what keeps a mesh coherent instead of
+ * splitting it into light nodes and dark webbing on the same picture.
  */
-export const sourceMarkGain = (luma: number, groundLuma: number): number =>
-  groundLuma < 0.5 ? 1 + (1 - luma) * 1.5 : 1 - luma * 0.45;
+export const sourceMarkGain = (luma: number, groundLuma: number, push = 1): number =>
+  groundLuma < 0.5 ? 1 + (1 - luma) * 1.5 * push : 1 - luma * 0.45 * push;
 
 /** Rec.601 luminance of a `#rrggbb`, for deciding which way `sourceMarkGain` should push. */
 export const hexLuminance = (hex: string): number => hexLuma(hex);
