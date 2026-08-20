@@ -62,6 +62,11 @@ const DRAG_GAP_MS = 220;
 /* How long after the last change the fine render lands. Long enough to sit out the gaps in a
    slow drag, short enough that it feels like the same gesture. */
 const REFINE_DELAY_MS = 200;
+/* The page's own padding above and below the canvas, in px — `Page`'s 5rem top and 3rem bottom
+   plus a rem of slack. Both the canvas's CSS ceiling and the preview's sizing read it, so a
+   portrait is drawn at the size it is displayed rather than at the column's full width, where
+   CSS would then shrink it and every cell with it. */
+const CANVAS_VIEWPORT_MARGIN = 144;
 
 /** The seam a test can assert without touching canvas: what a download would be named/typed. */
 export const EXPORT_FILENAME = 'dither.png';
@@ -271,7 +276,12 @@ const Dither: React.FC = () => {
     if (!canvas) return;
     if (!canvas.getContext('2d')) return; // jsdom has no 2d context; nothing to draw
 
-    const width = canvasWrapRef.current?.clientWidth || 600;
+    const columnWidth = canvasWrapRef.current?.clientWidth || 600;
+    const maxHeight = Math.max(200, window.innerHeight - CANVAS_VIEWPORT_MARGIN);
+    const width = Math.max(
+      1,
+      Math.round(Math.min(columnWidth, maxHeight * (source.width / source.height))),
+    );
     const height = Math.max(1, Math.round(width * (source.height / source.width)));
     canvas.width = width;
     canvas.height = height;
@@ -798,8 +808,9 @@ const Canvas = styled.canvas`
   max-width: 100%;
   /* The whole picture fits the viewport without scrolling; portrait sources scale down.
      Only the page's own padding sits above and below it — the buttons live in the controls
-     column, so nothing else eats the height. */
-  max-height: calc(100dvh - 9rem);
+     column, so nothing else eats the height. The preview sizes its backing store against the
+     same number, so a portrait is never drawn larger than it is shown. */
+  max-height: calc(100dvh - ${CANVAS_VIEWPORT_MARGIN}px);
   margin-inline: auto;
   background: var(--n-9);
   border-radius: 4px;
