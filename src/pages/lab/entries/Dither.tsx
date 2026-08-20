@@ -35,6 +35,7 @@ const DEFAULT_ASCII: AsciiParams = { cellSize: 8, contrast: 0, charset: ASCII_RA
  * off entirely). */
 const DEFAULT_LATTICE: LatticeParams = { density: 36, threshold: 0.05, jitter: 0.6 };
 const DEFAULT_DUOTONE: Duotone = { paper: '#f4ead5', ink: '#1a1408' };
+const DEFAULT_SOURCE_COLOR = true;
 const DEFAULT_JITTER_SEED = 42;
 
 const SAMPLE_URL = '/lab/dither/void-punk.webp';
@@ -91,7 +92,7 @@ const Dither: React.FC = () => {
   const [ascii, setAscii] = useState<AsciiParams>(DEFAULT_ASCII);
   const [lattice, setLattice] = useState<LatticeParams>(DEFAULT_LATTICE);
   const [duotone, setDuotone] = useState<Duotone>(DEFAULT_DUOTONE);
-  const [sourceColor, setSourceColor] = useState(true);
+  const [sourceColor, setSourceColor] = useState(DEFAULT_SOURCE_COLOR);
   const [jitterSeed, setJitterSeed] = useState(DEFAULT_JITTER_SEED);
 
   const [source, setSource] = useState<ImgSource | null>(null);
@@ -258,6 +259,26 @@ const Dither: React.FC = () => {
     if (file) void loadSource(file);
   };
 
+  /**
+   * Switching effects opens a clean slate: every effect's params, the duotone and the
+   * image-colors toggle all return to their defaults. Nothing tuned for one effect follows the
+   * visitor into the next — which matters most for the colours, since the same pick means
+   * different things per effect (halftone inks on paper; dots and lattice ground the frame in
+   * whichever colour is darker). Re-picking the effect already showing is a no-op, so a stray
+   * click on the active button never wipes a tuned render.
+   */
+  const selectEffect = (id: EffectId) => {
+    if (id === effect) return;
+    setEffect(id);
+    setHalftone(DEFAULT_HALFTONE);
+    setDots(DEFAULT_DOTS);
+    setAscii(DEFAULT_ASCII);
+    setLattice(DEFAULT_LATTICE);
+    setDuotone(DEFAULT_DUOTONE);
+    setSourceColor(DEFAULT_SOURCE_COLOR);
+    setJitterSeed(DEFAULT_JITTER_SEED);
+  };
+
   /* Jitter takes a fresh seed only when jitter itself moves (KTD4) — density/threshold, and
      every other slider, leave the scatter alone. */
   const onJitterChange = (value: number) => {
@@ -336,7 +357,7 @@ const Dither: React.FC = () => {
                   role="radio"
                   aria-checked={effect === e.id}
                   $active={effect === e.id}
-                  onClick={() => setEffect(e.id)}
+                  onClick={() => selectEffect(e.id)}
                 >
                   {e.label}
                 </EffectButton>

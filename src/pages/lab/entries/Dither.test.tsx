@@ -46,13 +46,41 @@ describe('Dither', () => {
     expect(screen.getByLabelText('Jitter')).toBeInTheDocument();
   });
 
-  it('persists per-effect param state across a switch away and back', () => {
+  it('resets a tuned param to its default on a switch away and back', () => {
     renderPage();
     const angle = screen.getByLabelText('Angle') as HTMLInputElement;
     fireEvent.change(angle, { target: { value: '90' } });
     expect(angle.value).toBe('90');
 
     fireEvent.click(screen.getByRole('radio', { name: 'dots' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'halftone' }));
+
+    expect((screen.getByLabelText('Angle') as HTMLInputElement).value).toBe('45');
+  });
+
+  it('resets the duotone and the image-colors toggle on a switch', () => {
+    renderPage();
+    const ink = screen.getByLabelText('Ink color') as HTMLInputElement;
+    const toggle = screen.getByRole('button', { name: 'image colors' });
+    fireEvent.change(ink, { target: { value: '#4ade80' } });
+    fireEvent.click(toggle);
+    expect(ink.value).toBe('#4ade80');
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(screen.getByRole('radio', { name: 'dots' }));
+
+    expect((screen.getByLabelText('Ink color') as HTMLInputElement).value).toBe('#1a1408');
+    expect(screen.getByRole('button', { name: 'image colors' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('leaves a tuned render alone when the effect already showing is re-picked', () => {
+    renderPage();
+    const angle = screen.getByLabelText('Angle') as HTMLInputElement;
+    fireEvent.change(angle, { target: { value: '90' } });
+
     fireEvent.click(screen.getByRole('radio', { name: 'halftone' }));
 
     expect((screen.getByLabelText('Angle') as HTMLInputElement).value).toBe('90');
