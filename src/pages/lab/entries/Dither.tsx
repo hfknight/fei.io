@@ -21,7 +21,12 @@ import type {
 } from './ditherCore';
 import { ASCII_RAMPS } from './ditherCore';
 import type { RenderSpec } from './ditherCanvas';
-import { PREVIEW_MAX_COLS, renderEffect, renderExport } from './ditherCanvas';
+import {
+  PREVIEW_DRAG_MAX_COLS,
+  PREVIEW_MAX_COLS,
+  renderEffect,
+  renderExport,
+} from './ditherCanvas';
 
 /* ------------------------------------------------------------------ */
 /* Defaults                                                             */
@@ -29,7 +34,11 @@ import { PREVIEW_MAX_COLS, renderEffect, renderExport } from './ditherCanvas';
 
 const DEFAULT_HALFTONE: HalftoneParams = { cellSize: 8, angle: 45, contrast: 0, invert: false };
 const DEFAULT_DOTS: DotsParams = { cellSize: 8, fillCutoff: 0.08, contrast: 0 };
-const DEFAULT_ASCII: AsciiParams = { cellSize: 8, contrast: 0, charset: ASCII_RAMPS.classic };
+/* Ascii opens coarser than the other three on purpose: its mark is a glyph, and a glyph has to
+ * be big enough to read as one. At the cell size the others default to, a wide photo puts ~4px
+ * between characters and the picture turns into a grey wash. The slider still reaches down
+ * there for anyone who wants that texture. */
+const DEFAULT_ASCII: AsciiParams = { cellSize: 16, contrast: 0, charset: ASCII_RAMPS.classic };
 /* `density` reaches the canvas edge as the mesh's column count (see ditherCanvas.ts). */
 /* Threshold defaults near zero: the mesh's luminance-alpha already fades shadows out, so the
  * hard cull is a stylistic extra, not the primary tone control (the reference app defaults it
@@ -47,6 +56,12 @@ const BLENDS: BlendId[] = ['normal', 'overlay', 'screen', 'multiply', 'dodge'];
 
 const SAMPLE_URL = '/lab/dither/void-punk.webp';
 const NOTICE_MS = 4000;
+/* Two spec changes closer together than this are a drag, not two decisions — a slider fires
+   every few milliseconds while the thumb moves. */
+const DRAG_GAP_MS = 220;
+/* How long after the last change the fine render lands. Long enough to sit out the gaps in a
+   slow drag, short enough that it feels like the same gesture. */
+const REFINE_DELAY_MS = 200;
 
 /** The seam a test can assert without touching canvas: what a download would be named/typed. */
 export const EXPORT_FILENAME = 'dither.png';
@@ -115,6 +130,8 @@ const Dither: React.FC = () => {
   const heldRef = useRef<HeldSource | null>(null);
   const noticeTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const asciiFontGatedRef = useRef(false);
+  /* When the last spec change landed, so a drag can be told from a single click. */
+  const lastRenderRef = useRef(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -241,7 +258,13 @@ const Dither: React.FC = () => {
   }, [loadSource]);
 
   /* Preview render: fires on every spec/source change, i.e. every slider drag. Sized to the
-     container's width, height following the source's aspect so cells stay square. */
+     container's width, height following the source's aspect so cells stay square.
+
+     The full grid costs more than a frame to paint, so a change arriving on the heels of
+     another — which is what a drag is — paints the coarse grid instead, and a fine render lands
+     once the changes stop. A visitor scrubbing a slider sees coarse frames follow their thumb;
+     a visitor who stops sees the full detail a beat later. Every render the picture actually
+     rests on is the fine one, and export never uses the coarse cap at all. */
   useEffect(() => {
     if (!source) return;
     const canvas = canvasRef.current;
@@ -253,7 +276,19 @@ const Dither: React.FC = () => {
     canvas.width = width;
     canvas.height = height;
 
-    renderEffect(canvas, source, spec, PREVIEW_MAX_COLS);
+    const now = performance.now();
+    const dragging = now - lastRenderRef.current < DRAG_GAP_MS;
+    lastRenderRef.current = now;
+
+    renderEffect(canvas, source, spec, dragging ? PREVIEW_DRAG_MAX_COLS : PREVIEW_MAX_COLS);
+
+    if (dragging) {
+      const refine = setTimeout(
+        () => renderEffect(canvas, source, spec, PREVIEW_MAX_COLS),
+        REFINE_DELAY_MS,
+      );
+      return () => clearTimeout(refine);
+    }
 
     /* Font gate (U2 edit): before the FIRST ascii render only, wait for JetBrains Mono to be
        usable and re-render once — a cold load should never freeze fallback glyphs. Later

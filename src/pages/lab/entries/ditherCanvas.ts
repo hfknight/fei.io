@@ -69,9 +69,27 @@ export interface RenderSpec {
 export const needsLayer = (spec: RenderSpec): boolean =>
   spec.photoUnder && (spec.blend !== 'normal' || spec.layerOpacity < 1);
 
-/** The preview grid's column cap. Cost scales with cell count, so this is what keeps slider
- *  drags interactive on a full-resolution photo. */
-export const PREVIEW_MAX_COLS = 120;
+/**
+ * The grid's column cap, for preview and export alike.
+ *
+ * It is a ceiling on cell *count*, so it doubles as the cost ceiling — but it also silently
+ * overrides the cell-size slider: a cell size fine enough to ask for more columns than this
+ * just gets this many, and every setting below that threshold renders identically. At 120 that
+ * swallowed everything under a 17px cell on a 2048px-wide photo, the default 8 included, so the
+ * slider's first third did nothing at all.
+ *
+ * 256 puts the threshold at an 8px cell for that photo. Measured on this canvas (977px wide,
+ * ~40k cells): halftone ~28ms a render, dots ~24ms, ascii ~39ms — past a frame, which is why a
+ * drag renders at `PREVIEW_DRAG_MAX_COLS` and refines once it stops.
+ */
+export const PREVIEW_MAX_COLS = 256;
+
+/**
+ * The column cap while a control is actively being dragged — the old ceiling, which measured
+ * 9-17ms a render. The fine grid lands ~200ms after the drag stops, so the picture a visitor
+ * settles on is always the full-detail one; only the frames they are scrubbing past are coarse.
+ */
+export const PREVIEW_DRAG_MAX_COLS = 120;
 
 /**
  * The export pixel-area ceiling. iOS Safari silently blanks a canvas past ~16.7M pixels, and
@@ -230,6 +248,14 @@ const paintCircles = (
 };
 
 /**
+ * A bead below this radius (in device pixels) is painted flat instead of shaded. Three stops
+ * inside a two-pixel circle land on the same pixel anyway, so the gradient is invisible there —
+ * and building one per mark is the single most expensive thing this module does, which is what
+ * decides how fine a grid the preview can carry. See `PREVIEW_MAX_COLS`.
+ */
+const BEAD_SHADING_MIN_R = 2.5;
+
+/**
  * Dots paint as lit beads on the dark ground, per the reference app: each dot is a small
  * radial gradient — a highlight pushed toward the upper-left, the base colour through the
  * middle, a darker rim — so the field reads as glass spheres catching light rather than flat
@@ -249,6 +275,13 @@ const paintBeads = (
     const [r, g, b] = rgbAt ? rgbAt(m.x, m.y) : base;
     const px = m.x * cell;
     const py = m.y * cell;
+    if (pr < BEAD_SHADING_MIN_R) {
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.beginPath();
+      ctx.arc(px, py, pr, 0, Math.PI * 2);
+      ctx.fill();
+      continue;
+    }
     const grad = ctx.createRadialGradient(px - pr * 0.3, py - pr * 0.3, pr * 0.05, px, py, pr);
     grad.addColorStop(0, `rgba(${Math.min(255, r + 80)},${Math.min(255, g + 80)},${Math.min(255, b + 80)},1)`);
     grad.addColorStop(0.5, `rgba(${r},${g},${b},1)`);
