@@ -88,8 +88,16 @@ const HALFTONE_MIN_R = 0.05 * HALFTONE_R_MAX;
 /**
  * Circle marks on a rotated sampling grid, radius from sqrt of cell luminance so perceived
  * tone stays linear in dot area. The sampling grid is over-scanned past the frame's diagonal
- * before rotating, so a rotated grid still lands marks in all four corners; points that land
- * outside the frame after rotation are simply skipped.
+ * before rotating, so a rotated grid still lands marks in all four corners.
+ *
+ * A point is kept when its *ink* can reach the frame, not merely its centre: a dot's radius
+ * runs `HALFTONE_R_MAX` past the point it is centred on, so the ring of dots just outside the
+ * frame still paints inside it — and that ring is what merges with the innermost one to hold a
+ * shadow solid all the way to the border. Culling on the centre alone unravels the merge and
+ * leaves a beaded fringe of bare paper up to a half-cell deep along every edge (visible on a
+ * rotated grid, where the outermost survivors can sit a full cell short of the border).
+ * Luminance for a point outside the frame clamps to the nearest cell, and the canvas clips
+ * whatever ink lands past the edge.
  */
 export const halftoneMarks = (
   grid: Grid,
@@ -110,7 +118,13 @@ export const halftoneMarks = (
     for (let i = -overscan; i <= overscan; i++) {
       const x = cx + i * cosA - j * sinA;
       const y = cy + i * sinA + j * cosA;
-      if (x < 0 || x >= cols || y < 0 || y >= rows) continue;
+      if (
+        x < -HALFTONE_R_MAX ||
+        x >= cols + HALFTONE_R_MAX ||
+        y < -HALFTONE_R_MAX ||
+        y >= rows + HALFTONE_R_MAX
+      )
+        continue;
       const col = Math.min(cols - 1, Math.max(0, Math.floor(x)));
       const row = Math.min(rows - 1, Math.max(0, Math.floor(y)));
       const l = luma[row * cols + col];

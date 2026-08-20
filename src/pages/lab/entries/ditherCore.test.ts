@@ -163,13 +163,60 @@ describe('halftoneMarks', () => {
   });
 
   it('at angle 0, lands exactly on cell centers — the same grid dotsMarks samples', () => {
-    const grid = flatGrid(8, 8, 0);
+    const cols = 8;
+    const rows = 8;
+    const grid = flatGrid(cols, rows, 0);
     const halftone = halftoneMarks(grid, params({ angle: 0 }));
     const dots = dotsMarks(grid, { cellSize: 12, fillCutoff: 0, contrast: 0 });
     const toKey = (p: { x: number; y: number }) => `${p.x},${p.y}`;
     const halftoneKeys = new Set(halftone.map(toKey));
     const dotsKeys = new Set(dots.map(toKey));
-    expect(halftoneKeys).toEqual(dotsKeys);
+    // Every cell center is sampled; the extras are the outside ring whose ink reaches back in.
+    for (const key of dotsKeys) expect(halftoneKeys).toContain(key);
+    for (const m of halftone) {
+      const inside = m.x > 0 && m.x < cols && m.y > 0 && m.y < rows;
+      if (!inside) expect(dotsKeys).not.toContain(toKey(m));
+    }
+  });
+
+  it('keeps the ring of points just outside the frame, and nothing past their ink', () => {
+    const cols = 8;
+    const rows = 8;
+    const marks = halftoneMarks(flatGrid(cols, rows, 0), params({ angle: 45 }));
+    const outside = marks.filter(m => m.x < 0 || m.y < 0 || m.x >= cols || m.y >= rows);
+    expect(outside.length).toBeGreaterThan(0);
+    // A point further out than the max radius could paint nothing inside, so none is kept.
+    for (const m of marks) {
+      expect(m.x).toBeGreaterThanOrEqual(-0.575);
+      expect(m.y).toBeGreaterThanOrEqual(-0.575);
+      expect(m.x).toBeLessThan(cols + 0.575);
+      expect(m.y).toBeLessThan(rows + 0.575);
+    }
+  });
+
+  it('inks a black frame right up to all four borders, not just the interior', () => {
+    // The regression this guards: culling on the centre alone left the outermost dots
+    // unmerged, so a solid shadow frayed into separate circles along the edge. On this
+    // lattice a straight line runs 81-100% covered depending on where it falls between
+    // rows — a border that drops to ~45% is the fringe, not the phase.
+    const cols = 10;
+    const rows = 10;
+    const marks = halftoneMarks(flatGrid(cols, rows, 0), params({ angle: 45 }));
+    const covered = (x: number, y: number) =>
+      marks.some(m => Math.hypot(m.x - x, m.y - y) <= m.r);
+
+    const SAMPLES = 200;
+    const edges: [string, (t: number) => [number, number]][] = [
+      ['top', t => [t * cols, 0]],
+      ['bottom', t => [t * cols, rows]],
+      ['left', t => [0, t * rows]],
+      ['right', t => [cols, t * rows]],
+    ];
+    for (const [name, at] of edges) {
+      let hits = 0;
+      for (let i = 0; i < SAMPLES; i++) if (covered(...at(i / (SAMPLES - 1)))) hits++;
+      expect(`${name}:${hits / SAMPLES >= 0.75}`).toBe(`${name}:true`);
+    }
   });
 });
 
