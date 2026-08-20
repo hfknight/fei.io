@@ -37,7 +37,7 @@ const DEFAULT_LATTICE: LatticeParams = { density: 36, threshold: 0.05, jitter: 0
 const DEFAULT_DUOTONE: Duotone = { paper: '#f4ead5', ink: '#1a1408' };
 const DEFAULT_JITTER_SEED = 42;
 
-const SAMPLE_URL = '/lab/dither/lab-hand.webp';
+const SAMPLE_URL = '/lab/dither/void-punk.webp';
 const NOTICE_MS = 4000;
 
 /** The seam a test can assert without touching canvas: what a download would be named/typed. */
