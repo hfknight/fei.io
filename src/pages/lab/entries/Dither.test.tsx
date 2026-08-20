@@ -109,6 +109,62 @@ describe('Dither', () => {
     expect((fetch as unknown as { mock: { calls: unknown[] } }).mock.calls.length).toBe(before);
   });
 
+  describe('the description card', () => {
+    const aboutButton = () => screen.getByRole('button', { name: /^about the/ });
+    const cardFor = (copy: RegExp) => screen.getByText(copy).closest('[aria-hidden]');
+
+    it('names the effect it would describe, and starts on the controls', () => {
+      renderPage();
+      expect(aboutButton()).toHaveAccessibleName('about the halftone effect');
+      expect(aboutButton()).toHaveAttribute('aria-pressed', 'false');
+      // The copy is always in the DOM — it is the card that turns, not the text that mounts —
+      // so what marks it as away is aria-hidden, which is also what keeps it off the a11y tree.
+      expect(cardFor(/A print screen/)).toHaveAttribute('aria-hidden', 'true');
+    });
+
+    it('turns to the description and back on the icon', () => {
+      renderPage();
+      fireEvent.click(aboutButton());
+      expect(aboutButton()).toHaveAttribute('aria-pressed', 'true');
+      expect(cardFor(/A print screen/)).toHaveAttribute('aria-hidden', 'false');
+
+      fireEvent.click(aboutButton());
+      expect(aboutButton()).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('closes on Escape', () => {
+      renderPage();
+      fireEvent.click(aboutButton());
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(aboutButton()).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('lands on the new effect\'s controls, not its prose, when the effect changes', () => {
+      renderPage();
+      fireEvent.click(aboutButton());
+      fireEvent.click(screen.getByRole('radio', { name: 'lattice' }));
+
+      expect(aboutButton()).toHaveAttribute('aria-pressed', 'false');
+      expect(aboutButton()).toHaveAccessibleName('about the lattice effect');
+      expect(cardFor(/A mesh that is the picture/)).toHaveAttribute('aria-hidden', 'true');
+    });
+
+    it('carries copy for every effect', () => {
+      renderPage();
+      const opening: [string, RegExp][] = [
+        ['halftone', /A print screen/],
+        ['dots', /An LED wall/],
+        ['ascii', /The photo retyped/],
+        ['lattice', /A mesh that is the picture/],
+      ];
+      for (const [name, copy] of opening) {
+        fireEvent.click(screen.getByRole('radio', { name }));
+        fireEvent.click(aboutButton());
+        expect(cardFor(copy)).toHaveAttribute('aria-hidden', 'false');
+      }
+    });
+  });
+
   it('reveals blend and layer opacity only once the photo is kept', () => {
     renderPage();
     expect(screen.queryByLabelText('Layer opacity')).not.toBeInTheDocument();

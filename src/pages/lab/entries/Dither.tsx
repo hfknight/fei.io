@@ -5,6 +5,8 @@
  * shape; nothing here decides behaviour that wasn't already decided there.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import styled, { css } from 'styled-components';
 import PageTransition from '../../../components/PageTransition';
@@ -83,6 +85,14 @@ const REFINE_DELAY_MS = 200;
    portrait is drawn at the size it is displayed rather than at the column's full width, where
    CSS would then shrink it and every cell with it. */
 const CANVAS_VIEWPORT_MARGIN = 144;
+/* The flip card's height, fixed for every effect and both faces. Fixed because a card that
+   resized would shove five controls up and down mid-animation — and because the four effects'
+   parameter sets differ by ~50px, which used to make the column itself jump on every switch.
+   230 is measured, not guessed: ascii's controls are the tallest face at 219 (its charset row
+   and custom field), and the longest description runs a little under that. */
+const FLIP_HEIGHT = 230;
+/* Long enough to read as a turn rather than a cut, short enough to stay out of the way. */
+const FLIP_MS = 0.38;
 
 /** The seam a test can assert without touching canvas: what a download would be named/typed. */
 export const EXPORT_FILENAME = 'dither.png';
@@ -115,6 +125,46 @@ const DUOTONE_PRESETS: { name: string; ink: string; paper: string }[] = [
   { name: 'inverse', paper: '#0d0d0d', ink: '#f2f2f2' },
 ];
 
+/**
+ * What each effect is, and what it does to the pixels — the panel's other face.
+ *
+ * Keyed by `EffectId`, so an effect added without copy is a compile error rather than a blank
+ * card. Kept to roughly 250 characters an entry: the card is a fixed box (see `FLIP_HEIGHT`),
+ * and the whole point of the flip is that the column never grows a scrollbar.
+ */
+const EFFECT_COPY: Record<EffectId, { what: string; how: string }> = {
+  halftone: {
+    what: 'A print screen: the photo is sampled to a grid and every cell becomes one dot.',
+    how:
+      "Radius follows the square root of the cell's darkness, so tone stays linear in ink " +
+      'area. The grid rotates — 45° by default — and dots overshoot their cell by 15%, so ' +
+      'shadows merge into solid ink.',
+  },
+  dots: {
+    what: 'An LED wall: one lit bead per cell, grown by the light in it.',
+    how:
+      'Each bead is a radial gradient, highlight up and left, rim darker, so it reads as a ' +
+      'sphere. Marks that grow with brightness only read light-on-dark, so the darker of your ' +
+      'two colours becomes the field.',
+  },
+  ascii: {
+    what: 'The photo retyped: every cell becomes the character whose density matches its tone.',
+    how:
+      'Cell luminance indexes a ramp ordered light to dense — a space, then a period, up to ' +
+      'an at sign. Pick a ramp or paste your own; wherever the ramp lands on a space, the ' +
+      'paper stays bare.',
+  },
+  lattice: {
+    what:
+      'A mesh that is the picture, not a mesh laid over it: nodes on a grid, struts between ' +
+      'neighbours.',
+    how:
+      "A node's size and opacity grow with its cell's brightness; a strut fades with its " +
+      'length and with the light at its midpoint. Jitter scatters the nodes and lets diagonal ' +
+      'struts in.',
+  },
+};
+
 const CHARSET_PRESETS: { name: string; charset: string }[] = [
   { name: 'classic', charset: ASCII_RAMPS.classic },
   { name: 'blocky', charset: ASCII_RAMPS.blocky },
@@ -139,6 +189,7 @@ interface HeldSource {
 
 const Dither: React.FC = () => {
   usePageTitle('Dither');
+  const reduceMotion = useReducedMotion();
 
   const [effect, setEffect] = useState<EffectId>('halftone');
   const [halftone, setHalftone] = useState<HalftoneParams>(DEFAULT_HALFTONE);
@@ -151,6 +202,8 @@ const Dither: React.FC = () => {
   const [blend, setBlend] = useState<BlendId>(DEFAULT_BLEND);
   const [layerOpacity, setLayerOpacity] = useState(DEFAULT_LAYER_OPACITY);
   const [jitterSeed, setJitterSeed] = useState(DEFAULT_JITTER_SEED);
+  /* Which face of the parameter card is showing. */
+  const [showAbout, setShowAbout] = useState(false);
 
   const [source, setSource] = useState<ImgSource | null>(null);
   /* Set once the visitor brings a photo of their own, which retires the bundled samples for
@@ -393,7 +446,20 @@ const Dither: React.FC = () => {
     setBlend(DEFAULT_BLEND);
     setLayerOpacity(DEFAULT_LAYER_OPACITY);
     setJitterSeed(DEFAULT_JITTER_SEED);
+    /* Land on the new effect's controls, not on its prose. */
+    setShowAbout(false);
   };
+
+  /* Escape closes the description — the third way back, alongside the icon and picking
+     another effect. Bound only while it is showing, so the page adds no listener otherwise. */
+  useEffect(() => {
+    if (!showAbout) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowAbout(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showAbout]);
 
   /* Jitter takes a fresh seed only when jitter itself moves (KTD4) — density/threshold, and
      every other slider, leave the scatter alone. */
@@ -470,155 +536,186 @@ const Dither: React.FC = () => {
               <Lede>drop a photo anywhere, pick a look, take home the full-resolution png.</Lede>
             </TitleBlock>
 
-            <EffectRow role="radiogroup" aria-label="Effect">
-              {EFFECTS.map((e) => (
-                <EffectButton
-                  key={e.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={effect === e.id}
-                  $active={effect === e.id}
-                  onClick={() => selectEffect(e.id)}
-                >
-                  {e.label}
-                </EffectButton>
-              ))}
+            <EffectRow>
+              <EffectGroup role="radiogroup" aria-label="Effect">
+                {EFFECTS.map((e) => (
+                  <EffectButton
+                    key={e.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={effect === e.id}
+                    $active={effect === e.id}
+                    onClick={() => selectEffect(e.id)}
+                  >
+                    {e.label}
+                  </EffectButton>
+                ))}
+              </EffectGroup>
+              {/* Names the effect rather than saying "info", so it reads on its own out of
+                  context — which is how a screen reader reaches it. */}
+              <AboutButton
+                type="button"
+                aria-pressed={showAbout}
+                aria-label={`about the ${effect} effect`}
+                $active={showAbout}
+                onClick={() => setShowAbout((v) => !v)}
+              >
+                <Info size={13} aria-hidden />
+              </AboutButton>
             </EffectRow>
 
-            {effect === 'halftone' && (
-              <ParamSet>
-                <SliderField
-                  label="Cell size"
-                  min={6}
-                  max={48}
-                  step={1}
-                  value={halftone.cellSize}
-                  onChange={(v) => setHalftone((p) => ({ ...p, cellSize: v }))}
-                />
-                <SliderField
-                  label="Angle"
-                  min={0}
-                  max={180}
-                  step={1}
-                  value={halftone.angle}
-                  onChange={(v) => setHalftone((p) => ({ ...p, angle: v }))}
-                />
-                <SliderField
-                  label="Contrast"
-                  min={-0.5}
-                  max={1.5}
-                  step={0.05}
-                  value={halftone.contrast}
-                  onChange={(v) => setHalftone((p) => ({ ...p, contrast: v }))}
-                />
-                <ToggleButton
-                  type="button"
-                  aria-pressed={halftone.invert}
-                  $active={halftone.invert}
-                  onClick={() => setHalftone((p) => ({ ...p, invert: !p.invert }))}
-                >
-                  invert
-                </ToggleButton>
-              </ParamSet>
-            )}
+            <Flip>
+              <FlipInner
+                animate={{ rotateY: showAbout ? 180 : 0 }}
+                transition={{ duration: reduceMotion ? 0 : FLIP_MS, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {/* The turned-away face keeps its content in the DOM, so `backface-visibility`
+                    alone would leave sliders focusable behind a card nobody can see.
+                    `visibility` takes them out of the tab order and the a11y tree with it. */}
+                <Face $away={showAbout}>
+                  {effect === 'halftone' && (
+                    <ParamSet>
+                      <SliderField
+                        label="Cell size"
+                        min={6}
+                        max={48}
+                        step={1}
+                        value={halftone.cellSize}
+                        onChange={(v) => setHalftone((p) => ({ ...p, cellSize: v }))}
+                      />
+                      <SliderField
+                        label="Angle"
+                        min={0}
+                        max={180}
+                        step={1}
+                        value={halftone.angle}
+                        onChange={(v) => setHalftone((p) => ({ ...p, angle: v }))}
+                      />
+                      <SliderField
+                        label="Contrast"
+                        min={-0.5}
+                        max={1.5}
+                        step={0.05}
+                        value={halftone.contrast}
+                        onChange={(v) => setHalftone((p) => ({ ...p, contrast: v }))}
+                      />
+                      <ToggleButton
+                        type="button"
+                        aria-pressed={halftone.invert}
+                        $active={halftone.invert}
+                        onClick={() => setHalftone((p) => ({ ...p, invert: !p.invert }))}
+                      >
+                        invert
+                      </ToggleButton>
+                    </ParamSet>
+                  )}
 
-            {effect === 'dots' && (
-              <ParamSet>
-                <SliderField
-                  label="Cell size"
-                  min={6}
-                  max={48}
-                  step={1}
-                  value={dots.cellSize}
-                  onChange={(v) => setDots((p) => ({ ...p, cellSize: v }))}
-                />
-                <SliderField
-                  label="Fill cutoff"
-                  min={0}
-                  max={0.6}
-                  step={0.01}
-                  value={dots.fillCutoff}
-                  onChange={(v) => setDots((p) => ({ ...p, fillCutoff: v }))}
-                />
-                <SliderField
-                  label="Contrast"
-                  min={-0.5}
-                  max={1.5}
-                  step={0.05}
-                  value={dots.contrast}
-                  onChange={(v) => setDots((p) => ({ ...p, contrast: v }))}
-                />
-              </ParamSet>
-            )}
+                  {effect === 'dots' && (
+                    <ParamSet>
+                      <SliderField
+                        label="Cell size"
+                        min={6}
+                        max={48}
+                        step={1}
+                        value={dots.cellSize}
+                        onChange={(v) => setDots((p) => ({ ...p, cellSize: v }))}
+                      />
+                      <SliderField
+                        label="Fill cutoff"
+                        min={0}
+                        max={0.6}
+                        step={0.01}
+                        value={dots.fillCutoff}
+                        onChange={(v) => setDots((p) => ({ ...p, fillCutoff: v }))}
+                      />
+                      <SliderField
+                        label="Contrast"
+                        min={-0.5}
+                        max={1.5}
+                        step={0.05}
+                        value={dots.contrast}
+                        onChange={(v) => setDots((p) => ({ ...p, contrast: v }))}
+                      />
+                    </ParamSet>
+                  )}
 
-            {effect === 'ascii' && (
-              <ParamSet>
-                <SliderField
-                  label="Cell size"
-                  min={6}
-                  max={48}
-                  step={1}
-                  value={ascii.cellSize}
-                  onChange={(v) => setAscii((p) => ({ ...p, cellSize: v }))}
-                />
-                <SliderField
-                  label="Contrast"
-                  min={-0.5}
-                  max={1.5}
-                  step={0.05}
-                  value={ascii.contrast}
-                  onChange={(v) => setAscii((p) => ({ ...p, contrast: v }))}
-                />
-                <FieldLabel>charset</FieldLabel>
-                <PresetRow>
-                  {CHARSET_PRESETS.map((preset) => (
-                    <PresetButton
-                      key={preset.name}
-                      type="button"
-                      $active={ascii.charset === preset.charset}
-                      onClick={() => setAscii((p) => ({ ...p, charset: preset.charset }))}
-                    >
-                      {preset.name}
-                    </PresetButton>
-                  ))}
-                </PresetRow>
-                <TextInput
-                  type="text"
-                  aria-label="Custom characters"
-                  value={ascii.charset}
-                  onChange={(e) => setAscii((p) => ({ ...p, charset: e.target.value }))}
-                />
-              </ParamSet>
-            )}
+                  {effect === 'ascii' && (
+                    <ParamSet>
+                      <SliderField
+                        label="Cell size"
+                        min={6}
+                        max={48}
+                        step={1}
+                        value={ascii.cellSize}
+                        onChange={(v) => setAscii((p) => ({ ...p, cellSize: v }))}
+                      />
+                      <SliderField
+                        label="Contrast"
+                        min={-0.5}
+                        max={1.5}
+                        step={0.05}
+                        value={ascii.contrast}
+                        onChange={(v) => setAscii((p) => ({ ...p, contrast: v }))}
+                      />
+                      <FieldLabel>charset</FieldLabel>
+                      <PresetRow>
+                        {CHARSET_PRESETS.map((preset) => (
+                          <PresetButton
+                            key={preset.name}
+                            type="button"
+                            $active={ascii.charset === preset.charset}
+                            onClick={() => setAscii((p) => ({ ...p, charset: preset.charset }))}
+                          >
+                            {preset.name}
+                          </PresetButton>
+                        ))}
+                      </PresetRow>
+                      <TextInput
+                        type="text"
+                        aria-label="Custom characters"
+                        value={ascii.charset}
+                        onChange={(e) => setAscii((p) => ({ ...p, charset: e.target.value }))}
+                      />
+                    </ParamSet>
+                  )}
 
-            {effect === 'lattice' && (
-              <ParamSet>
-                <SliderField
-                  label="Detail"
-                  min={14}
-                  max={72}
-                  step={2}
-                  value={lattice.density}
-                  onChange={(v) => setLattice((p) => ({ ...p, density: v }))}
-                />
-                <SliderField
-                  label="Threshold"
-                  min={0}
-                  max={0.6}
-                  step={0.01}
-                  value={lattice.threshold}
-                  onChange={(v) => setLattice((p) => ({ ...p, threshold: v }))}
-                />
-                <SliderField
-                  label="Jitter"
-                  min={0}
-                  max={1.5}
-                  step={0.05}
-                  value={lattice.jitter}
-                  onChange={onJitterChange}
-                />
-              </ParamSet>
-            )}
+                  {effect === 'lattice' && (
+                    <ParamSet>
+                      <SliderField
+                        label="Detail"
+                        min={14}
+                        max={72}
+                        step={2}
+                        value={lattice.density}
+                        onChange={(v) => setLattice((p) => ({ ...p, density: v }))}
+                      />
+                      <SliderField
+                        label="Threshold"
+                        min={0}
+                        max={0.6}
+                        step={0.01}
+                        value={lattice.threshold}
+                        onChange={(v) => setLattice((p) => ({ ...p, threshold: v }))}
+                      />
+                      <SliderField
+                        label="Jitter"
+                        min={0}
+                        max={1.5}
+                        step={0.05}
+                        value={lattice.jitter}
+                        onChange={onJitterChange}
+                      />
+                    </ParamSet>
+                  )}
+                </Face>
+                <BackFace $away={!showAbout} aria-hidden={!showAbout}>
+                  <FieldLabel>what</FieldLabel>
+                  <AboutText>{EFFECT_COPY[effect].what}</AboutText>
+                  <FieldLabel>how</FieldLabel>
+                  <AboutText>{EFFECT_COPY[effect].how}</AboutText>
+                </BackFace>
+              </FlipInner>
+            </Flip>
 
             <FieldLabel>ink &amp; paper</FieldLabel>
             <ToggleButton
@@ -948,6 +1045,85 @@ const EffectButton = styled.button<{ $active: boolean }>`
   border: 1px solid ${(p) => (p.$active ? 'var(--n-1)' : 'var(--n-6)')};
   background: ${(p) => (p.$active ? 'var(--n-1)' : 'transparent')};
   color: ${(p) => (p.$active ? 'var(--n-11)' : 'var(--n-4)')};
+`;
+
+const EffectGroup = styled.div`
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.4rem;
+`;
+
+/* Deliberately unboxed. A bordered square next to four bordered squares reads as a fifth
+   effect, and this picks nothing — it turns the panel over. Bare glyph, a little air to its
+   left, brightness carrying both the hover and the pressed state. */
+const AboutButton = styled.button<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  align-self: center;
+  margin-left: 0.15rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: ${(p) => (p.$active ? 'var(--n-1)' : 'var(--n-6)')};
+
+  &:hover {
+    color: var(--n-1);
+  }
+
+  /* The border was carrying the focus ring; without it the outline has to be explicit. */
+  &:focus-visible {
+    outline: 1px solid var(--n-1);
+    outline-offset: 2px;
+  }
+`;
+
+/* The card the parameters and the description share. Fixed height on purpose — see
+   FLIP_HEIGHT — and the perspective is what makes the turn read as a turn rather than as a
+   horizontal squash. */
+const Flip = styled.div`
+  height: ${FLIP_HEIGHT}px;
+  perspective: 1200px;
+`;
+
+const FlipInner = styled(motion.div)`
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+`;
+
+const faceSkin = css<{ $away: boolean }>`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  backface-visibility: hidden;
+  /* Not decoration: it is what pulls the turned-away face out of the tab order. */
+  visibility: ${(p) => (p.$away ? 'hidden' : 'visible')};
+`;
+
+const Face = styled.div<{ $away: boolean }>`
+  ${faceSkin}
+`;
+
+const BackFace = styled.div<{ $away: boolean }>`
+  ${faceSkin}
+  gap: 0.35rem;
+  transform: rotateY(180deg);
+`;
+
+const AboutText = styled.p`
+  font-family: ${(p) => p.theme.font.body};
+  font-weight: 200;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--n-4);
+  margin: 0 0 0.5rem;
 `;
 
 const ParamSet = styled.div`
