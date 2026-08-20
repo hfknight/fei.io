@@ -28,6 +28,7 @@ import {
   BLEND_OPS,
   dotsMarks,
   duotoneRoles,
+  PHOTO_MARK_GAIN,
   halftoneMarks,
   latticeMarks,
   lumaGrid,
@@ -164,18 +165,27 @@ type ColorAt = (x: number, y: number) => string;
 /** The same lookup as raw channels, for painters that shade the colour (the dots beads). */
 type RgbAt = (x: number, y: number) => [number, number, number];
 
-const rgbAtFor = (probe: Probe): RgbAt => {
-  const { cols, rows, rgb } = probe;
+/** `lift` brightens each sampled colour by `PHOTO_MARK_GAIN`, for marks that have to read
+ *  against the photograph they were sampled from. */
+const rgbAtFor = (probe: Probe, lift = false): RgbAt => {
+  const { cols, rows, rgb, luma } = probe;
   return (x, y) => {
     const col = Math.min(cols - 1, Math.max(0, Math.floor(x)));
     const row = Math.min(rows - 1, Math.max(0, Math.floor(y)));
-    const o = (row * cols + col) * 4;
-    return [rgb[o], rgb[o + 1], rgb[o + 2]];
+    const i = row * cols + col;
+    const o = i * 4;
+    if (!lift) return [rgb[o], rgb[o + 1], rgb[o + 2]];
+    const gain = PHOTO_MARK_GAIN(luma[i]);
+    return [
+      Math.min(255, rgb[o] * gain),
+      Math.min(255, rgb[o + 1] * gain),
+      Math.min(255, rgb[o + 2] * gain),
+    ];
   };
 };
 
-const colorAtFor = (probe: Probe): ColorAt => {
-  const at = rgbAtFor(probe);
+const colorAtFor = (probe: Probe, lift = false): ColorAt => {
+  const at = rgbAtFor(probe, lift);
   return (x, y) => {
     const [r, g, b] = at(x, y);
     return `rgb(${r},${g},${b})`;
@@ -330,7 +340,9 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
 
   const probe = getProbe(source, cols, rows);
   const rawLuma = probe.luma;
-  const colorAt = spec.sourceColor ? colorAtFor(probe) : undefined;
+  // Sampled colours are lifted only when the photograph is the ground — on a flat duotone
+  // ground a mark already contrasts with what it sits on, and lifting would just wash it out.
+  const colorAt = spec.sourceColor ? colorAtFor(probe, spec.photoUnder) : undefined;
   const luma =
     spec.effect === 'halftone'
       ? stretchContrast(rawLuma, spec.halftone.contrast)
@@ -369,7 +381,13 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
       paintCircles(paint, halftoneMarks(grid, spec.halftone), cell, colorAt);
       break;
     case 'dots':
-      paintBeads(paint, dotsMarks(grid, spec.dots), cell, mark, spec.sourceColor ? rgbAtFor(probe) : undefined);
+      paintBeads(
+        paint,
+        dotsMarks(grid, spec.dots),
+        cell,
+        mark,
+        spec.sourceColor ? rgbAtFor(probe, spec.photoUnder) : undefined,
+      );
       break;
     case 'ascii':
       paintAscii(paint, asciiMarks(grid, spec.ascii), cell, colorAt);

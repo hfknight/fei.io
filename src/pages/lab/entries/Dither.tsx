@@ -74,6 +74,8 @@ const CHARSET_PRESETS: { name: string; charset: string }[] = [
   { name: 'classic', charset: ASCII_RAMPS.classic },
   { name: 'blocky', charset: ASCII_RAMPS.blocky },
   { name: 'thin', charset: ASCII_RAMPS.thin },
+  { name: 'symbols', charset: ASCII_RAMPS.symbols },
+  { name: 'numeric', charset: ASCII_RAMPS.numeric },
 ];
 
 /** Either decode path — createImageBitmap or the HTMLImageElement fallback — hands back

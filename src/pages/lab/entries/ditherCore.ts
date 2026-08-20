@@ -206,7 +206,21 @@ export const ASCII_RAMPS = {
   classic: ' .,;:+=*%S#@',
   blocky: ' ░▒▓█',
   thin: ' ·∙∘○◌◍',
+  /* The reference app's two most distinctive ramps, carried over as it writes them: its
+   * "cinematic" set (its ASCII-Symbols look) and its digits (ASCII-Numeric). The digits climb
+   * by numeral rather than by ink, which is the point — the picture reads as a readout. */
+  symbols: ' .:○◇✦×∆Σ',
+  numeric: ' 0123456789',
 };
+
+/**
+ * How much to lift a mark's colour off the photograph it sits on: none in the highlights,
+ * up to 2.5x in the shadows. Marks that take the sampled pixel's own colour are invisible
+ * against it otherwise — same colour, same place — and it is the dark half of a picture where
+ * that bites hardest, since there is no light there to tell mark from ground. The reference
+ * app lifts by exactly this curve.
+ */
+export const PHOTO_MARK_GAIN = (luma: number): number => 1 + (1 - luma) * 1.5;
 
 /**
  * Per-cell luminance indexed into a density-ordered glyph ramp: dark cells get the ramp's
