@@ -25,6 +25,7 @@ import type {
 import {
   asciiMarks,
   dotsMarks,
+  duotoneRoles,
   halftoneMarks,
   latticeMarks,
   lumaGrid,
@@ -303,14 +304,10 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
   // this is the only cell-size math the paint step needs.
   const cell = target.width / cols;
 
-  // Lattice and dots invert the duotone roles: both grow their marks with *brightness*, so
-  // they only read as the image when the marks sit light-on-dark (dark marks that grow with
-  // brightness produce a negative). The mesh/beads take the paper colour over an ink ground —
-  // same as the reference app. Halftone and ascii keep the print convention: ink on paper,
-  // marks growing with darkness.
-  const inverted = spec.effect === 'lattice' || spec.effect === 'dots';
-  const ground = inverted ? spec.duotone.ink : spec.duotone.paper;
-  const mark = inverted ? spec.duotone.paper : spec.duotone.ink;
+  // Halftone and ascii ink on paper; dots and lattice ground the frame in whichever of the two
+  // colours is darker and mark in the lighter — see `duotoneRoles` for why the polarity has to
+  // follow luminance rather than the slot a colour sits in.
+  const { ground, mark } = duotoneRoles(spec.effect, spec.duotone);
   ctx.fillStyle = ground;
   ctx.fillRect(0, 0, target.width, target.height);
   ctx.fillStyle = mark;

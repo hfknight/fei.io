@@ -44,6 +44,38 @@ export interface LatticeParams {
   jitter: number;
 }
 
+/* Rec.601 again — the same coefficients `lumaGrid` weighs pixels with, here weighing one
+ * `#rrggbb` from the duotone pickers. */
+const hexLuma = (hex: string): number => {
+  const n = parseInt(hex.slice(1), 16);
+  return (((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114) / 255;
+};
+
+/**
+ * Which of the duotone's two colours grounds the frame, and which one the marks take.
+ *
+ * Halftone and ascii grow their marks with *darkness*, so they keep the print convention —
+ * ink on paper, whichever colours those are. A screen palette's bright ink over its dark
+ * paper is the intended glow there, not an accident to correct.
+ *
+ * Dots and lattice grow their marks with *brightness*, so they read as the photograph only
+ * when the marks are the lighter of the two colours. Choosing by luminance rather than by slot
+ * is what makes that hold for a screen palette, where the dark colour sits in `paper` and the
+ * bright one in `ink`: swapping the roles by name alone hands those a bright ground and dark
+ * marks, and the picture comes out a negative.
+ */
+export const duotoneRoles = (
+  effect: EffectId,
+  duotone: Duotone,
+): { ground: string; mark: string } => {
+  if (effect === 'halftone' || effect === 'ascii') {
+    return { ground: duotone.paper, mark: duotone.ink };
+  }
+  return hexLuma(duotone.ink) <= hexLuma(duotone.paper)
+    ? { ground: duotone.ink, mark: duotone.paper }
+    : { ground: duotone.paper, mark: duotone.ink };
+};
+
 /** A downscaled luminance field: one value per grid cell, row-major. */
 export interface Grid {
   cols: number;

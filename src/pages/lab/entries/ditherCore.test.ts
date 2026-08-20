@@ -3,6 +3,7 @@ import {
   ASCII_RAMPS,
   asciiMarks,
   dotsMarks,
+  duotoneRoles,
   halftoneMarks,
   latticeMarks,
   lumaGrid,
@@ -32,6 +33,50 @@ describe('lumaGrid', () => {
     const white = new Uint8ClampedArray([255, 255, 255, 255, 255, 255, 255, 255]);
     expect(Array.from(lumaGrid(black, 2, 1))).toEqual([0, 0]);
     expect(Array.from(lumaGrid(white, 2, 1))).toEqual([1, 1]);
+  });
+});
+
+describe('duotoneRoles', () => {
+  // The page's default pick, and the two shapes a preset can take.
+  const DEFAULT = { paper: '#f4ead5', ink: '#1a1408' }; // light paper, dark ink
+  const CRT = { paper: '#0a0f0a', ink: '#4ade80' }; // dark paper, bright ink — a screen palette
+  const RISO = { paper: '#f3ede2', ink: '#ff3b30' }; // light paper, saturated mid ink
+
+  it('inks on paper for halftone and ascii, whichever colour is the brighter', () => {
+    for (const duotone of [DEFAULT, CRT, RISO]) {
+      for (const effect of ['halftone', 'ascii'] as const) {
+        expect(duotoneRoles(effect, duotone)).toEqual({
+          ground: duotone.paper,
+          mark: duotone.ink,
+        });
+      }
+    }
+  });
+
+  it('leaves the default pick exactly as it renders today: dots and lattice ground on the ink', () => {
+    for (const effect of ['dots', 'lattice'] as const) {
+      expect(duotoneRoles(effect, DEFAULT)).toEqual({
+        ground: DEFAULT.ink,
+        mark: DEFAULT.paper,
+      });
+    }
+  });
+
+  it('grounds dots and lattice on the darker colour even when it sits in the paper slot', () => {
+    // The regression: swapping roles by name gave a screen palette a bright green ground and
+    // near-black beads, which renders the photograph as a negative.
+    for (const effect of ['dots', 'lattice'] as const) {
+      expect(duotoneRoles(effect, CRT)).toEqual({ ground: CRT.paper, mark: CRT.ink });
+    }
+  });
+
+  it('keeps a mid-tone ink as the ground when the paper is lighter still', () => {
+    expect(duotoneRoles('dots', RISO)).toEqual({ ground: RISO.ink, mark: RISO.paper });
+  });
+
+  it('is deterministic when both colours weigh the same', () => {
+    const flat = { paper: '#808080', ink: '#808080' };
+    expect(duotoneRoles('dots', flat)).toEqual({ ground: flat.ink, mark: flat.paper });
   });
 });
 
