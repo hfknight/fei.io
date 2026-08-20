@@ -76,6 +76,39 @@ describe('Dither', () => {
     );
   });
 
+  it('fetches each effect its own bundled sample', async () => {
+    renderPage();
+    const fetched = () => (fetch as unknown as { mock: { calls: string[][] } }).mock.calls.flat();
+    expect(fetched()).toContain('/lab/dither/void-punk.webp'); // halftone, on mount
+
+    fireEvent.click(screen.getByRole('radio', { name: 'ascii' }));
+
+    await vi.waitFor(() => expect(fetched()).toContain('/lab/dither/neon-visor.webp'));
+  });
+
+  it('keeps the visitor\'s own photo when they switch effects', async () => {
+    // jsdom never fires an <img> load, so the decode has to come from createImageBitmap for
+    // loadSource to reach its success path and mark the source as the visitor's.
+    vi.stubGlobal(
+      'createImageBitmap',
+      vi.fn(async () => ({ width: 4, height: 4, close: () => undefined })),
+    );
+    renderPage();
+    const file = new File([new Uint8Array([1, 2, 3])], 'mine.png', { type: 'image/png' });
+    fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, {
+      target: { files: [file] },
+    });
+    await vi.waitFor(() =>
+      expect((fetch as unknown as { mock: { calls: unknown[] } }).mock.calls.length).toBeGreaterThan(0),
+    );
+    const before = (fetch as unknown as { mock: { calls: unknown[] } }).mock.calls.length;
+
+    fireEvent.click(screen.getByRole('radio', { name: 'lattice' }));
+
+    // No further sample fetch: the effect swap must not reach past their photo.
+    expect((fetch as unknown as { mock: { calls: unknown[] } }).mock.calls.length).toBe(before);
+  });
+
   it('reveals blend and layer opacity only once the photo is kept', () => {
     renderPage();
     expect(screen.queryByLabelText('Layer opacity')).not.toBeInTheDocument();

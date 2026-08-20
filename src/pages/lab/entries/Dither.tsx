@@ -54,7 +54,23 @@ const DEFAULT_JITTER_SEED = 42;
 
 const BLENDS: BlendId[] = ['normal', 'overlay', 'screen', 'multiply', 'dodge'];
 
-const SAMPLE_URL = '/lab/dither/void-punk.webp';
+/**
+ * Each effect opens on whichever bundled photo it flatters, because what a photo needs differs
+ * per effect. The city is wide, and its paper-white sky against a black silhouette gives
+ * halftone a full tonal ramp and dots a bright field to light up. The portrait's mid-tones and
+ * neon carry the two effects the city starves: its face reads as glyphs where the city's sky
+ * left ascii a grey wash, and its lit background draws lattice into a dense mesh with the
+ * figure cut out of it.
+ *
+ * Only ever swapped under a bundled sample — a photo the visitor brought is theirs, and
+ * switching effects must never take it away.
+ */
+const SAMPLES: Record<EffectId, string> = {
+  halftone: '/lab/dither/void-punk.webp',
+  dots: '/lab/dither/void-punk.webp',
+  ascii: '/lab/dither/neon-visor.webp',
+  lattice: '/lab/dither/neon-visor.webp',
+};
 const NOTICE_MS = 4000;
 /* Two spec changes closer together than this are a drag, not two decisions — a slider fires
    every few milliseconds while the thumb moves. */
@@ -128,6 +144,9 @@ const Dither: React.FC = () => {
   const [jitterSeed, setJitterSeed] = useState(DEFAULT_JITTER_SEED);
 
   const [source, setSource] = useState<ImgSource | null>(null);
+  /* Set once the visitor brings a photo of their own, which retires the bundled samples for
+     the rest of the visit. */
+  const [ownPhoto, setOwnPhoto] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -196,7 +215,7 @@ const Dither: React.FC = () => {
    * previous bitmap/URL is released only once the new one has successfully decoded.
    */
   const loadSource = useCallback(
-    async (blob: Blob) => {
+    async (blob: Blob, own = true) => {
       if (!blob.type.startsWith('image/')) {
         showNotice('that file is not an image');
         return;
@@ -219,6 +238,7 @@ const Dither: React.FC = () => {
         const prev = heldRef.current;
         heldRef.current = next;
         setSource(next.img);
+        setOwnPhoto(own);
         prev?.bitmap?.close();
         if (prev?.objectUrl) URL.revokeObjectURL(prev.objectUrl);
       } catch {
@@ -229,19 +249,22 @@ const Dither: React.FC = () => {
   );
 
   /* R6: the bundled sample renders before anyone touches the page — never an empty dropzone.
-     A failed fetch (offline, blocked) is swallowed: the page just shows an empty canvas. */
+     The same effect carries the per-effect swap: picking an effect whose sample differs fetches
+     it, and once the visitor has brought their own photo this bows out entirely. A failed fetch
+     (offline, blocked) is swallowed: the page just shows an empty canvas. */
   useEffect(() => {
+    if (ownPhoto) return;
     let cancelled = false;
-    fetch(SAMPLE_URL)
+    fetch(SAMPLES[effect])
       .then((res) => res.blob())
       .then((blob) => {
-        if (!cancelled) return loadSource(blob);
+        if (!cancelled) return loadSource(blob, false);
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [loadSource]);
+  }, [effect, ownPhoto, loadSource]);
 
   /* R7 (paste): only a clipboard payload carrying an image file counts as image input — a
      paste into the custom-charset text field must pass through untouched. */
