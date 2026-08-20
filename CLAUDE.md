@@ -75,6 +75,12 @@ All routes are wrapped by `Layout` (renders `Header` globally; the `Footer` is h
 see below). Blog routes are lazy-loaded so the markdown/highlighter bundle stays off the
 landing page.
 
+A new `/lab/:slug` entry touches four files, not one: `src/data/labEntries.ts` (index + lazy
+component), `functions/lab/[slug].ts` (edge-stamped title, description, and the schema.org type
+that fits *that* entry — tool, gallery, or write-up), `public/sitemap.xml`, and
+`public/llms.txt`. The last two are the ones that get missed; every lab entry predating
+2026-08-20 was absent from both.
+
 ## Blog system (Cloudflare-backed)
 
 The site is no longer purely static — `/writing` is a dynamic blog backed by
