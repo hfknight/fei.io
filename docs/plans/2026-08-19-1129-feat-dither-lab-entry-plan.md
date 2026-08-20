@@ -10,6 +10,25 @@ execution: code
 
 # Dither Lab Entry - Plan
 
+> **Shipped, and overtaken in places (noted 2026-08-20).** The entry is live at `/lab/dither`.
+> This plan stays as the record of why the shape was chosen — the CORS probe behind bundling
+> the sample rather than hotlinking `media.fei.io` (KTD5), the cost-scales-with-cell-count model
+> (KTD1) that two code comments still cite — but where it disagrees with the code, the code is
+> right. Known drift:
+>
+> - **KD8 / KTD5, the default photo.** One bundled sample (`lab-hand.webp`) became two, chosen
+>   per effect: a wide city for halftone and dots, a neon portrait for ascii and lattice.
+>   `lab-hand.webp` is deleted.
+> - **R6's dropzone.** A photo the visitor loads now retires the samples for the visit; effects
+>   stop swapping the image under them.
+> - **KTD2's column cap.** 120 became 256, with a coarser cap while a control is dragged, after
+>   the cap was found to silently override the cell-size slider below a 17px cell.
+> - **Defaults and duotone.** Ascii opens at a 16px cell, lattice at 44 columns; the duotone list
+>   grew to 11; ground and mark are chosen by luminance rather than by slot.
+> - **Beyond the contract.** A photo layer (the photograph as the ground, with blend modes and
+>   layer opacity), a per-effect description card, and per-page schema.org metadata all postdate
+>   this plan.
+
 ## Goal Capsule
 
 - **Objective:** `/lab/dither` exists: a client-side image tool where a visitor drops in a photo, scrubs per-effect sliders across four effects (halftone, dots, ASCII, lattice), and takes away a full-resolution duotone PNG.
