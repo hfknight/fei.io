@@ -28,11 +28,12 @@ import {
   BLEND_OPS,
   dotsMarks,
   duotoneRoles,
-  PHOTO_MARK_GAIN,
   halftoneMarks,
+  hexLuminance,
   latticeMarks,
   lumaGrid,
   seededRand,
+  sourceMarkGain,
   stretchContrast,
 } from './ditherCore';
 import { staticVars } from '../../../styles/tokens';
@@ -183,30 +184,32 @@ type ColorAt = (x: number, y: number) => string;
 /** The same lookup as raw channels, for painters that shade the colour (the dots beads). */
 type RgbAt = (x: number, y: number) => [number, number, number];
 
-/** `lift` brightens each sampled colour by `PHOTO_MARK_GAIN`, for marks that have to read
- *  against the photograph they were sampled from. */
-const rgbAtFor = (probe: Probe, lift = false): RgbAt => {
+/**
+ * `groundLuma` is what the mark will sit on, and it decides which way `sourceMarkGain` pushes
+ * the sampled colour. `null` means the photograph is the ground, so each cell's own luminance
+ * stands in — the thing behind the mark there is the pixel it came from.
+ */
+const rgbAtFor = (probe: Probe, groundLuma: number | null | undefined): RgbAt => {
   const { cols, rows, rgb, luma } = probe;
   return (x, y) => {
     const col = Math.min(cols - 1, Math.max(0, Math.floor(x)));
     const row = Math.min(rows - 1, Math.max(0, Math.floor(y)));
     const i = row * cols + col;
     const o = i * 4;
-    if (!lift) return [rgb[o], rgb[o + 1], rgb[o + 2]];
-    const gain = PHOTO_MARK_GAIN(luma[i]);
+    const gain = sourceMarkGain(luma[i], groundLuma ?? luma[i]);
     return [
-      Math.min(255, rgb[o] * gain),
-      Math.min(255, rgb[o + 1] * gain),
-      Math.min(255, rgb[o + 2] * gain),
+      Math.min(255, Math.max(0, rgb[o] * gain)),
+      Math.min(255, Math.max(0, rgb[o + 1] * gain)),
+      Math.min(255, Math.max(0, rgb[o + 2] * gain)),
     ];
   };
 };
 
-const colorAtFor = (probe: Probe, lift = false): ColorAt => {
-  const at = rgbAtFor(probe, lift);
+const colorAtFor = (probe: Probe, groundLuma: number | null | undefined): ColorAt => {
+  const at = rgbAtFor(probe, groundLuma);
   return (x, y) => {
     const [r, g, b] = at(x, y);
-    return `rgb(${r},${g},${b})`;
+    return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
   };
 };
 
@@ -302,7 +305,10 @@ const paintAscii = (
   if (marks.length === 0) return;
   // A canvas cannot read a CSS custom property, so the mono stack comes straight from
   // tokens.ts — the same single source the page's font gate loads against.
-  ctx.font = `${cell}px ${staticVars['--font-mono']}`;
+  /* 500, not the default 400: the reference app sets its glyphs at 600, and at a cell of a
+     few pixels the extra stroke weight is most of what separates a character from a smudge.
+     500 is the top of the weight range this project loads for JetBrains Mono. */
+  ctx.font = `500 ${cell}px ${staticVars['--font-mono']}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   for (const m of marks) {
@@ -373,9 +379,14 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
 
   const probe = getProbe(source, cols, rows);
   const rawLuma = probe.luma;
-  // Sampled colours are lifted only when the photograph is the ground — on a flat duotone
-  // ground a mark already contrasts with what it sits on, and lifting would just wash it out.
-  const colorAt = spec.sourceColor ? colorAtFor(probe, spec.photoUnder) : undefined;
+  // Halftone and ascii ink on paper; dots and lattice ground the frame in whichever of the two
+  // colours is darker and mark in the lighter — see `duotoneRoles` for why the polarity has to
+  // follow luminance rather than the slot a colour sits in.
+  const { ground, mark } = duotoneRoles(spec.effect, spec.duotone);
+  /* Which way source-coloured marks have to move to be seen. `null` hands the decision to each
+     cell, because with the photograph as the ground there is no single colour behind them. */
+  const groundLuma = spec.photoUnder ? null : hexLuminance(ground);
+  const colorAt = spec.sourceColor ? colorAtFor(probe, groundLuma) : undefined;
   const luma =
     spec.effect === 'halftone'
       ? stretchContrast(rawLuma, spec.halftone.contrast)
@@ -390,10 +401,6 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
   // this is the only cell-size math the paint step needs.
   const cell = target.width / cols;
 
-  // Halftone and ascii ink on paper; dots and lattice ground the frame in whichever of the two
-  // colours is darker and mark in the lighter — see `duotoneRoles` for why the polarity has to
-  // follow luminance rather than the slot a colour sits in.
-  const { ground, mark } = duotoneRoles(spec.effect, spec.duotone);
   if (spec.photoUnder) {
     // The photograph is the ground, so the marks read as a layer over it rather than as the
     // whole picture — the reference app's default, where the effect canvas is transparent and
@@ -419,7 +426,7 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
         dotsMarks(grid, spec.dots),
         cell,
         mark,
-        spec.sourceColor ? rgbAtFor(probe, spec.photoUnder) : undefined,
+        spec.sourceColor ? rgbAtFor(probe, groundLuma) : undefined,
       );
       break;
     case 'ascii':

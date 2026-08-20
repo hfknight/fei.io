@@ -9,6 +9,7 @@ import {
   latticeMarks,
   lumaGrid,
   seededRand,
+  sourceMarkGain,
   stretchContrast,
   type Grid,
 } from './ditherCore';
@@ -48,6 +49,27 @@ describe('BLEND_OPS', () => {
       multiply: 'multiply',
       dodge: 'color-dodge',
     });
+  });
+});
+
+describe('sourceMarkGain', () => {
+  it('brightens on a dark ground, hardest in the shadows', () => {
+    expect(sourceMarkGain(0, 0.05)).toBeCloseTo(2.5, 5); // a black cell, lifted the most
+    expect(sourceMarkGain(0.5, 0.05)).toBeCloseTo(1.75, 5);
+    expect(sourceMarkGain(1, 0.05)).toBeCloseTo(1, 5); // a white mark already reads
+  });
+
+  it('darkens on a light ground, hardest in the highlights', () => {
+    // The reference app only ever brightens, because its marks always sit over a photo. On
+    // cream paper that curve hides them, so the push reverses.
+    expect(sourceMarkGain(1, 0.95)).toBeCloseTo(0.55, 5); // a white cell, pulled down the most
+    expect(sourceMarkGain(0.5, 0.95)).toBeCloseTo(0.775, 5);
+    expect(sourceMarkGain(0, 0.95)).toBeCloseTo(1, 5); // a black mark already reads
+  });
+
+  it('turns at mid-grey, and never leaves a mark unchanged in the direction that hides it', () => {
+    expect(sourceMarkGain(0.8, 0.49)).toBeGreaterThan(1);
+    expect(sourceMarkGain(0.8, 0.5)).toBeLessThan(1);
   });
 });
 

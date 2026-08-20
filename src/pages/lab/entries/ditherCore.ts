@@ -214,13 +214,25 @@ export const ASCII_RAMPS = {
 };
 
 /**
- * How much to lift a mark's colour off the photograph it sits on: none in the highlights,
- * up to 2.5x in the shadows. Marks that take the sampled pixel's own colour are invisible
- * against it otherwise — same colour, same place — and it is the dark half of a picture where
- * that bites hardest, since there is no light there to tell mark from ground. The reference
- * app lifts by exactly this curve.
+ * How far to push a source-coloured mark off the ground it sits on, as a multiplier on its
+ * sampled colour. A mark that takes its pixel's own colour is invisible against that pixel —
+ * same colour, same place — so it has to move, and the only direction available is away from
+ * whatever is behind it.
+ *
+ * On a dark ground it brightens, up to 2.5x in the shadows: the reference app's exact curve.
+ * On a light ground that curve is backwards — brightening a mark on cream paper hides it — so
+ * there it darkens instead, hardest where the sampled colour is brightest. Same idea in both
+ * directions: the dimmer the contrast between mark and ground, the further the mark moves.
+ *
+ * `groundLuma` is the luminance of what lies under the mark: the duotone's ground on a flat
+ * fill, or the cell's own luminance when the photograph is the ground, since there the thing
+ * behind the mark *is* the pixel it was sampled from.
  */
-export const PHOTO_MARK_GAIN = (luma: number): number => 1 + (1 - luma) * 1.5;
+export const sourceMarkGain = (luma: number, groundLuma: number): number =>
+  groundLuma < 0.5 ? 1 + (1 - luma) * 1.5 : 1 - luma * 0.45;
+
+/** Rec.601 luminance of a `#rrggbb`, for deciding which way `sourceMarkGain` should push. */
+export const hexLuminance = (hex: string): number => hexLuma(hex);
 
 /**
  * Per-cell luminance indexed into a density-ordered glyph ramp: dark cells get the ramp's
