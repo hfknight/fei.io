@@ -8,6 +8,29 @@
 export interface PageMeta {
   title: string;
   description: string;
+  /**
+   * The page's schema.org object, minus what can be derived: `@context`, `url` and
+   * `description` are filled in from the meta and the canonical, and any of them can still be
+   * overridden by naming it here. Omit for pages that no schema type describes honestly —
+   * structured data that misrepresents a page is worse than none.
+   */
+  jsonLd?: Record<string, unknown>;
+}
+
+/**
+ * One page's schema.org object as the string that goes inside a ld+json script.
+ *
+ * `<` is escaped: a literal `</script>` anywhere in the data — inside a description, a name,
+ * a feature — would close the block early and spill the rest of the JSON into the document.
+ * JSON.stringify does not escape it, since it is legal JSON; it is only dangerous in HTML.
+ */
+export function serializeJsonLd(meta: PageMeta, canonical: string): string {
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    url: canonical,
+    description: meta.description,
+    ...meta.jsonLd,
+  }).replace(/</g, '\\u003c');
 }
 
 export function stampMeta(asset: Response, meta: PageMeta, canonical: string): Response {
@@ -19,7 +42,7 @@ export function stampMeta(asset: Response, meta: PageMeta, canonical: string): R
     },
   });
 
-  return new HTMLRewriter()
+  const rewriter = new HTMLRewriter()
     .on('title', {
       element(el) {
         el.setInnerContent(meta.title);
@@ -35,6 +58,18 @@ export function stampMeta(asset: Response, meta: PageMeta, canonical: string): R
     .on('meta[property="og:description"]', setContent(meta.description))
     .on('meta[property="og:url"]', setContent(canonical))
     .on('meta[name="twitter:title"]', setContent(meta.title))
-    .on('meta[name="twitter:description"]', setContent(meta.description))
-    .transform(asset);
+    .on('meta[name="twitter:description"]', setContent(meta.description));
+
+  /* Appended rather than rewritten: the site-wide head already carries a Person block, and a
+     page describing what it *is* sits alongside that rather than replacing it. */
+  if (meta.jsonLd) {
+    const script = `<script type="application/ld+json">${serializeJsonLd(meta, canonical)}</script>`;
+    rewriter.on('head', {
+      element(el) {
+        el.append(script, { html: true });
+      },
+    });
+  }
+
+  return rewriter.transform(asset);
 }
