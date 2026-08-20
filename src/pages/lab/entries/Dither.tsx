@@ -45,7 +45,7 @@ const DEFAULT_ASCII: AsciiParams = { cellSize: 16, contrast: 0, charset: ASCII_R
 /* Threshold defaults near zero: the mesh's luminance-alpha already fades shadows out, so the
  * hard cull is a stylistic extra, not the primary tone control (the reference app defaults it
  * off entirely). */
-const DEFAULT_LATTICE: LatticeParams = { density: 36, threshold: 0.05, jitter: 0.6 };
+const DEFAULT_LATTICE: LatticeParams = { density: 44, threshold: 0.05, jitter: 0.6 };
 const DEFAULT_DUOTONE: Duotone = { paper: '#f4ead5', ink: '#1a1408' };
 const DEFAULT_SOURCE_COLOR = true;
 /* The photo layer is opt-in: the page opens on the flat duotone ground it always had. */

@@ -101,10 +101,24 @@ export const EXPORT_MAX_PIXELS = 16_000_000;
 
 type Source = (CanvasImageSource & { width: number; height: number }) | ImageBitmap;
 
-/** Line/node weight as a fraction of one mesh cell, so lattice strokes scale with export
- *  resolution the same way the marks themselves do. */
-const LATTICE_LINE_WIDTH_RATIO = 0.09;
-const LATTICE_NODE_RADIUS_RATIO = 0.13;
+/**
+ * Line and node weight as a fraction of one mesh cell, so lattice strokes scale with export
+ * resolution the same way the marks themselves do.
+ *
+ * The reference app's own ratios are 0.05 and 0.08 — but they are tuned against its canvas,
+ * which is over twice the width of ours when a portrait is fitted to the viewport height. Taken
+ * literally they put the stroke at 0.38px and the node at 0.6px here, and the mesh collapses
+ * into a field of specks. These sit between the two, and the floors below are what actually
+ * hold the line: at their scale a strut lands near 0.95px and a node near 1.5px, so that is
+ * what a small canvas has to keep.
+ */
+const LATTICE_LINE_WIDTH_RATIO = 0.07;
+const LATTICE_NODE_RADIUS_RATIO = 0.1;
+const LATTICE_LINE_WIDTH_MIN = 0.85;
+const LATTICE_NODE_RADIUS_MIN = 1.3;
+/* Nodes are the mesh's light: they take their colour lifted, where struts take theirs plain.
+ * Also the reference app's constant. */
+const LATTICE_NODE_GAIN = 1.5;
 
 /**
  * Lattice reads `density` as the mesh's column count and sizes the probe grid to it directly
@@ -213,6 +227,15 @@ const colorAtFor = (probe: Probe, groundLuma: number | null | undefined): ColorA
   };
 };
 
+const rgbString = ([r, g, b]: [number, number, number]): string =>
+  `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+
+const scaleRgb = ([r, g, b]: [number, number, number], k: number): [number, number, number] => [
+  Math.min(255, r * k),
+  Math.min(255, g * k),
+  Math.min(255, b * k),
+];
+
 /** `duotone` values come from `<input type="color">`, which always yields #rrggbb. */
 const hexToRgb = (hex: string): [number, number, number] => {
   const n = parseInt(hex.slice(1), 16);
@@ -320,7 +343,8 @@ const paintAscii = (
 /**
  * Lattice paints the image *as* the mesh, per the reference app: every strut's opacity is its
  * midpoint luminance scaled by how stretched it is, and every node's opacity and radius grow
- * with its cell's brightness — so bright regions render a dense, glowing web and shadows thin
+ * with its cell's brightness — nodes are the light (their colour lifted, per the reference
+ * app), struts the webbing between — so bright regions render a dense, glowing web and shadows thin
  * to nothing, and the photograph stays readable through the wireframe. Per-mark alpha rules
  * out path batching; the mesh is coarse (≤72 columns), so the mark count stays small.
  */
@@ -332,24 +356,25 @@ const paintLattice = (
   },
   cell: number,
   mark: string,
-  colorAt?: ColorAt,
+  edgeAlpha: number,
+  rgbAt?: RgbAt,
 ): void => {
   const { nodes, edges } = marks;
-  ctx.lineWidth = Math.max(1, cell * LATTICE_LINE_WIDTH_RATIO);
+  ctx.lineWidth = Math.max(LATTICE_LINE_WIDTH_MIN, cell * LATTICE_LINE_WIDTH_RATIO);
   for (const e of edges) {
     const na = nodes[e.a];
     const nb = nodes[e.b];
-    ctx.globalAlpha = Math.min(1, e.fade * e.luma * 1.25);
-    ctx.strokeStyle = colorAt ? colorAt((na.x + nb.x) / 2, (na.y + nb.y) / 2) : mark;
+    ctx.globalAlpha = Math.min(1, e.fade * e.luma * edgeAlpha);
+    ctx.strokeStyle = rgbAt ? rgbString(rgbAt((na.x + nb.x) / 2, (na.y + nb.y) / 2)) : mark;
     ctx.beginPath();
     ctx.moveTo(na.x * cell, na.y * cell);
     ctx.lineTo(nb.x * cell, nb.y * cell);
     ctx.stroke();
   }
-  const r = Math.max(1, cell * LATTICE_NODE_RADIUS_RATIO);
+  const r = Math.max(LATTICE_NODE_RADIUS_MIN, cell * LATTICE_NODE_RADIUS_RATIO);
   for (const n of nodes) {
-    ctx.globalAlpha = Math.min(1, n.luma * 2);
-    ctx.fillStyle = colorAt ? colorAt(n.x, n.y) : mark;
+    ctx.globalAlpha = Math.min(1, n.luma * 1.6);
+    ctx.fillStyle = rgbAt ? rgbString(scaleRgb(rgbAt(n.x, n.y), LATTICE_NODE_GAIN)) : mark;
     ctx.beginPath();
     ctx.arc(n.x * cell, n.y * cell, Math.max(0.8, r * (0.5 + n.luma * 0.8)), 0, Math.PI * 2);
     ctx.fill();
@@ -438,7 +463,12 @@ export const renderEffect = (target: HTMLCanvasElement, source: Source, spec: Re
         latticeMarks(grid, { ...spec.lattice, density: 1 }, seededRand(spec.jitterSeed)),
         cell,
         mark,
-        colorAt,
+        /* The reference app's 0.65 is measured against struts lying over a photograph, where
+           the image itself carries them. Over a flat ink ground there is nothing underneath to
+           help, and at 0.65 the mesh sinks into the field — so that number holds only where its
+           assumption does. */
+        spec.photoUnder ? 0.65 : 0.95,
+        spec.sourceColor ? rgbAtFor(probe, groundLuma) : undefined,
       );
       break;
   }
