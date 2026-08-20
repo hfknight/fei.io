@@ -95,12 +95,21 @@ const EFFECTS: { id: EffectId; label: string }[] = [
   { id: 'lattice', label: 'lattice' },
 ];
 
+/**
+ * Ordered dark-ground first, light-ground second, neutrals last. The chromatic ones are spread
+ * around the wheel on purpose — 41, 100, 142, 174, 218, 272, 338, 3 — because a duotone is
+ * chosen by hue, and two presets a few degrees apart are one preset with two names. The pairs
+ * also keep a wide luminance gap, which is what lets `duotoneRoles` tell ground from mark.
+ */
 const DUOTONE_PRESETS: { name: string; ink: string; paper: string }[] = [
   { name: 'crt', paper: '#0a0f0a', ink: '#4ade80' },
   { name: 'amber', paper: '#140d02', ink: '#ffb000' },
+  { name: 'teal', paper: '#04191d', ink: '#2dd4bf' },
+  { name: 'violet', paper: '#100a1d', ink: '#c084fc' },
   { name: 'blueprint', paper: '#0b2c66', ink: '#e8eefc' },
   { name: 'riso red', paper: '#f3ede2', ink: '#ff3b30' },
   { name: 'riso pink', paper: '#f6efe6', ink: '#ff4d8f' },
+  { name: 'moss', paper: '#eef0e6', ink: '#3f5d2f' },
   { name: 'newsprint', paper: '#e9e4d7', ink: '#3a352c' },
   { name: 'classic', paper: '#ffffff', ink: '#000000' },
   { name: 'inverse', paper: '#0d0d0d', ink: '#f2f2f2' },
