@@ -358,12 +358,13 @@ export function createLandingEngine(root: HTMLElement, opts: EngineOpts): Landin
   // pointer listeners and the whole effect/easing tick; the clips stay parked at their
   // rest frame (settled in loadClip) and the seam keeps its static-hairline base style.
   if (interactive) {
-    // pointermove, not mousemove: the lens drag calls preventDefault() on pointerdown
-    // (it suppresses text selection and the native drag image), and that also kills the
-    // compatibility mouse events for the rest of the interaction — the pets froze the
-    // moment a lens was grabbed. The pointer stream is unaffected by that, and
-    // PointerEvent extends MouseEvent, so onMove reads clientX/clientY unchanged.
-    on(window, 'pointermove', onMove);
+    // mousemove, deliberately, not pointermove: the lens drag calls preventDefault() on
+    // pointerdown, which also suppresses the compatibility mouse events, so the pets hold
+    // their last pose from grab to release. Tracking through the drag was tried (e76d318,
+    // reverted) and costs too much: a seek mid-drag is a decode that dirties the lens
+    // pipeline — three world blits plus the refraction filter — ~30 times a second, which
+    // doubled the median drag frame (14.7ms -> 27ms) and was visible on real hardware.
+    on(window, 'mousemove', onMove);
     on(window, 'mouseleave', onLeave);
   }
 
