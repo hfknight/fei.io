@@ -358,7 +358,12 @@ export function createLandingEngine(root: HTMLElement, opts: EngineOpts): Landin
   // pointer listeners and the whole effect/easing tick; the clips stay parked at their
   // rest frame (settled in loadClip) and the seam keeps its static-hairline base style.
   if (interactive) {
-    on(window, 'mousemove', onMove);
+    // pointermove, not mousemove: the lens drag calls preventDefault() on pointerdown
+    // (it suppresses text selection and the native drag image), and that also kills the
+    // compatibility mouse events for the rest of the interaction — the pets froze the
+    // moment a lens was grabbed. The pointer stream is unaffected by that, and
+    // PointerEvent extends MouseEvent, so onMove reads clientX/clientY unchanged.
+    on(window, 'pointermove', onMove);
     on(window, 'mouseleave', onLeave);
   }
 
