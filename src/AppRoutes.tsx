@@ -7,6 +7,7 @@ import PageTransition from './components/PageTransition';
 import Day from './pages/Day';
 import LandingPage from './components/Landing';
 import LoadingScreen from './components/Landing/LoadingScreen';
+import NotFound from './pages/NotFound';
 
 // Lazy-loaded so the markdown/highlighter bundle stays off the landing page and
 // other routes — it only loads when a /writing route is visited.
@@ -49,6 +50,10 @@ const AppRoutes: React.FC = () => {
           <Route path="/lab" element={<Lab />} />
           <Route path="/lab/:slug" element={<LabEntryRoute />} />
           <Route path="/loading" element={<LoadingScreen isVisible={true} />} />
+          {/* Last, and it must stay last: a catch-all matches anything the routes above
+              did not claim. Not lazy — it is the fallback, so it cannot depend on a chunk
+              that may itself be the thing that failed to load. */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </AnimatePresence>
