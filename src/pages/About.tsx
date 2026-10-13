@@ -17,6 +17,7 @@ import {
    exact geometry. Only its alpha is used; the file's orange fills are discarded (see
    AsciiPortrait), so the mark arrives in the page's own ink. */
 import featherUrl from '../assets/fei-feather.svg';
+import { FEATURED_PROJECTS, LISTED_PROJECTS, type Project } from '../data/projects';
 
 /* ── The finished mark, and where it sits ──────────────────────────────────────────────────
    The end of the scroll shows the projects section filling the screen, with the fitted ascii
@@ -215,7 +216,7 @@ const PEEK_W = 44;
    Same capability gate SplitStage uses for the landing's stacked halves.
 
    The JS below mirrors the CSS list exactly — the `stacked` flag and the tile measurement in
-   Panel's onClick must agree with the stylesheet about which of the two detail layouts is on
+   Projects' openAt must agree with the stylesheet about which of the two detail layouts is on
    screen, and a fractional viewport width can't fall in a gap between the two. */
 const STACKED_MQ = '(max-width: 1220px), (hover: none), (pointer: coarse)';
 const STACKED_MEDIA = `@media ${STACKED_MQ}`;
@@ -1788,15 +1789,23 @@ const LogoReveal: React.FC<{
 /*
  * Selected side projects — a row of panels that share its width and trade it on hover: the
  * hovered panel takes a larger share while its neighbours give theirs up, and its scrim lifts
- * so the panel reads as stepping forward. One flex row, animated on flex-grow; no
+ * so the panel reads as stepping forward. One flex row, animated on flex-basis; no
  * measurement, no layout projection.
  *
  * The count is not fixed anywhere — the row, the accordion and the wipe all derive from
- * PROJECTS.length. One figure does not follow automatically though: the accordion's emphasis
- * dilutes as panels are added, so adding one means re-checking the hovered grow. See PanelRow.
+ * FEATURED_PROJECTS.length (the data lives in ../data/projects). The hovered width is no longer
+ * a ratio that dilutes as panels are added: it is a measurement (PANEL_HOVER_W) and the others
+ * share what is left. What a new panel does still need is a look at how narrow the resting
+ * share gets. The row's last column is the More panel, a thin spine that is not a project: it
+ * holds its width while a featured panel is hovered and only grows when it is itself pointed
+ * at. See PanelRow.
  *
- * Hover-only by design: nothing here is clickable, so nothing joins the tab order, which
- * matches every other treatment on this page. The links will live in the prose instead.
+ * Panels open their detail on click, and the links are in the DOM from the start. Each
+ * featured panel carries its own outbound link (PanelLink, top-right) and the More panel
+ * carries the listed projects' links, all rendered at rest. That is for crawlers, which do not
+ * click: the link inside Detail only exists once a detail is open, so it could never be found.
+ * The link is a sibling of the panel's button (PanelHit) rather than a child, because an
+ * anchor inside a button is invalid markup.
  *
  * Three states, and the panel's copy is what distinguishes them: at rest the accent rule,
  * the eyebrow and the NAME only; hovered (or focused) the blurb fades up under it; opened
@@ -1808,178 +1817,6 @@ const LogoReveal: React.FC<{
  * page's palette rather than parking a grey placeholder box on it. Dropping a path in
  * lights the photograph up with no other change.
  */
-interface Project {
-  name: string;
-  blurb: string;
-  year: string;
-  kind: string;
-  /* The RESTING PANEL's picture, shown as a tilted plate (see PanelShot).
-
-     Captured at a ratio of about 0.8 — a desktop-WIDTH window that is taller than it is wide —
-     and that figure is the useful part of this comment. The front page is a full-height grid,
-     so its window's proportions decide the shape of the picture, and the two ends of the range
-     are both wrong. A normal 1.6 landscape leaves the panel showing nine tenths of a single
-     card, because the panel is steeply portrait and cover has to fill it. Going all the way to
-     the panel's own aspect (~0.43) fills it with the page entire, but stretches the grid until
-     its cards are enormous and it stops reading as a desktop site. 0.8 keeps the three-column
-     layout looking like itself while giving the crop nearly two cards to work with. */
-  image?: string;
-  /* The same front page, captured LANDSCAPE (~1.6), for the opened split's wide pane.
-
-     Two captures of one page, and the reason is the two slots' proportions rather than anything
-     about the page: the panel is steeply portrait and the pane is landscape, so the ratio that
-     serves one crops badly in the other. The pane is roughly the shape a browser window is, so
-     it takes the shot at roughly a browser's ratio and shows the front page more or less whole —
-     which is the point of the opened view, where there is room to look at it properly. */
-  imageWide?: string;
-  /* The tall screenshot — a desktop capture run down a long interior page. Used ONLY in the
-     opened split, as the narrow pane, where fitting a smaller width makes it run past the
-     bottom and so show more of the site. Nothing falls back to anything here: the split plays
-     its two panes against each other, so it wants imageWide and imageTall both or neither
-     (see Detail).
-
-     EVERY capture needs a browser with WEBGL, and one that has been DRIVEN. Two traps, both of
-     which produce a screenshot that looks fine until you hold it next to the real site:
-
-     1. The background is a WebGL canvas (canvas.lp-fluid — the green dot matrix behind the
-        cards). Headless Chrome run the obvious way, with --disable-gpu, renders it empty and the
-        capture comes back on flat black. Use --enable-unsafe-swiftshader and no --disable-gpu.
-     2. The matrix is a FLUID, fed by pointer motion. With no pointer it decays to almost
-        nothing, so `chrome --headless --screenshot` can never catch it however long it waits —
-        the page has to be driven. Sweep the mouse across the viewport, then PARK IT OFF THE
-        CARDS before shooting: leaving it over one holds that card in hover, which dims every
-        other card's artwork. The hover releases in a few hundred ms; the fluid outlives it.
-
-     Check for the green, and for all five cards being lit, before trusting a recapture.
-
-     GEOMETRY, which is not guessable from the file and cost a wasted capture to rediscover:
-     this is a DESKTOP capture DOWNSCALED, not a narrow viewport. Shoot the full page at 1400
-     CSS wide at DPR 2, then resample the result to 900px wide. Shot at 450 instead — the width
-     the finished file implies — the site serves its stacked mobile layout and the page comes
-     out nearly five times longer. The 1400 is recoverable from the asset if it is ever lost
-     again: the height that width produces, scaled to 900, is what the file already is. */
-  imageTall?: string;
-  /* The longer copy for the detail view. Falls back to `blurb` when absent, so a project
-     can ship with one line and gain a paragraph later. */
-  detail?: string;
-  /* A walkthrough, shown in a phone frame where the split would otherwise be (see Detail).
-     This is the THIRD thing the detail can show, after the two-shot split and the bare skin,
-     and which one a project gets is decided by what it carries rather than by a mode flag.
-
-     Two encodes, and the pair is the point: the webm is AV1, both smaller and higher fidelity
-     than the mp4, but Safari only decodes AV1 where the hardware can. Declared first, so
-     everything that can take it does and the rest fall through to H.264 — which is the only
-     reason to ship the larger file at all. Both or neither; a lone mp4 would work but would
-     serve twice the bytes to every browser that never needed it.
-
-     `image` doubles as the poster, so it wants to be a frame of the same capture at the same
-     size — otherwise the handover from poster to first frame is a visible jump. */
-  videoWebm?: string;
-  videoMp4?: string;
-  /* A picture behind whatever the detail stages in its media column — for now the phone. The
-     stage's default is one soft pool of light (see MediaStage); this replaces it where the
-     project has a WORLD worth putting the object in rather than just empty room. It is scenery
-     and gets treated as such: heavily damped, so it stays behind the device instead of becoming
-     the thing you look at. */
-  backdrop?: string;
-  /* The project's id in the Obsidian community registry, where a plugin's install numbers are
-     public. Carried as the ID rather than as a flag because it IS the key the endpoint looks up
-     — one string, and the detail asks for the numbers only where there are numbers to ask for.
-     See functions/api/plugin-stats. */
-  pluginId?: string;
-  /* An app tile in place of a capture — for a project whose face is a MARK rather than a
-     screen. A plugin has no interface of its own worth photographing: what it puts on screen is
-     a note inside someone else's application, so a capture would mostly be that application.
-     The tile is what the thing looks like where you actually meet it, in a plugin directory.
-
-     A key rather than a component, so this array stays data. See AppTile. */
-  tile?: 'bookmark';
-  /* Where the thing actually is, shown in the detail (see DetailLink). The label is DERIVED
-     from this rather than carried beside it, so there is one string to keep true and no way for
-     the two to disagree — and what a reader wants from a portfolio link is the destination, not
-     a verb. For the two sites that makes it a near-repeat of the name above, which reads as
-     confirmation rather than as redundancy; for the plugin the host is the more useful half,
-     since it is what says the thing is listed rather than self-published. */
-  url?: string;
-  /* Set when `image` is a capture of a LIGHT interface. The panel's three layers — plate, veil,
-     shim — were tuned against game key art and white UI type on a dark page, which is bright in
-     places but dark overall. A near-white app screenshot is not: at full strength it turns its
-     panel into a lit rectangle in a row of dark ones, and the name over it stops reading.
-
-     Declared per project rather than fixed in the scrim because it is a fact about the SOURCE,
-     not a preference — and a heavier scrim for everyone would flatten the captures that are
-     already dark. See PanelShot for what it does. */
-  lightCapture?: boolean;
-}
-
-/* TODO: two placeholders left — swap in the real second and third. */
-const PROJECTS: Project[] = [
-  {
-    name: 'videogamers.fyi',
-    blurb: 'Tells you what a game is right now, not what it was at launch.',
-    detail:
-      'This website answers one question: is this game worth it right now? Most game ' +
-      'coverage is frozen at launch — here, player counts and patch data refresh every six ' +
-      'hours, community sentiment daily, the verdict itself weekly. Nothing reaches a page ' +
-      'unsourced: verdicts link out to the timestamped player reviews behind them, so any ' +
-      'claim can be checked. It targets the questions that go stale fastest: is it dead, is ' +
-      "it fixed, is it worth this price, is it the better pick over the one you're also " +
-      'weighing. It runs end to end without an editor — I choose which games it covers, the ' +
-      'pipeline does the rest.',
-    year: '2026',
-    kind: 'Automated gaming site',
-    url: 'https://videogamers.fyi',
-    image: '/warmind-home@2x.webp',
-    imageWide: '/warmind-home-wide@2x.webp',
-    imageTall: '/warmind-game@2x.webp',
-  },
-  {
-    name: 'fanmatchday.com',
-    blurb:
-      'Plans your FIFA World Cup 2026 matchday, hotel to kickoff, in about thirty seconds.',
-    detail:
-      'A matchday planner for World Cup 2026. Tell it your hotel and your match, and it ' +
-      'gives you a door-to-door plan: when to leave, which train, whether your backpack ' +
-      "clears FIFA's bag rules, whether it'll be 100°F at kickoff. Eleven US host stadiums, " +
-      "78 matches, English and Spanish, all running on Cloudflare's edge. Every plan is " +
-      'written by an LLM against a per-stadium knowledge base I curated: 242 entries ' +
-      'covering transit, parking, bag policy, weather, and food. Plans are generated and ' +
-      'cached on a coarse key (stadium, match, origin area, language), then personalized at ' +
-      'render time: your hotel goes into the cached prose, and a live strip fetches real ' +
-      'driving and transit ETAs from your actual coordinates. One paid generation serves a ' +
-      'whole neighborhood of hotels; every fan still sees times from their own doorstep.',
-    year: '2026',
-    kind: 'World Cup 2026 planner',
-    url: 'https://fanmatchday.com',
-    image: '/fanmatchday-home@2x.webp',
-    lightCapture: true,
-    videoWebm: '/fanmatchday-walk.webm',
-    videoMp4: '/fanmatchday-walk.mp4',
-    backdrop: '/fanmatchday-bg@2x.webp',
-  },
-  {
-    name: 'X Bookmarks Sync',
-    blurb: 'Saves your X bookmarks into Obsidian as real notes, with no API key.',
-    detail:
-      'Sync your X (Twitter) bookmarks directly into your Obsidian vault as clean, ' +
-      'structured Markdown notes. No API key. No OAuth. Just your existing browser session. ' +
-      'It runs in an embedded webview against the session you already have, and reads your ' +
-      'bookmark list directly rather than scrolling the page, so a large library syncs ' +
-      'quickly. Each run confirms it actually reached the end of the list; when it cannot, ' +
-      'the next one re-scans in full rather than assuming. Sync incrementally, pick from a ' +
-      'checklist, or pull the full body of a long-form X article into its note.',
-    year: '2026',
-    kind: 'Obsidian plugin',
-    url: 'https://community.obsidian.md/plugins/x-bookmarks-sync',
-    pluginId: 'x-bookmarks-sync',
-    tile: 'bookmark',
-    /* Not a capture — there is nothing to capture (see `tile`) — but the same field, because
-       it does the same job in both places: the resting panel's picture, which the detail then
-       opens onto. Carrying it here rather than as a second backdrop key is what makes the two
-       states continuous: the panel is already showing this sky when it is clicked. */
-    image: '/xbookmarksync-bg2@2x.webp',
-  },
-];
 
 /* A project whose picture fills the whole opened frame rather than the picture column: a mark
    staged in a scene (see MediaStage's bleed wash). Derived rather than declared, because it is
@@ -1991,6 +1828,30 @@ const bleeds = (p: Project) => !!(p.tile && p.image);
 const PANEL_S = '0.55s';
 /* Shared by Panel and by PanelSlot, which has to match it — see PanelSlot. */
 const PANEL_PAD = '1.5rem';
+
+const FEATURED = FEATURED_PROJECTS;
+/* Static, and so is everything derived from it: the listed set is a module constant, and a row
+   that is one column short of its spine is simply today's row. With nothing listed the More
+   panel is not rendered and PanelRow's formulas reduce to the ones it had before. */
+const hasMore = LISTED_PROJECTS.length > 0;
+/* The row's columns: one per featured project, plus the More panel when there is one. The More
+   panel's index in the row (and in `open`) is FEATURED.length, so the wipe's distance maths
+   and the hero's layoutId need no special case for it. */
+const COLUMNS = FEATURED.length + (hasMore ? 1 : 0);
+
+/* The More panel is a SPINE: a thin column at the row's end that holds a vertical label and the
+   listed projects' links. It is not a project, and what it opens into is a list, not a detail.
+   Wide enough for one line of 0.58rem mono type set sideways with room to be hit with a thumb,
+   and no wider, so the featured panels keep nearly all of the row at rest. */
+const SPINE_W = '3.5rem';
+/* How much the spine widens when it is itself hovered, taken from the featured panels in equal
+   shares. A nudge rather than an accordion move: it says "this opens too" without competing
+   with the hovered-panel emphasis, which is the row's real gesture and is measured to a
+   different figure (PANEL_HOVER_W). */
+const SPINE_HOVER_GROW = '2rem';
+/* The spine's height once the row stacks into a column: a short full-width strip with the
+   label and names set horizontally. */
+const SPINE_STRIP_H = '4.5rem';
 
 /* How the opened frame divides: screenshots left, copy right. The pictures take the larger
    share — they are the evidence — and the copy a column narrow enough to read as a caption
@@ -2398,10 +2259,23 @@ const PanelRow = styled.div`
      settled back to 432. Driving every panel off one animatable length means exactly one
      property moves and there is nothing to overshoot with.
 
-     Both figures follow PROJECTS.length, so adding a panel needs no re-derivation — the thing
-     the old grow ratio demanded every time. */
+     The figures follow FEATURED.length, so adding a panel needs no re-derivation — the thing
+     the old grow ratio demanded every time.
+
+     THE SPINE (the More panel, marked data-more) is the one column that is not a featured
+     share. It has its own basis, --spine-w, which the featured panels subtract before they
+     divide what is left, so the row still sums to exactly 100cqw in every state:
+       rest            featured = (row - gaps - spine) / F        spine = SPINE_W
+       a panel hovered hovered = PANEL_HOVER_W                    spine HOLDS SPINE_W
+                       the others share (row - gaps - spine - hovered)
+       spine hovered   spine = SPINE_W + SPINE_HOVER_GROW         featured share the rest equally
+     Gaps are one per column but the last, which with a spine is F and without one is F - 1.
+     The spine reads --spine-w rather than --panel-w precisely so that the hover rules above,
+     which set --panel-w on every child, cannot reach it. */
+  --spine-w: ${SPINE_W};
   --panel-w: calc(
-    (100cqw - ${PROJECTS.length - 1} * var(--panel-gap)) / ${PROJECTS.length}
+    (100cqw - ${COLUMNS - 1} * var(--panel-gap)${hasMore ? ' - var(--spine-w)' : ''}) /
+      ${FEATURED.length}
   );
 
   > * {
@@ -2410,12 +2284,34 @@ const PanelRow = styled.div`
 
   &:hover > * {
     --panel-w: calc(
-      (100cqw - ${PROJECTS.length - 1} * var(--panel-gap) - ${PANEL_HOVER_W}) /
-        ${PROJECTS.length - 1}
+      (100cqw - ${COLUMNS - 1} * var(--panel-gap)${hasMore ? ' - var(--spine-w)' : ''} - ${PANEL_HOVER_W}) /
+        ${FEATURED.length - 1}
     );
   }
   & > *:hover {
     --panel-w: ${PANEL_HOVER_W};
+  }
+
+  ${
+    hasMore
+      ? css`
+          /* More specific than "> *" above, so the spine's basis is its own whichever state the
+             row is in. The open spine's PanelSlot carries data-more too, and so holds the same
+             basis the panel it stands in for had. */
+          > [data-more] {
+            flex: 0 0 var(--spine-w);
+          }
+
+          &:has(> [data-more]:hover) {
+            --spine-w: calc(${SPINE_W} + ${SPINE_HOVER_GROW});
+          }
+          &:has(> [data-more]:hover) > * {
+            --panel-w: calc(
+              (100cqw - ${COLUMNS - 1} * var(--panel-gap) - var(--spine-w)) / ${FEATURED.length}
+            );
+          }
+        `
+      : ''
   }
 
   ${STACKED_MEDIA} {
@@ -2427,6 +2323,14 @@ const PanelRow = styled.div`
     &:hover > *,
     & > *:hover {
       flex-grow: 1;
+    }
+
+    /* The spine becomes a short strip across the bottom: its basis is the row's main size,
+       which in a column is height, so it is released and the height set outright. After the
+       hover rule above so the strip never grows. */
+    & > [data-more] {
+      flex: 0 0 auto;
+      height: ${SPINE_STRIP_H};
     }
   }
 
@@ -2451,9 +2355,40 @@ const panelSkin = css`
     ${p => p.theme.color.ink};
 `;
 
-/* A button, not a div: clicking opens the detail view, so it has to be reachable and
-   operable from the keyboard. The panel carries no button chrome — the styles below
-   reset it — but it keeps the semantics.
+/* What clicking a panel actually hits: a button laid over the whole panel. Clicking opens the
+   detail view, so the panel has to be reachable and operable from the keyboard — but the panel
+   itself cannot BE the button, because it now carries a real link (PanelLink, or the More
+   panel's names) and an anchor inside a button is invalid markup and unusable: the browser
+   gives the click to whichever it resolves first, and the keyboard gets a control it cannot
+   operate. So the button is a sibling of the link, the two share the panel, and the panel is a
+   plain div.
+
+   Transparent and chromeless; it exists to be the target. Its name is the project's own, with
+   the verb, because the visible copy it covers is not inside it and so cannot name it.
+
+   Above the pictures and the copy (z-index 1) and BELOW the link (2), so a click on the link
+   goes out and a click on anything else opens the detail. Defined before Panel because Panel's
+   focus ring asks whether it is focused. */
+const PanelHit = styled.button`
+  && {
+    position: absolute;
+  }
+  inset: 0;
+  z-index: 1;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  /* The ring is the PANEL's (see Panel), drawn around the whole panel as it always was. */
+  outline: none;
+`;
+
+/* A div, with PanelHit as its button — see there for why the panel cannot be the button itself.
+   The panel carries no button chrome of its own to reset.
 
    NOT marked data-surface="inverted", despite being a dark island on a light page and so
    looking like PostBody's <pre>. Those precedents flip cleanly because their fill is their
@@ -2461,12 +2396,7 @@ const panelSkin = css`
    the deep grey on paper and WHITE on the inverted surface. Flipping the attribute here turns
    the panel into a pale box. Anything wanting the deep-surface accent inside these panels has
    to reach it without moving the surface out from under the fill. */
-const Panel = styled(motion.button)`
-  appearance: none;
-  border: 0;
-  font: inherit;
-  color: inherit;
-  text-align: left;
+const Panel = styled(motion.div)`
   cursor: pointer;
 
   position: relative;
@@ -2491,7 +2421,7 @@ const Panel = styled(motion.button)`
   /* Beat 4: the panels rise behind the ground, staggered left to right (see --arrive on Page).
 
      Neither half of it uses the property you would reach for first, and for the same reason:
-     this is a motion.button carrying a layoutId, and framer writes BOTH transform and opacity
+     this is a motion.div carrying a layoutId, and framer writes BOTH transform and opacity
      onto it inline (measured: style="transform: none; ...; opacity: 1"). An inline declaration
      beats any stylesheet, so a CSS transform or opacity here is simply ignored — and a CSS
      transform would additionally feed framer's layout projection a box that includes the rise.
@@ -2502,7 +2432,7 @@ const Panel = styled(motion.button)`
      harmless here, since the panel's layers are already absolute children of it and the hero it
      flies into is a sibling overlay, not a descendant.
 
-     The stagger comes from --i, written per panel in the row, so it follows PROJECTS rather than
+     The stagger comes from --i, written per panel in the row, so it follows the column count rather than
      an nth-child ladder that would have to be kept in step with the count. */
   --rise-delay: calc(${PANEL_RISE_DELAY}s + var(--i, 0) * ${PANEL_RISE_STAGGER}s);
   --rise-s: ${PANEL_RISE_S};
@@ -2530,7 +2460,9 @@ const Panel = styled(motion.button)`
      there is one, is a layer above this (PanelShot) rather than part of it. */
   ${panelSkin}
 
-  &:focus-visible {
+  /* The ring moved with the button: it is PanelHit that takes focus now, so the panel asks
+     whether it has. Same ring as before, drawn round the whole panel. */
+  &:has(${PanelHit}:focus-visible) {
     outline: 2px solid ${p => p.theme.accent.base};
     outline-offset: 3px;
   }
@@ -2896,10 +2828,11 @@ const PanelBlurb = styled.p`
     opacity ${PANEL_S} cubic-bezier(0.16, 1, 0.3, 1),
     transform ${PANEL_S} cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* focus-visible too: the panel is a button, so a keyboard user reaching it must get the
-     same second state the mouse gets — otherwise they see only ever the name. */
+  /* focus too: a keyboard user reaching the panel's button OR its link must get the same second
+     state the mouse gets — otherwise they see only ever the name. :has, because the focus is on
+     a child now, not on the panel. */
   ${Panel}:hover &,
-  ${Panel}:focus-visible & {
+  ${Panel}:has(:focus-visible) & {
     opacity: 1;
     transform: none;
   }
@@ -2914,6 +2847,174 @@ const PanelBlurb = styled.p`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+`;
+
+/* Text for crawlers and screen readers that is not drawn. The standard clip pattern rather than
+   display: none or visibility: hidden, either of which removes the text from the accessibility
+   tree too.
+
+   The detail's link avoided one of these (see DetailLink) because it had no other use for it.
+   PanelLink does, and for a reason that outranks tidiness: its anchor TEXT has to be the
+   address. Google reads a link's text, not its aria-label, and a link whose only content is an
+   icon has no text to read. */
+const VisuallyHidden = styled.span`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+`;
+
+/* The featured project's outbound link, in the panel's top-right corner. In the DOM at rest —
+   that is the point of it (see the section header) — but not drawn until the panel is pointed
+   at or focused, so the resting row is still just names. opacity rather than display or
+   visibility, either of which would take it out of the tab order and, for a crawler, out of the
+   page: the link has to exist and be focusable while it is invisible. Tabbing to it focuses it,
+   and the panel reveals it with the rest of the second state.
+
+   Above PanelHit (z-index 2 over 1), so the corner goes out and everything else opens the
+   detail. && to beat Panel's "> * { position: relative }", the conflict PanelShot records.
+
+   Light ink like DetailLink, for the same reason: it sits on the deep fill. A ~2rem square hit
+   area from padding, round a 1rem icon. */
+const PanelLink = styled.a`
+  && {
+    position: absolute;
+    top: ${PANEL_PAD};
+    right: ${PANEL_PAD};
+  }
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  color: rgba(255, 255, 255, 0.62);
+  text-decoration: none;
+  opacity: 0;
+  transition:
+    opacity ${PANEL_S} ease,
+    color ${PANEL_S} ease;
+
+  ${Panel}:hover &,
+  ${Panel}:has(:focus-visible) & {
+    opacity: 1;
+  }
+
+  &:hover,
+  &:focus-visible {
+    color: #fff;
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${p => p.theme.accent.base};
+    outline-offset: 2px;
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  ${STACKED_MEDIA} {
+    /* No hover below the cutover, where the row is a stacked column and most devices cannot
+       hover at all: a link that waited for one would never be seen. */
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+/* The More panel: the row's last column, made of the same material as the others (Panel) but
+   not a project. It is a spine, and its face is type set sideways, so the one thing that
+   changes on hover is its width (see PanelRow) — never the face. No picture layers, no veil, no
+   rule: the shared skin is all it wears.
+
+   Padding released: the face is laid over the whole panel (MoreFace), so the project panels'
+   padding, which reserves room for the blurb, would only squeeze it. && for the same reason as
+   everywhere else here — it has to beat Panel's own rules, which are the same specificity. */
+const MorePanel = styled(Panel)`
+  && {
+    padding: 0;
+  }
+`;
+
+/* The spine's face: the label and the listed projects' links, bottom-up. A reversed column so
+   the first thing in the DOM (the label) sits at the bottom, the way every other panel's copy is
+   bottom-aligned, and the names stack above it.
+
+   Laid over the panel above PanelHit (z-index 2) but letting every pointer event through, names
+   included, so a click anywhere on the spine opens the list (see MoreLink for why the names do
+   not catch it). && to beat "> * { position: relative }". */
+const MoreFace = styled.div`
+  && {
+    position: absolute;
+  }
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 1.25rem;
+  padding: ${PANEL_PAD} 0;
+
+  ${STACKED_MEDIA} {
+    /* A strip: the label first, the names after it on the same line, all set horizontally. */
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    padding: 0 ${PANEL_PAD};
+    overflow: hidden;
+  }
+`;
+
+/* Sideways type, reading BOTTOM-TO-TOP: vertical-rl runs top-to-bottom, and the half-turn
+   flips it. Shared by the label and the names, which differ only in their ink. */
+const sideways = css`
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+
+  ${STACKED_MEDIA} {
+    writing-mode: horizontal-tb;
+    transform: none;
+  }
+`;
+
+/* PanelEyebrow's idiom (mono, tracked, small), turned on its side. Its bottom margin is a
+   panel-copy spacing and has no place in a flex column with its own gap. */
+const MoreLabel = styled(PanelEyebrow)`
+  margin: 0;
+  ${sideways}
+`;
+
+/* A listed project's name, as a link — for CRAWLERS, not for people. Crawlers do not click, so
+   the address has to be in the DOM at rest; but on a spine this narrow a live link under the
+   pointer turned most of the door into a way out, and a click meant to open the list left the
+   site instead. So the link is inert here: it takes no pointer events (MoreFace passes them all
+   through to PanelHit), it is out of the tab order, and it is hidden from assistive tech, which
+   gets the working link in the opened list (MoreDetail). Google reads an href whatever the
+   pointer and the accessibility tree are told. No hover state, since it must not look clickable.
+
+   Visible text is the address (linkLabel), which is the domain, for the same crawler reason
+   PanelLink hides it in a span; here the text is drawn because the name IS the face. */
+const MoreLink = styled.a`
+  padding: 0.35rem 0.5rem;
+  font-family: ${p => p.theme.font.mono};
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.62);
+  text-decoration: none;
+  ${sideways}
 `;
 
 /* The gap the expanded panel leaves in the row. Holds the slot open so the prose below
@@ -2967,7 +3068,7 @@ const OPEN_CLIP = 'inset(0% 0% 0% 0%)';
    of the picture column (see Projects, where they are measured). Vertically open from the start
    — the panel and the column are the same height, so only the width has anywhere to travel. */
 /* The clicked panel's two edges, as shares of a box the reveal will open across. Both pairs
-   are recorded at click time (see Panel's onClick): the column pair for the layers that live in
+   are recorded at click time (see Projects' openAt): the column pair for the layers that live in
    the picture column, the frame pair for one that bleeds the full width. */
 type PanelFrom = {
   left: number;
@@ -3446,7 +3547,7 @@ const StatMeta = styled.div`
 `;
 
 /* The same numbers when the detail has no measured tile to hang PluginStat under — the
-   stacked layout skips the tile measurement (see Panel's onClick), and the numbers are
+   stacked layout skips the tile measurement (see Projects' openAt), and the numbers are
    content, not staging, so they move into the caption as a plain row instead of vanishing
    with the choreography. Eyebrow idiom around a display-face count, on the caption's own
    flat dark ground — no photograph here, so no shadow. */
@@ -3671,6 +3772,38 @@ const CloseButton = styled(motion.button)`
 const linkLabel = (url: string) =>
   url.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '');
 
+/* The detail's timing, shared by Detail and MoreDetail so the two open on one clock. Everything
+   here is derived from which column was clicked, because that decides how long the wipe runs. */
+const detailBeats = (index: number) => {
+  /* The wipe is the PANELS' own job now (see Projects) — Detail only has to know when it ends,
+     so the hero does not start growing before the columns it grows over have gone. */
+  const maxOrder = Math.max(
+    0,
+    ...Array.from({ length: COLUMNS }, (_, i) => i)
+      .filter(i => i !== index)
+      .map(i => wipeOf(i, index).order),
+  );
+
+  /* The click is a three-beat sequence, not one blended motion — the earlier version ran
+     all three at once, so the growing hero swallowed the wipe before it finished and the
+     wipe never read. Now: (1) the losers wipe away, (2) the survivor expands, (3) the
+     caption fades in. The beats OVERLAP slightly rather than abut, so it reads as one
+     connected gesture. */
+
+  /* When the last column finishes clipping away — derived, because maxOrder differs by which
+     panel was clicked (0 for the middle, 1 for an edge), so a fixed hero delay would give an
+     uneven gap. Measuring from WIPE_END keeps the timing identical for every panel. */
+  const WIPE_END = maxOrder * WIPE_STAGGER + WIPE_DUR;
+  /* The expansion LEADS the wipe's end, overlapping the two beats. Safe despite the earlier
+     "hero hides the wipe" problem: the survivor grows from its OWN column outward and only
+     reaches the outer columns late in its travel, by which point they have long gone. */
+  const EXPAND_DELAY = Math.max(0, WIPE_END - EXPAND_LEAD);
+  const heroIn = { duration: 0.55, ease, delay: EXPAND_DELAY };
+  /* After the hero has essentially finished growing. */
+  const captionIn = { duration: 0.35, ease, delay: EXPAND_DELAY + 0.5 };
+  return { EXPAND_DELAY, heroIn, captionIn };
+};
+
 const Detail: React.FC<{
   project: Project;
   index: number;
@@ -3717,32 +3850,8 @@ const Detail: React.FC<{
     return () => stop.abort();
   }, [wantsStats, project.pluginId]);
 
-  /* The wipe is the PANELS' own job now (see Projects) — Detail only has to know when it ends,
-     so the hero does not start growing before the columns it grows over have gone. */
-  const maxOrder = Math.max(
-    0,
-    ...PROJECTS.map((_, i) => i)
-      .filter(i => i !== index)
-      .map(i => wipeOf(i, index).order),
-  );
+  const { EXPAND_DELAY, heroIn, captionIn } = detailBeats(index);
 
-  /* The click is a three-beat sequence, not one blended motion — the earlier version ran
-     all three at once, so the growing hero swallowed the wipe before it finished and the
-     wipe never read. Now: (1) the losers wipe away, (2) the survivor expands, (3) the
-     caption fades in. The beats OVERLAP slightly rather than abut, so it reads as one
-     connected gesture. */
-
-  /* When the last column finishes clipping away — derived, because maxOrder differs by which
-     panel was clicked (0 for the middle, 1 for an edge), so a fixed hero delay would give an
-     uneven gap. Measuring from WIPE_END keeps the timing identical for every panel. */
-  const WIPE_END = maxOrder * WIPE_STAGGER + WIPE_DUR;
-  /* The expansion LEADS the wipe's end, overlapping the two beats. Safe despite the earlier
-     "hero hides the wipe" problem: the survivor grows from its OWN column outward and only
-     reaches the outer columns late in its travel, by which point they have long gone. */
-  const EXPAND_DELAY = Math.max(0, WIPE_END - EXPAND_LEAD);
-  const heroIn = { duration: 0.55, ease, delay: EXPAND_DELAY };
-  /* After the hero has essentially finished growing. */
-  const captionIn = { duration: 0.35, ease, delay: EXPAND_DELAY + 0.5 };
   /* The pictures rise WITH the last of the hero's growth, not after it. They used to wait
      +0.42 into a 0.55 flight and take 0.4s over it, which measured as the hero landing at
      752ms and the shots still at 27% opacity at 837 — a beat where the box was fully open and
@@ -4108,12 +4217,126 @@ const Detail: React.FC<{
   );
 };
 
+/* What the More panel opens into: a contents page for the listed projects. A SIBLING of the hero,
+   like DetailCaption and for the same reason (text inside the hero would be squashed by its
+   flight), and it takes the caption's measure — a column, not the frame — so a listed project
+   reads at the width a featured one's copy does.
+
+   Top-left and top-down where the caption is centred: this is a list, and a list that grows
+   should grow downward from its heading. It scrolls rather than clips when it outruns the frame
+   (the stacked layout is the usual way that happens), and the top padding clears CloseButton,
+   which sits in the corner above it. */
+const MoreCaption = styled(motion.div)`
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-width: 620px;
+  padding: 3.25rem ${PANEL_PAD} ${PANEL_PAD};
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+`;
+
+const MoreList = styled.ul`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+`;
+
+/* One listed project. The rule above each row is the accent mixed down to 35% (never the hex,
+   per the design system), so it follows the surface; the first one doubles as the rule under
+   the heading. */
+const MoreItem = styled.li`
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 0;
+  border-top: 1px solid color-mix(in srgb, ${p => p.theme.accent.base} 35%, transparent);
+`;
+
+const MoreDetail: React.FC<{
+  index: number;
+  reduced: boolean;
+  onClose: () => void;
+}> = ({ index, reduced, onClose }) => {
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  /* Exactly Detail's disclosure behaviour — see there for why it is not a modal. */
+  useEffect(() => {
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const { heroIn, captionIn } = detailBeats(index);
+
+  return (
+    <Overlay role="group" aria-label="More projects, details">
+      <Hero
+        /* The More panel's own layoutId, which is its index like every other column's. */
+        layoutId={reduced ? undefined : `project-panel-${index}`}
+        transition={reduced ? { duration: 0 } : heroIn}
+      />
+
+      <MoreCaption
+        initial={reduced ? false : { opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0, transition: reduced ? { duration: 0 } : captionIn }}
+        exit={reduced ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
+      >
+        <PanelEyebrow>More projects</PanelEyebrow>
+        <MoreList>
+          {LISTED_PROJECTS.map(p => (
+            <MoreItem key={p.name}>
+              <PanelEyebrow>
+                {p.kind} / {p.year}
+              </PanelEyebrow>
+              <DetailName>{p.name}</DetailName>
+              <DetailText>{p.detail ?? p.blurb}</DetailText>
+              {p.url && (
+                <DetailLink
+                  href={p.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${linkLabel(p.url)} (opens in a new tab)`}
+                >
+                  {linkLabel(p.url)}
+                  <ArrowUpRight aria-hidden strokeWidth={2} />
+                </DetailLink>
+              )}
+            </MoreItem>
+          ))}
+        </MoreList>
+      </MoreCaption>
+
+      <CloseButton
+        ref={closeRef}
+        onClick={onClose}
+        initial={reduced ? false : { opacity: 0 }}
+        animate={{ opacity: 1, transition: reduced ? { duration: 0 } : captionIn }}
+        exit={reduced ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
+      >
+        Close
+      </CloseButton>
+    </Overlay>
+  );
+};
+
 const Projects: React.FC<{
   reduced: boolean;
   closerRef: React.RefObject<(() => boolean) | null>;
 }> = ({ reduced, closerRef }) => {
   const [open, setOpen] = useState<number | null>(null);
+  /* The panels' buttons, for focus to come back to... */
   const triggers = useRef<(HTMLButtonElement | null)[]>([]);
+  /* ...and the panels themselves, which are what the click measures: the button is laid over
+     the panel but the panel is the box that is about to become the hero. */
+  const panels = useRef<(HTMLDivElement | null)[]>([]);
   const rowRef = useRef<HTMLDivElement>(null);
   /* The open/close choreography — losers wiping away sideways, the survivor flying to the
      hero and back — is staged for the horizontal accordion row. Below the stage cutover the
@@ -4136,6 +4359,103 @@ const Projects: React.FC<{
   const [openFrom, setOpenFrom] = useState<PanelFrom | null>(
     null,
   );
+
+  /* What every column of the row shares — the featured panels and the More panel alike — so the
+     wipe, the flight home and the rise cannot drift apart between them. */
+  const columnProps = (i: number) => ({
+    /* The rise's place in the stagger — see Panel. */
+    style: { '--i': i } as React.CSSProperties,
+    layoutId: staged ? `project-panel-${i}` : undefined,
+    /* A losing column clips itself away rather than being covered by an opaque card,
+       so what the wipe uncovers is the ruled ground the panels sit on — the section's
+       graph paper, showing through the transparent frame — instead of a flat
+       rectangle. Nothing here runs while the row is at rest: with `open` null every
+       panel animates to OPEN_CLIP, which is the value it already has.
+
+       Stacked column: no wipe — the sideways clip was drawn for the horizontal row
+       (see `staged`) — the losers just fade under the detail. */
+    animate: staged
+      ? {
+          clipPath: open === null ? OPEN_CLIP : wipeClip(wipeOf(i, open).fromRight),
+          transition:
+            open === null
+              ? { duration: 0.34, ease }
+              : {
+                  duration: WIPE_DUR,
+                  ease,
+                  delay: wipeOf(i, open).order * WIPE_STAGGER,
+                },
+        }
+      : {
+          opacity: open === null ? 1 : 0,
+          transition: { duration: reduced ? 0 : 0.25, ease },
+        },
+    /* The flight HOME, and only that: opening is the Hero's own transition (see
+       heroIn), because opening is the element over there arriving. This is the panel
+       the hero flies back INTO, so closing is timed here.
+
+       0.4 rather than the 0.6 it opened on, and the asymmetry is the point — a close
+       is not an open reversed. Measured at 0.6, the hero was still 315px wide (against
+       the panel's 291) a third of a second in, which on the scroll-up path meant the
+       panels behind it started dropping while it was still visibly in flight. At 0.4
+       the same curve puts it home in ~230ms, and the exit chain can follow it. */
+    transition: { duration: 0.4, ease },
+    /* clip-path is a PAINT operation. A clipped panel is invisible and drops out of
+       hit-testing, so the mouse cannot reach it — but it keeps its place in the tab
+       order, and Tab would land on a button that is not there. Every panel still
+       rendered while the detail is open is a clipped loser (the survivor's slot is a
+       PanelSlot), so the condition is simply "is the detail open".
+
+       The old covering bands had exactly the same hole; the clip only makes it
+       easier to assume otherwise, because the panel genuinely is not painted. */
+    inert: open !== null,
+  });
+
+  /* The click, measured. Taken off the panel's own box (see `panels`) at the moment of the
+     click, because by the time the detail mounts the panel is unmounted. */
+  const openAt = (i: number) => {
+    const row = rowRef.current?.getBoundingClientRect();
+    const el = panels.current[i]?.getBoundingClientRect();
+    if (row && el) {
+      const shots = row.width * (parseFloat(SPLIT_SHOTS) / 100);
+      const left = (el.left - row.left) / shots;
+      /* The same edges twice, because the layers that open from them do not share a
+         box: the split and the staged column are the picture column's width, a
+         bleeding stage is the frame's. Measured against each rather than scaled from
+         one to the other — the column shares are CLAMPED (the last panel starts
+         beyond the column entirely, at left > 1), and scaling a clamped pair gives a
+         window with no width, which opens as nothing at all. */
+      const frameLeft = (el.left - row.left) / row.width;
+      /* And where the mark is, if this panel carries one: the detail keeps it at
+         the size and place it already has rather than restaging it (see Detail).
+         MEASURED rather than recomputed from the panel's index, because the panel
+         under the pointer is the widened one — the accordion has moved both the
+         panel and the mark inside it, and only the DOM knows by how much. */
+      /* Desktop only, on the layout's own breakpoint: below it the detail stacks —
+         picture above, copy below (see DetailCaption) — and a mark placed at a
+         point measured in a side-by-side frame lands nowhere in particular. The
+         stacked detail keeps the staged tile instead. */
+      const t = !isStackedViewport()
+        ? panels.current[i]
+            ?.querySelector('[data-tile]')
+            ?.getBoundingClientRect()
+        : undefined;
+      setOpenFrom({
+        left: Math.max(0, left),
+        right: Math.max(0, 1 - left - el.width / shots),
+        frameLeft: Math.max(0, frameLeft),
+        frameRight: Math.max(0, 1 - frameLeft - el.width / row.width),
+        tile: t
+          ? {
+              x: (t.left + t.width / 2 - row.left) / row.width,
+              y: (t.top + t.height / 2 - row.top) / row.height,
+              size: t.width,
+            }
+          : undefined,
+      });
+    } else setOpenFrom(null);
+    setOpen(i);
+  };
 
   /* Focus went into the overlay on open, so it has to come back to the panel that sent it
      there — otherwise closing drops it on <body> and the keyboard loses its place.
@@ -4197,7 +4517,7 @@ const Projects: React.FC<{
       </SectionLabel>
       <RowFrame>
       <PanelRow ref={rowRef}>
-        {PROJECTS.map((p, i) =>
+        {FEATURED.map((p, i) =>
           /* The open panel leaves the row entirely rather than hiding: its layoutId has to
              belong to exactly one mounted element, or framer cross-fades a pair instead of
              flying one. PanelSlot holds its share of the row so nothing reflows. */
@@ -4206,102 +4526,10 @@ const Projects: React.FC<{
           ) : (
             <Panel
               key={p.name}
-              ref={(el: HTMLButtonElement | null) => {
-                triggers.current[i] = el;
+              ref={(el: HTMLDivElement | null) => {
+                panels.current[i] = el;
               }}
-              /* The rise's place in the stagger — see Panel. */
-              style={{ '--i': i } as React.CSSProperties}
-              layoutId={staged ? `project-panel-${i}` : undefined}
-              /* A losing column clips itself away rather than being covered by an opaque card,
-                 so what the wipe uncovers is the ruled ground the panels sit on — the section's
-                 graph paper, showing through the transparent frame — instead of a flat
-                 rectangle. Nothing here runs while the row is at rest: with `open` null every
-                 panel animates to OPEN_CLIP, which is the value it already has.
-
-                 Stacked column: no wipe — the sideways clip was drawn for the horizontal row
-                 (see `staged`) — the losers just fade under the detail. */
-              animate={
-                staged
-                  ? {
-                      clipPath:
-                        open === null ? OPEN_CLIP : wipeClip(wipeOf(i, open).fromRight),
-                      transition:
-                        open === null
-                          ? { duration: 0.34, ease }
-                          : {
-                              duration: WIPE_DUR,
-                              ease,
-                              delay: wipeOf(i, open).order * WIPE_STAGGER,
-                            },
-                    }
-                  : {
-                      opacity: open === null ? 1 : 0,
-                      transition: { duration: reduced ? 0 : 0.25, ease },
-                    }
-              }
-              /* The flight HOME, and only that: opening is the Hero's own transition (see
-                 heroIn), because opening is the element over there arriving. This is the panel
-                 the hero flies back INTO, so closing is timed here.
-
-                 0.4 rather than the 0.6 it opened on, and the asymmetry is the point — a close
-                 is not an open reversed. Measured at 0.6, the hero was still 315px wide (against
-                 the panel's 291) a third of a second in, which on the scroll-up path meant the
-                 panels behind it started dropping while it was still visibly in flight. At 0.4
-                 the same curve puts it home in ~230ms, and the exit chain can follow it. */
-              transition={{ duration: 0.4, ease }}
-              onClick={() => {
-                const row = rowRef.current?.getBoundingClientRect();
-                const el = triggers.current[i]?.getBoundingClientRect();
-                if (row && el) {
-                  const shots = row.width * (parseFloat(SPLIT_SHOTS) / 100);
-                  const left = (el.left - row.left) / shots;
-                  /* The same edges twice, because the layers that open from them do not share a
-                     box: the split and the staged column are the picture column's width, a
-                     bleeding stage is the frame's. Measured against each rather than scaled from
-                     one to the other — the column shares are CLAMPED (the last panel starts
-                     beyond the column entirely, at left > 1), and scaling a clamped pair gives a
-                     window with no width, which opens as nothing at all. */
-                  const frameLeft = (el.left - row.left) / row.width;
-                  /* And where the mark is, if this panel carries one: the detail keeps it at
-                     the size and place it already has rather than restaging it (see Detail).
-                     MEASURED rather than recomputed from the panel's index, because the panel
-                     under the pointer is the widened one — the accordion has moved both the
-                     panel and the mark inside it, and only the DOM knows by how much. */
-                  /* Desktop only, on the layout's own breakpoint: below it the detail stacks —
-                     picture above, copy below (see DetailCaption) — and a mark placed at a
-                     point measured in a side-by-side frame lands nowhere in particular. The
-                     stacked detail keeps the staged tile instead. */
-                  const t = !isStackedViewport()
-                    ? triggers.current[i]
-                        ?.querySelector('[data-tile]')
-                        ?.getBoundingClientRect()
-                    : undefined;
-                  setOpenFrom({
-                    left: Math.max(0, left),
-                    right: Math.max(0, 1 - left - el.width / shots),
-                    frameLeft: Math.max(0, frameLeft),
-                    frameRight: Math.max(0, 1 - frameLeft - el.width / row.width),
-                    tile: t
-                      ? {
-                          x: (t.left + t.width / 2 - row.left) / row.width,
-                          y: (t.top + t.height / 2 - row.top) / row.height,
-                          size: t.width,
-                        }
-                      : undefined,
-                  });
-                } else setOpenFrom(null);
-                setOpen(i);
-              }}
-              aria-expanded={false}
-              /* clip-path is a PAINT operation. A clipped panel is invisible and drops out of
-                 hit-testing, so the mouse cannot reach it — but it keeps its place in the tab
-                 order, and Tab would land on a button that is not there. Every panel still
-                 rendered while the detail is open is a clipped loser (the survivor's slot is a
-                 PanelSlot), so the condition is simply "is the detail open".
-
-                 The old covering bands had exactly the same hole; the clip only makes it
-                 easier to assume otherwise, because the panel genuinely is not painted. */
-              inert={open !== null}
+              {...columnProps(i)}
             >
               {/* Three layers under the copy, in this order: the tilted plate, the scrim that
                   lifts on hover, and the shim that does not. See PanelShim. */}
@@ -4335,24 +4563,97 @@ const Projects: React.FC<{
               </PanelEyebrow>
               <PanelName>{p.name}</PanelName>
               <PanelBlurb>{p.blurb}</PanelBlurb>
+              {/* After the copy, and the button before the link, so the tab order is the panel
+                  and then its way out. The button is named for the project because the copy it
+                  covers is not inside it. */}
+              <PanelHit
+                ref={(el: HTMLButtonElement | null) => {
+                  triggers.current[i] = el;
+                }}
+                onClick={() => openAt(i)}
+                aria-expanded={false}
+                aria-label={`${p.name}, open details`}
+              />
+              {p.url && (
+                <PanelLink
+                  href={p.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${linkLabel(p.url)} (opens in a new tab)`}
+                >
+                  <ArrowUpRight aria-hidden strokeWidth={2} />
+                  <VisuallyHidden>{linkLabel(p.url)}</VisuallyHidden>
+                </PanelLink>
+              )}
             </Panel>
           ),
         )}
+        {hasMore &&
+          (open === FEATURED.length ? (
+            /* Padding released and tagged, so the slot holds the spine's basis (see PanelRow). */
+            <PanelSlot key="more" data-more aria-hidden style={{ padding: 0 }} />
+          ) : (
+            <MorePanel
+              key="more"
+              data-more
+              ref={(el: HTMLDivElement | null) => {
+                panels.current[FEATURED.length] = el;
+              }}
+              {...columnProps(FEATURED.length)}
+            >
+              <PanelHit
+                ref={(el: HTMLButtonElement | null) => {
+                  triggers.current[FEATURED.length] = el;
+                }}
+                onClick={() => openAt(FEATURED.length)}
+                aria-expanded={false}
+                aria-label="More projects"
+              />
+              {/* Over the button, letting every click through to it. The names are for crawlers
+                  and take no focus, so the spine is one control (see MoreLink). */}
+              <MoreFace>
+                <MoreLabel>More projects</MoreLabel>
+                {LISTED_PROJECTS.map(
+                  p =>
+                    p.url && (
+                      <MoreLink
+                        key={p.name}
+                        href={p.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        tabIndex={-1}
+                        aria-hidden
+                      >
+                        {linkLabel(p.url)}
+                      </MoreLink>
+                    ),
+                )}
+              </MoreFace>
+            </MorePanel>
+          ))}
       </PanelRow>
 
         <AnimatePresence>
-          {open !== null && (
-            <Detail
-              key="detail"
-              project={PROJECTS[open]}
-              from={openFrom}
-              index={open}
-              /* The stacked column rides the reduced-motion path: the detail's flight,
-                 reveal clips and beat delays are all staged against the horizontal row. */
-              reduced={reduced || stacked}
-              onClose={close}
-            />
-          )}
+          {open !== null &&
+            (open === FEATURED.length ? (
+              <MoreDetail
+                key="detail"
+                index={open}
+                reduced={reduced || stacked}
+                onClose={close}
+              />
+            ) : (
+              <Detail
+                key="detail"
+                project={FEATURED[open]}
+                from={openFrom}
+                index={open}
+                /* The stacked column rides the reduced-motion path: the detail's flight,
+                   reveal clips and beat delays are all staged against the horizontal row. */
+                reduced={reduced || stacked}
+                onClose={close}
+              />
+            ))}
         </AnimatePresence>
       </RowFrame>
     </ProjectsSection>

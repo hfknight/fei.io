@@ -109,3 +109,35 @@ _Avoid_: pair, pairing, complement
 The live rendered sample proving a match: a mini page with the match as heading and its
 companion as body, in real webfont text, editable in place.
 _Avoid_: preview, sample, demo
+
+### Side projects (`/readme`)
+
+**Project**:
+A finished, public thing Fei built independently, shown in the readme's side-projects section.
+Every project is either featured or listed, never both.
+_Avoid_: work, case study, item
+
+**Featured project**:
+A project with its own panel, opening onto a detail that shows it properly — pictures, the
+long account, the link out. A small, deliberate set: becoming featured is a decision, never a
+side effect of order.
+_Avoid_: main project, top project
+
+**Listed project**:
+A project shown without pictures, as one row of the More panel's list. A listed project is not
+lesser, only not yet staged; it is promoted to featured when it earns the pictures.
+_Avoid_: other project, minor project, archived project
+
+**Panel**:
+One column of the side-projects row. A featured project's panel *is* that project at rest.
+_Avoid_: card, tile, slide
+
+**More panel**:
+The row's last column — not a project, but the way to the listed projects. Its face is its
+label and the listed projects' names; only its width answers a hover.
+_Avoid_: overflow, archive, more card
+
+**Detail**:
+What a panel opens into, filling the row's frame. A featured project's detail is that
+project; the More panel's detail is the list of listed projects.
+_Avoid_: modal, lightbox, popup

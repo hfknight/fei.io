@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { serializeJsonLd } from './lib/stampMeta';
 import { README_META } from './readme';
+import { ALL_PROJECTS } from '../src/data/projects';
 
 /**
  * As in lib/stampMeta.test.ts, the rewrite itself is HTMLRewriter, which vitest's runtime
@@ -37,5 +38,24 @@ describe('/readme meta', () => {
       'https://www.linkedin.com/in/feihu/',
       'https://x.com/Parn_Fe',
     ]);
+  });
+});
+
+describe('/readme project list', () => {
+  it('declares every project the page renders, as an ItemList on the ProfilePage', () => {
+    const parsed = JSON.parse(serializeJsonLd(README_META, CANONICAL));
+    const list = parsed.hasPart[0];
+
+    expect(list['@type']).toBe('ItemList');
+    expect(list.itemListElement.map((e: { item: { url: string } }) => e.item.url)).toEqual(
+      ALL_PROJECTS.map(p => p.url),
+    );
+    list.itemListElement.forEach(
+      (e: { position: number; item: Record<string, unknown> }, i: number) => {
+        expect(e.position).toBe(i + 1);
+        expect(e.item['@type']).toBe(ALL_PROJECTS[i].schemaType);
+        expect(e.item.creator).toEqual({ '@id': 'https://fei.io/#person' });
+      },
+    );
   });
 });
