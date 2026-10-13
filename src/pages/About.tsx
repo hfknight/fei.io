@@ -3,6 +3,7 @@ import styled, { createGlobalStyle, css, keyframes } from 'styled-components';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowDown, ArrowUpRight, Bookmark } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
+import { usePageTitle } from '../hooks/usePageTitle';
 import {
   ASCII_FLAT,
   ASCII_LEVELS,
@@ -4359,6 +4360,7 @@ const Projects: React.FC<{
 };
 
 const About: React.FC = () => {
+  usePageTitle("About · Fei Hu, full-stack engineer with a designer's touch");
   const reduced = useReducedMotion();
   const pageRef = useRef<HTMLDivElement>(null);
   /* The readme column, measured by AsciiPortrait to build a grid with its exact geometry. */
