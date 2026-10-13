@@ -4188,10 +4188,11 @@ const Detail: React.FC<{
           <DetailLink
             href={project.url}
             target="_blank"
-            /* noreferrer as well as noopener: the opener hole is closed by default in current
-               browsers, but the referrer leaks either way, and nothing here needs the
-               destination to know where the visit came from. */
-            rel="noopener noreferrer"
+            /* noopener WITHOUT noreferrer, on purpose: these lead to Fei's own projects, and
+               their analytics (Cloudflare, Clarity) should see the visit came from here rather
+               than file it as direct. The site's strict-origin-when-cross-origin policy means only
+               the origin goes, never the path. Every project link on this page follows suit. */
+            rel="noopener"
             /* The arrow says "this leaves the page" to the eye; the label says it to everyone
                else. On the anchor rather than in a visually-hidden span because that is one
                element and one string instead of a new component this file has no other use
@@ -4302,7 +4303,7 @@ const MoreDetail: React.FC<{
                 <DetailLink
                   href={p.url}
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noopener"
                   aria-label={`${linkLabel(p.url)} (opens in a new tab)`}
                 >
                   {linkLabel(p.url)}
@@ -4578,7 +4579,7 @@ const Projects: React.FC<{
                 <PanelLink
                   href={p.url}
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noopener"
                   aria-label={`${linkLabel(p.url)} (opens in a new tab)`}
                 >
                   <ArrowUpRight aria-hidden strokeWidth={2} />
@@ -4620,7 +4621,7 @@ const Projects: React.FC<{
                         key={p.name}
                         href={p.url}
                         target="_blank"
-                        rel="noopener noreferrer"
+                        rel="noopener"
                         tabIndex={-1}
                         aria-hidden
                       >
