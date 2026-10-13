@@ -83,6 +83,29 @@ export async function listPublished(db: D1Database): Promise<PostSummaryDTO[]> {
   return (results ?? []).map(summaryRowToDTO);
 }
 
+export interface PostIndexEntry {
+  slug: string;
+  title: string;
+  publishedAt: number;
+  updatedAt: number;
+}
+
+/** What the sitemap and llms.txt need of each published post: no bodies, no covers. */
+export async function listPublishedForIndex(db: D1Database): Promise<PostIndexEntry[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT slug, title, published_at, updated_at
+       FROM posts WHERE status = 'published' ORDER BY published_at DESC`,
+    )
+    .all<{ slug: string; title: string; published_at: number; updated_at: number }>();
+  return (results ?? []).map((r) => ({
+    slug: r.slug,
+    title: r.title,
+    publishedAt: r.published_at,
+    updatedAt: r.updated_at,
+  }));
+}
+
 export async function getPublishedBySlug(db: D1Database, slug: string): Promise<PostDTO | null> {
   const row = await db
     .prepare(`SELECT * FROM posts WHERE slug = ? AND status = 'published'`)

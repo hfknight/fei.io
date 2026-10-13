@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { motion, useReducedMotion } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
 import ShimmerText from '../components/ShimmerText';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { fetchPublishedPosts } from '../lib/blogApi';
 import { WRITING_GROUND } from '../styles/surface';
 import type { BlogPostSummary } from '../types';
@@ -64,6 +65,7 @@ function yearSpan(posts: BlogPostSummary[]): string | null {
 const Writing: React.FC = () => {
   const [state, setState] = useState<State>({ loading: true, error: false, posts: [] });
   const reduced = useReducedMotion();
+  usePageTitle('Writing · Fei Hu');
 
   useEffect(() => {
     let active = true;

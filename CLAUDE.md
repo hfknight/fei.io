@@ -92,6 +92,10 @@ with a dev bypass since Access doesn't run under `wrangler pages dev`. Markdown
 renders with `react-markdown` (not MDX); each post picks one of three layout
 **templates** (`src/components/Blog/templates/`).
 
+- The `/writing` and `/writing/:slug` heads, `/sitemap.xml`, and `/llms.txt` are stamped at the
+  edge from D1 (`functions/writing/`, `functions/sitemap.xml.ts`, `functions/llms.txt.ts`),
+  failing open to the static file; `public/sitemap.xml` and `public/llms.txt` still hold the
+  static pages by hand.
 - Config + bindings: `wrangler.toml` (project name is `fei-io`); schema in `migrations/`.
 - One-time provisioning + troubleshooting: `docs/cloudflare-setup.md`.
 - Full design + plan: `docs/brainstorms/` and `docs/plans/`.

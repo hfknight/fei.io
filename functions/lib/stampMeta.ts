@@ -9,6 +9,13 @@ export interface PageMeta {
   title: string;
   description: string;
   /**
+   * Absolute URL of the page's own share image, for pages with one (a post's cover). When set
+   * it replaces both og:image and twitter:image; unset leaves the site-wide card in place.
+   */
+  image?: string;
+  /** Open Graph type, e.g. `article` for a post. Unset leaves the site-wide `website`. */
+  ogType?: string;
+  /**
    * The page's schema.org object, minus what can be derived: `@context`, `url` and
    * `description` are filled in from the meta and the canonical, and any of them can still be
    * overridden by naming it here. Omit for pages that no schema type describes honestly —
@@ -59,6 +66,13 @@ export function stampMeta(asset: Response, meta: PageMeta, canonical: string): R
     .on('meta[property="og:url"]', setContent(canonical))
     .on('meta[name="twitter:title"]', setContent(meta.title))
     .on('meta[name="twitter:description"]', setContent(meta.description));
+
+  if (meta.image) {
+    rewriter
+      .on('meta[property="og:image"]', setContent(meta.image))
+      .on('meta[name="twitter:image"]', setContent(meta.image));
+  }
+  if (meta.ogType) rewriter.on('meta[property="og:type"]', setContent(meta.ogType));
 
   /* Appended rather than rewritten: the site-wide head already carries a Person block, and a
      page describing what it *is* sits alongside that rather than replacing it. */

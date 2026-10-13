@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import PageTransition from '../components/PageTransition';
 import ShimmerText from '../components/ShimmerText';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { RenderedPost } from '../components/Blog/RenderedPost';
 import { fetchPost } from '../lib/blogApi';
 import { WRITING_GROUND } from '../styles/surface';
@@ -23,6 +24,12 @@ const WritingPost: React.FC = () => {
 
 const PostView: React.FC<{ slug: string }> = ({ slug }) => {
   const [state, setState] = useState<State>({ kind: 'loading' });
+  // Until the post arrives (or if it never does) the tab keeps the site-wide title.
+  usePageTitle(
+    state.kind === 'ready'
+      ? `${state.post.title} · Fei Hu`
+      : 'Fei Hu · Full-Stack & AI Product Engineer',
+  );
 
   useEffect(() => {
     let active = true;
