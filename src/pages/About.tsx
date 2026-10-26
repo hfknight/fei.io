@@ -2945,13 +2945,11 @@ const MorePanel = styled(Panel)`
   }
 `;
 
-/* The spine's face: the label and the listed projects' links, bottom-up. A reversed column so
-   the first thing in the DOM (the label) sits at the bottom, the way every other panel's copy is
-   bottom-aligned, and the names stack above it.
+/* The spine's face: the label, at the bottom the way every other panel's copy is
+   bottom-aligned, which is what the reversed column does for a single item.
 
-   Laid over the panel above PanelHit (z-index 2) but letting every pointer event through, names
-   included, so a click anywhere on the spine opens the list (see MoreLink for why the names do
-   not catch it). && to beat "> * { position: relative }". */
+   Laid over the panel above PanelHit (z-index 2) but letting every pointer event through, so a
+   click anywhere on the spine opens the list. && to beat "> * { position: relative }". */
 const MoreFace = styled.div`
   && {
     position: absolute;
@@ -2962,23 +2960,20 @@ const MoreFace = styled.div`
   display: flex;
   flex-direction: column-reverse;
   align-items: center;
-  gap: 1.25rem;
   padding: ${PANEL_PAD} 0;
 
   ${STACKED_MEDIA} {
-    /* A strip: the label first, the names after it on the same line, all set horizontally. */
+    /* A strip: the label set horizontally at its start. */
     flex-direction: row;
     justify-content: flex-start;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem 1.5rem;
     padding: 0 ${PANEL_PAD};
     overflow: hidden;
   }
 `;
 
 /* Sideways type, reading BOTTOM-TO-TOP: vertical-rl runs top-to-bottom, and the half-turn
-   flips it. Shared by the label and the names, which differ only in their ink. */
+   flips it. */
 const sideways = css`
   writing-mode: vertical-rl;
   transform: rotate(180deg);
@@ -2994,26 +2989,6 @@ const sideways = css`
    panel-copy spacing and has no place in a flex column with its own gap. */
 const MoreLabel = styled(PanelEyebrow)`
   margin: 0;
-  ${sideways}
-`;
-
-/* A listed project's name, as a link — for CRAWLERS, not for people. Crawlers do not click, so
-   the address has to be in the DOM at rest; but on a spine this narrow a live link under the
-   pointer turned most of the door into a way out, and a click meant to open the list left the
-   site instead. So the link is inert here: it takes no pointer events (MoreFace passes them all
-   through to PanelHit), it is out of the tab order, and it is hidden from assistive tech, which
-   gets the working link in the opened list (MoreDetail). Google reads an href whatever the
-   pointer and the accessibility tree are told. No hover state, since it must not look clickable.
-
-   Visible text is the address (linkLabel), which is the domain, for the same crawler reason
-   PanelLink hides it in a span; here the text is drawn because the name IS the face. */
-const MoreLink = styled.a`
-  padding: 0.35rem 0.5rem;
-  font-family: ${p => p.theme.font.mono};
-  font-size: 0.62rem;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.62);
-  text-decoration: none;
   ${sideways}
 `;
 
@@ -4220,8 +4195,9 @@ const Detail: React.FC<{
 
 /* What the More panel opens into: a contents page for the listed projects. A SIBLING of the hero,
    like DetailCaption and for the same reason (text inside the hero would be squashed by its
-   flight), and it takes the caption's measure — a column, not the frame — so a listed project
-   reads at the width a featured one's copy does.
+   flight). It takes the whole frame where a featured caption takes a column: a featured detail
+   shares the frame with its pictures, and a listed project has none, so a column left the other
+   half of the frame empty. The measure is kept by the list's columns instead (see MoreList).
 
    Top-left and top-down where the caption is centred: this is a list, and a list that grows
    should grow downward from its heading. It scrolls rather than clips when it outruns the frame
@@ -4234,7 +4210,6 @@ const MoreCaption = styled(motion.div)`
   bottom: 0;
   left: 0;
   width: 100%;
-  max-width: 620px;
   padding: 3.25rem ${PANEL_PAD} ${PANEL_PAD};
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -4242,10 +4217,24 @@ const MoreCaption = styled(motion.div)`
   flex-direction: column;
 `;
 
+/* Side-by-side columns across the frame, each a readable measure, wrapping to a new row as the
+   list grows and to a single column when stacked. auto-fit, not auto-fill: a short list
+   stretches across the frame rather than leaving an empty column at its end. */
 const MoreList = styled.ul`
   list-style: none;
   margin: 0;
   padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  column-gap: 2.5rem;
+`;
+
+/* The detail's name, sized to a column. A listed project's name is its domain, one unbreakable
+   word, and at the featured clamp the longest (acneingredientchecker.com) needed 490px of a
+   360px column at 1280 wide. Tracking the viewport like the clamp it replaces, at the rate that
+   keeps that name inside three columns. */
+const MoreName = styled(DetailName)`
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
 `;
 
 /* One listed project. The rule above each row is the accent mixed down to 35% (never the hex,
@@ -4297,7 +4286,7 @@ const MoreDetail: React.FC<{
               <PanelEyebrow>
                 {p.kind} / {p.year}
               </PanelEyebrow>
-              <DetailName>{p.name}</DetailName>
+              <MoreName>{p.name}</MoreName>
               <DetailText>{p.detail ?? p.blurb}</DetailText>
               {p.url && (
                 <DetailLink
@@ -4610,25 +4599,35 @@ const Projects: React.FC<{
                 aria-expanded={false}
                 aria-label="More projects"
               />
-              {/* Over the button, letting every click through to it. The names are for crawlers
-                  and take no focus, so the spine is one control (see MoreLink). */}
+              {/* Over the button, letting every click through to it.
+
+                  The listed projects' links are for CRAWLERS, not for people: crawlers do not
+                  click, so each address has to be in the DOM at rest, with the domain as its
+                  text since Google reads link text. They are not drawn. Set sideways, each name
+                  costs ~170px of spine, and the spine is as tall as the screen allows, so three
+                  already overran it at 1280x720 and the topmost was clipped; the face stays the
+                  label at any count. Inert as well as hidden: out of the tab order and away from
+                  assistive tech, so the spine is one control. People get the working links in
+                  the opened list (MoreDetail). */}
               <MoreFace>
                 <MoreLabel>More projects</MoreLabel>
-                {LISTED_PROJECTS.map(
-                  p =>
-                    p.url && (
-                      <MoreLink
-                        key={p.name}
-                        href={p.url}
-                        target="_blank"
-                        rel="noopener"
-                        tabIndex={-1}
-                        aria-hidden
-                      >
-                        {linkLabel(p.url)}
-                      </MoreLink>
-                    ),
-                )}
+                <VisuallyHidden>
+                  {LISTED_PROJECTS.map(
+                    p =>
+                      p.url && (
+                        <a
+                          key={p.name}
+                          href={p.url}
+                          target="_blank"
+                          rel="noopener"
+                          tabIndex={-1}
+                          aria-hidden
+                        >
+                          {linkLabel(p.url)}
+                        </a>
+                      ),
+                  )}
+                </VisuallyHidden>
               </MoreFace>
             </MorePanel>
           ))}
@@ -4780,6 +4779,17 @@ const About: React.FC = () => {
 
     const onWheel = (e: WheelEvent) => {
       if (!enabled || e.ctrlKey || e.deltaY === 0) return;
+      /* A box that scrolls on its own — the More list, a detail's copy when stacked — keeps the
+         wheel while it overflows, at its ends too. Taken from it, wheeling UP a long list shut
+         the list and glided away before the list could move. At its ends its own
+         overscroll-behavior: contain keeps the browser from chaining out to the page, so a
+         trackpad flick that reaches the top stops there instead of closing it. A box that fits
+         is not a scroller, and the wheel moves the page as ever. */
+      for (let n = e.target instanceof Element ? e.target : null; n && n !== root; n = n.parentElement) {
+        if (n.scrollHeight > n.clientHeight && /auto|scroll/.test(getComputedStyle(n).overflowY)) {
+          return;
+        }
+      }
       const max = root.scrollHeight - root.clientHeight;
       const target = e.deltaY > 0 ? max : 0;
       /* A reversal DURING the lead, and it has to be caught before the parked check below: the

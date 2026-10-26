@@ -48,4 +48,6 @@ Free, browser-only tools. Nothing is uploaded; every one runs entirely on the vi
 - https://videogamers.fyi — An automated gaming site that tells you what a game is right now, not what it was at launch
 - https://fanmatchday.com — A FIFA World Cup 2026 matchday planner: hotel to kickoff in about thirty seconds
 - https://community.obsidian.md/plugins/x-bookmarks-sync — X Bookmarks Sync, an Obsidian plugin that saves your X bookmarks as real notes, with no API key
+- https://acneingredientchecker.com — A pore-clogging ingredient checker that shows which lab studies and lists flag each ingredient
+- https://boardfeetcalc.com — A board foot calculator with waste and cost, that also turns a cut list into rough lumber to buy
 - https://dqmwitheredworld.com — A fan synthesis calculator that finds every way to synthesize a monster in Dragon Quest Monsters: The Withered World

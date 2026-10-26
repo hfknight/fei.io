@@ -191,6 +191,31 @@ export const FEATURED_PROJECTS: Project[] = [
    in the DOM at rest. Where a project earns a panel is the note on FEATURED_PROJECTS. */
 export const LISTED_PROJECTS: Project[] = [
   {
+    name: 'acneingredientchecker.com',
+    blurb: 'Tells you which ingredients in a product may clog pores, and who says so.',
+    detail:
+      "Paste a product's ingredient list and it flags anything that may clog pores, rated on " +
+      'a simple 0 to 5 scale. Every rating shows its sources: which lab studies and published ' +
+      'lists flag that ingredient, and how many of them agree. Free, no sign-up.',
+    year: '2026',
+    kind: 'Pore-clogging ingredient checker',
+    url: 'https://acneingredientchecker.com',
+    schemaType: 'WebApplication',
+  },
+  {
+    name: 'boardfeetcalc.com',
+    blurb: 'Works out the board feet and cost of lumber, waste included.',
+    detail:
+      "A board foot calculator for woodworkers. Enter your boards' dimensions, species and " +
+      'price per board foot, and it totals the board feet and cost with a waste factor built ' +
+      'in. Or start from a finished cut list and it works back to the rough lumber to buy, ' +
+      'ready to print as a shopping list for the lumberyard. Imperial or metric, no sign-up.',
+    year: '2026',
+    kind: 'Board foot calculator',
+    url: 'https://boardfeetcalc.com',
+    schemaType: 'WebApplication',
+  },
+  {
     name: 'dqmwitheredworld.com',
     blurb:
       'Finds every way to synthesize a monster in Dragon Quest Monsters: The Withered World.',

@@ -134,7 +134,7 @@ _Avoid_: card, tile, slide
 
 **More panel**:
 The row's last column — not a project, but the way to the listed projects. Its face is its
-label and the listed projects' names; only its width answers a hover.
+label alone, however many projects are listed; only its width answers a hover.
 _Avoid_: overflow, archive, more card
 
 **Detail**:
